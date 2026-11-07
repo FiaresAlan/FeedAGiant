@@ -304,7 +304,8 @@ function PlotService.init()
 			PlotService.feed(player, arg)
 		end
 	end)
-	Remotes.GetFullState.OnServerInvoke = function(player)
+	local getFullState: RemoteFunction = Remotes.GetFullState :: any
+	getFullState.OnServerInvoke = function(player: Player): boolean?
 		local profile = DataService.waitFor(player)
 		if not profile then
 			return nil

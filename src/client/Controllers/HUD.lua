@@ -63,7 +63,7 @@ local function buildTopBar(gui: ScreenGui)
 
 	local bar = UI.panel(gui, {
 		Name = "TopBar",
-		Size = UDim2.new(0, 600, 0, 78),
+		Size = UDim2.fromOffset(600, 78),
 		Position = UDim2.fromOffset(206, 10),
 		BackgroundTransparency = 0.05,
 	})
@@ -135,8 +135,8 @@ local function buildTopBar(gui: ScreenGui)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 3,
 	})
-	local hBg
-	hBg, hungerFill = UI.bar(
+	local _hBg
+	_hBg, hungerFill = UI.bar(
 		hBox,
 		UI.Colors.Green,
 		{ Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(8, 32), ZIndex = 3 }

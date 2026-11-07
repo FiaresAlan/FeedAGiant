@@ -248,8 +248,8 @@ local function buildBars(gui: ScreenGui)
 		TextColor3 = UI.Colors.Accent,
 		ZIndex = 3,
 	})
-	local stBg
-	stBg, staminaFill = UI.bar(
+	local _stBg
+	_stBg, staminaFill = UI.bar(
 		box,
 		UI.Colors.Accent,
 		{ Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 46), ZIndex = 3 }
@@ -266,14 +266,14 @@ local function buildBars(gui: ScreenGui)
 	})
 	comboLabel = UI.title(gui, "", {
 		Size = UDim2.fromOffset(300, 60),
-		Position = UDim2.new(0.5, 0, 0.3, 0),
+		Position = UDim2.fromScale(0.5, 0.3),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Visible = false,
 		ZIndex = 20,
 	})
 	koLabel = UI.title(gui, "K.O.!", {
 		Size = UDim2.fromOffset(520, 110),
-		Position = UDim2.new(0.5, 0, 0.42, 0),
+		Position = UDim2.fromScale(0.5, 0.42),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Visible = false,
 		ZIndex = 60,

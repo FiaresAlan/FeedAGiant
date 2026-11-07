@@ -60,7 +60,8 @@ local function refreshPasses(player: Player)
 		return
 	end
 	local changed = false
-	for key, id in Config.GamePasses do
+	for rawKey, rawId in Config.GamePasses do
+		local key, id = rawKey :: string, rawId :: number
 		if id ~= 0 then
 			local owns = ownsPassAsync(player, id)
 			local current = DataService.get(player) -- pode ter saído durante a espera
@@ -68,7 +69,8 @@ local function refreshPasses(player: Player)
 				return
 			end
 			if owns ~= nil and (current.passes[key] == true) ~= owns then
-				current.passes[key] = if owns then true else nil
+				local passes: { [string]: boolean? } = current.passes :: any
+				passes[key] = if owns then true else nil
 				changed = true
 			end
 		end
@@ -165,7 +167,8 @@ function MonetizationService.init()
 
 	-- Todos os produtos usam entregas próprias (Receipts sem o módulo Rewards).
 	local products = {}
-	for key, def in Config.DevProducts do
+	for rawKey, def in Config.DevProducts do
+		local key = rawKey :: string
 		assert(GRANTS[key], `MonetizationService: produto {key} sem entrega`)
 		products[key] = {
 			id = (def :: any).id,
@@ -206,7 +209,8 @@ function MonetizationService.init()
 		if not profile then
 			return
 		end
-		for key, id in Config.GamePasses do
+		for rawKey, id in Config.GamePasses do
+			local key = rawKey :: string
 			if id ~= 0 and id == passId then
 				profile.passes[key] = true
 			end

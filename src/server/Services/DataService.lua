@@ -168,7 +168,8 @@ end
 -- Placares globais (índices; o perfil é a verdade)
 ---------------------------------------------------------------------------
 type BoardKind = "Level" | "Rebirth" | "Arena"
-local boards: { [BoardKind]: OrderedDataStore } = {}
+-- Chave string: o Luau não aceita atribuir campos num mapa de chaves literais.
+local boards: { [string]: OrderedDataStore } = {}
 local lastWritten: { [number]: { [string]: number } } = {}
 
 local function boardValues(profile: Profile): { [BoardKind]: number }
@@ -232,7 +233,7 @@ function DataService.init()
 	-- Uma "slice" por campo: profile.Data fica com o mesmo formato plano da v4.
 	local template = defaultProfile()
 	for key in template do
-		PlayerData.RegisterSlice(key, function()
+		PlayerData.RegisterSlice(key :: string, function()
 			return (defaultProfile() :: any)[key]
 		end)
 	end

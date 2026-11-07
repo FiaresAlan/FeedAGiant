@@ -132,7 +132,7 @@ end
 local function buildPopup(gui: ScreenGui)
 	challengePopup = UI.panel(gui, {
 		Size = UDim2.fromOffset(420, 150),
-		Position = UDim2.new(0.5, 0, 0.25, 0),
+		Position = UDim2.fromScale(0.5, 0.25),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = UI.Colors.Bg,
 		Visible = false,
@@ -255,8 +255,6 @@ function Arena.init(gui: ScreenGui)
 			end)
 		elseif e.kind == "Sent" then
 			win.Visible = false
-		elseif e.kind == "Declined" then
-			-- Notify já cobre; nada
 		elseif e.kind == "Start" then
 			local involved = e.a == player.UserId or e.b == player.UserId
 			fight.Visible = true

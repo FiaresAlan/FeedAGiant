@@ -316,9 +316,9 @@ function StealService.init()
 	end
 
 	-- Cliques em comidas (ClickDetector criado pelo PlotService)
-	Workspace.DescendantAdded:Connect(function(inst)
+	Workspace.DescendantAdded:Connect(function(inst: Instance)
 		if inst:IsA("ClickDetector") then
-			local model = inst:FindFirstAncestorOfClass("Model")
+			local model: Model? = inst:FindFirstAncestorOfClass("Model") :: any
 			if model and model:GetAttribute("FoodId") then
 				inst.MouseClick:Connect(function(clicker)
 					local ownerId = model:GetAttribute("OwnerUserId")

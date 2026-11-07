@@ -258,7 +258,7 @@ function MapService.init()
 	end
 
 	-- Decoração: nuvens
-	for i = 1, 20 do
+	for _ = 1, 20 do
 		local a = math.random() * math.pi * 2
 		local r = 150 + math.random() * 400
 		Util.makePart({

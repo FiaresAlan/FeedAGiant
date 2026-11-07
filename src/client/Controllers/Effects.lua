@@ -31,14 +31,14 @@ local function confetti(n: number)
 		p.BackgroundColor3 = colors[(i % #colors) + 1]
 		p.BorderSizePixel = 0
 		p.Size = UDim2.fromOffset(10 + math.random(0, 8), 14 + math.random(0, 10))
-		p.Position = UDim2.new(math.random(), 0, -0.1, 0)
+		p.Position = UDim2.fromScale(math.random(), -0.1)
 		p.Rotation = math.random(0, 360)
 		p.ZIndex = 45
 		p.Parent = confettiHolder
 		UI.corner(p, 3)
 		local dur = 2.2 + math.random() * 1.6
 		TweenService:Create(p, TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
-			Position = UDim2.new(p.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.1, 0),
+			Position = UDim2.fromScale(p.Position.X.Scale + (math.random() - 0.5) * 0.3, 1.1),
 			Rotation = p.Rotation + math.random(-540, 540),
 		}):Play()
 		task.delay(dur, function()
@@ -171,7 +171,7 @@ function Effects.init(gui: ScreenGui)
 	confettiHolder.Parent = gui
 	banner = UI.title(gui, "", {
 		Size = UDim2.fromOffset(700, 60),
-		Position = UDim2.new(0.5, 0, 0.18, 0),
+		Position = UDim2.fromScale(0.5, 0.18),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextColor3 = UI.Colors.Accent,
 		Visible = false,

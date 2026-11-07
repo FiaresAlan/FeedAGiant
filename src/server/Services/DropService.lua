@@ -46,11 +46,14 @@ local function activeCount(): number
 end
 
 local function rollFood(): Config.FoodDef
-	local weights = table.clone(D.Weights)
-	if #Players:GetPlayers() < D.MinPlayersForRare then
-		weights.Legendary = nil
-		weights.Mythic = nil
-		weights.Secret = nil
+	-- Com poucos jogadores, raridades altas não caem do céu.
+	local noRare = #Players:GetPlayers() < D.MinPlayersForRare
+	local weights: { [string]: number } = {}
+	for rawRarity, w in D.Weights do
+		local r = rawRarity :: string
+		if not (noRare and (r == "Legendary" or r == "Mythic" or r == "Secret")) then
+			weights[r] = w :: number
+		end
 	end
 	local rarity = Util.weightedPick(weights, 0)
 	local pool = {}
@@ -322,7 +325,7 @@ function DropService.spawn(forceRarity: string?)
 	}
 	drops[drop.id] = drop
 	task.spawn(function()
-		local ok, err = pcall(runDrop, drop)
+		local ok, err = pcall(runDrop :: any, drop)
 		if not ok then
 			warn("[DropService]", err)
 			if not drop.done then

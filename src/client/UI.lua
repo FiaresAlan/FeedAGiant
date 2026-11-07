@@ -100,7 +100,7 @@ local function shadow(inst: GuiObject, color: Color3, depth: number)
 	s.Name = "Shadow"
 	s.BackgroundColor3 = color
 	s.BorderSizePixel = 0
-	s.Size = UDim2.new(1, 0, 1, 0)
+	s.Size = UDim2.fromScale(1, 1)
 	s.Position = UDim2.fromOffset(0, depth)
 	s.ZIndex = inst.ZIndex - 1
 	s.Parent = inst
@@ -143,7 +143,7 @@ function UI.panel(parent: Instance, props: { [string]: any }): Frame
 		UI.corner(bar, 3)
 		UI.gradient(bar, UI.Colors.Accent, UI.Colors.Accent2, 0)
 		for _, pos in
-			{ UDim2.new(0, 8, 0, 8), UDim2.new(1, -14, 0, 8), UDim2.new(0, 8, 1, -14), UDim2.new(1, -14, 1, -14) }
+			{ UDim2.fromOffset(8, 8), UDim2.new(1, -14, 0, 8), UDim2.new(0, 8, 1, -14), UDim2.new(1, -14, 1, -14) }
 		do
 			local r = Instance.new("Frame")
 			r.Size = UDim2.fromOffset(6, 6)
@@ -335,14 +335,14 @@ function UI.bar(parent: Instance, color: Color3, props: { [string]: any }?): (Fr
 	shine.BackgroundTransparency = 0.6
 	shine.BorderSizePixel = 0
 	shine.Size = UDim2.new(0, 14, 1, -6)
-	shine.Position = UDim2.new(0, 0, 0, 3)
+	shine.Position = UDim2.fromOffset(0, 3)
 	shine.ZIndex = fill.ZIndex + 1
 	shine.ClipsDescendants = true
 	shine.Parent = fill
 	UI.corner(shine, 6)
 	task.spawn(function()
 		while shine.Parent do
-			shine.Position = UDim2.new(0, -14, 0, 3)
+			shine.Position = UDim2.fromOffset(-14, 3)
 			TweenService
 				:Create(shine, TweenInfo.new(1.6, Enum.EasingStyle.Linear), { Position = UDim2.new(1, 0, 0, 3) })
 				:Play()
@@ -411,7 +411,7 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	header.BackgroundColor3 = UI.Colors.Accent
 	header.BorderSizePixel = 0
 	header.Size = UDim2.new(1, -40, 0, 46)
-	header.Position = UDim2.new(0, 20, 0, -18)
+	header.Position = UDim2.fromOffset(20, -18)
 	header.ZIndex = 13
 	header.Parent = win
 	UI.corner(header, 14)

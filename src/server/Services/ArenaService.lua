@@ -333,7 +333,7 @@ function ArenaService.init()
 	task.spawn(function()
 		while true do
 			task.wait(A.TournamentEvery)
-			local ok, err = pcall(runTournament)
+			local ok, err = pcall(runTournament :: any)
 			if not ok then
 				warn("[ArenaService]", err)
 			end

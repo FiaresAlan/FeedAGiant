@@ -186,7 +186,10 @@ local function buildGiantModel(player: Player, anchor: Part, sp: Config.SpeciesD
 	model.PrimaryPart = torso
 
 	local label = Util.makeBillboard(torso, "", UDim2.fromOffset(260, 80), Vector3.new(0, 4, 0))
-	label.Parent.Name = "InfoGui"
+	local infoGui = label.Parent
+	if infoGui then
+		infoGui.Name = "InfoGui"
+	end
 	label.Name = "Info"
 
 	local fx = Instance.new("ParticleEmitter")

@@ -22,7 +22,7 @@ LunchboxOdds.LUCKY_FROM_ORDER = 3 -- Rare
 local function rarityOrder(): { string }
 	local list: { string } = {}
 	for name in Config.Rarities do
-		table.insert(list, name)
+		table.insert(list, name :: string)
 	end
 	table.sort(list, function(a, b)
 		return Config.Rarities[a].order < Config.Rarities[b].order

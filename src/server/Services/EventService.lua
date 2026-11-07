@@ -65,6 +65,7 @@ local function runFoodRain(def)
 			Config.Rarities[food.rarity].color
 		)
 		local taken = false
+		-- fwjelaa-ignore: connect-in-loop - uma peça nova por volta; p:Destroy() (ao pegar ou em 25 s) desliga a conexão
 		p.Touched:Connect(function(hit)
 			if taken then
 				return
