@@ -1,0 +1,464 @@
+--!strict
+-- UI.lua — kit visual próprio do Feed a Giant. Nada de "painel colorido com fonte branca":
+-- painéis 9-slice com faixa dourada, gradientes, glow neon, ícones em sprite-sheet, botões com sombra "chunky" 3D,
+-- barras com brilho animado e texto com gradiente. Tudo degrada graciosamente se Config.Assets.* = 0.
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local Config = require(game.ReplicatedStorage.Shared.Config)
+local Locale = require(game.ReplicatedStorage.Shared.Locale)
+
+local UI = {}
+
+UI.Font = Enum.Font.FredokaOne
+UI.FontBody = Enum.Font.GothamBold
+UI.Colors = {
+	Bg = Color3.fromRGB(22, 24, 44),
+	Panel = Color3.fromRGB(36, 40, 72),
+	Panel2 = Color3.fromRGB(48, 54, 96),
+	Outline = Color3.fromRGB(14, 15, 30),
+	Accent = Color3.fromRGB(255, 210, 63), -- dourado
+	Accent2 = Color3.fromRGB(255, 150, 30),
+	Green = Color3.fromRGB(80, 230, 130),
+	Red = Color3.fromRGB(255, 85, 95),
+	Blue = Color3.fromRGB(90, 180, 255),
+	Purple = Color3.fromRGB(190, 110, 255),
+	Text = Color3.fromRGB(255, 250, 235),
+	Muted = Color3.fromRGB(170, 176, 210),
+}
+
+-- Sprite sheet 4x2 (assets/ui/icons_sheet.png, 1536x1024)
+UI.Icons = {
+	coin = { 0, 0 }, glove = { 1, 0 }, lunchbox = { 2, 0 }, backpack = { 3, 0 },
+	trophy = { 0, 1 }, shield = { 1, 1 }, crown = { 2, 1 }, gear = { 3, 1 },
+}
+local ICON_FALLBACK = { coin = "🪙", glove = "🥊", lunchbox = "🍱", backpack = "🎒", trophy = "🏆", shield = "🛡️", crown = "👑", gear = "⚙️" }
+
+local function assetId(n: number): string
+	return "rbxassetid://" .. n
+end
+
+function UI.corner(inst: GuiObject, radius: number?)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius or 14)
+	c.Parent = inst
+	return c
+end
+
+function UI.stroke(inst: GuiObject, color: Color3?, thickness: number?)
+	local s = Instance.new("UIStroke")
+	s.Color = color or UI.Colors.Outline
+	s.Thickness = thickness or 3
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = inst
+	return s
+end
+
+function UI.gradient(inst: GuiObject, c1: Color3, c2: Color3, rotation: number?)
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(c1, c2)
+	g.Rotation = rotation or 90
+	g.Parent = inst
+	return g
+end
+
+-- Glow externo (ImageLabel com blur radial da própria Roblox)
+function UI.glow(inst: GuiObject, color: Color3, spread: number?, transparency: number?)
+	local g = Instance.new("ImageLabel")
+	g.Name = "Glow"
+	g.BackgroundTransparency = 1
+	g.Image = "rbxassetid://5028857084"
+	g.ImageColor3 = color
+	g.ImageTransparency = transparency or 0.45
+	g.ScaleType = Enum.ScaleType.Slice
+	g.SliceCenter = Rect.new(24, 24, 276, 276)
+	local s = spread or 18
+	g.Size = UDim2.new(1, s * 2, 1, s * 2)
+	g.Position = UDim2.fromOffset(-s, -s)
+	g.ZIndex = inst.ZIndex - 1
+	g.Parent = inst
+	return g
+end
+
+-- Sombra "chunky" 3D por baixo (estilo botão de simulador)
+local function shadow(inst: GuiObject, color: Color3, depth: number)
+	local s = Instance.new("Frame")
+	s.Name = "Shadow"
+	s.BackgroundColor3 = color
+	s.BorderSizePixel = 0
+	s.Size = UDim2.new(1, 0, 1, 0)
+	s.Position = UDim2.fromOffset(0, depth)
+	s.ZIndex = inst.ZIndex - 1
+	s.Parent = inst
+	UI.corner(s, 14)
+	return s
+end
+
+-- Painel: 9-slice se houver asset, senão gradiente + faixa dourada no topo + rebites
+function UI.panel(parent: Instance, props: { [string]: any }): Frame
+	local f = Instance.new("Frame")
+	f.BackgroundColor3 = UI.Colors.Panel
+	f.BorderSizePixel = 0
+	for k, v in props do
+		(f :: any)[k] = v
+	end
+	f.Parent = parent
+	UI.corner(f, 16)
+	UI.stroke(f, UI.Colors.Outline, 3.5)
+	if Config.Assets.Panel ~= 0 then
+		local img = Instance.new("ImageLabel")
+		img.Name = "Skin"
+		img.BackgroundTransparency = 1
+		img.Image = assetId(Config.Assets.Panel)
+		img.ScaleType = Enum.ScaleType.Slice
+		img.SliceCenter = Rect.new(140, 160, 884, 884)
+		img.Size = UDim2.fromScale(1, 1)
+		img.ZIndex = f.ZIndex
+		img.Parent = f
+		f.BackgroundTransparency = 1
+	else
+		UI.gradient(f, UI.Colors.Panel2, UI.Colors.Panel, 90)
+		local bar = Instance.new("Frame")
+		bar.Name = "TopBar"
+		bar.BackgroundColor3 = UI.Colors.Accent
+		bar.BorderSizePixel = 0
+		bar.Size = UDim2.new(1, -24, 0, 5)
+		bar.Position = UDim2.fromOffset(12, 0)
+		bar.ZIndex = f.ZIndex + 1
+		bar.Parent = f
+		UI.corner(bar, 3)
+		UI.gradient(bar, UI.Colors.Accent, UI.Colors.Accent2, 0)
+		for _, pos in { UDim2.new(0, 8, 0, 8), UDim2.new(1, -14, 0, 8), UDim2.new(0, 8, 1, -14), UDim2.new(1, -14, 1, -14) } do
+			local r = Instance.new("Frame")
+			r.Size = UDim2.fromOffset(6, 6)
+			r.Position = pos
+			r.BackgroundColor3 = UI.Colors.Muted
+			r.BackgroundTransparency = 0.5
+			r.BorderSizePixel = 0
+			r.ZIndex = f.ZIndex + 1
+			r.Parent = f
+			UI.corner(r, 3)
+		end
+	end
+	return f
+end
+
+-- frame simples (compat com código antigo)
+function UI.frame(parent: Instance, props: { [string]: any }): Frame
+	local f = Instance.new("Frame")
+	f.BackgroundColor3 = UI.Colors.Panel
+	f.BorderSizePixel = 0
+	for k, v in props do
+		(f :: any)[k] = v
+	end
+	f.Parent = parent
+	UI.corner(f)
+	return f
+end
+
+function UI.label(parent: Instance, text: string, props: { [string]: any }?): TextLabel
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Font = UI.Font
+	l.TextColor3 = UI.Colors.Text
+	l.TextScaled = true
+	l.Text = Locale.t(text)
+	l.TextStrokeColor3 = UI.Colors.Outline
+	l.TextStrokeTransparency = 0.15
+	l.Size = UDim2.fromScale(1, 1)
+	if props then
+		for k, v in props do
+			(l :: any)[k] = v
+		end
+	end
+	l.Parent = parent
+	return l
+end
+
+-- Título com gradiente dourado + contorno grosso (estilo logo)
+function UI.title(parent: Instance, text: string, props: { [string]: any }?): TextLabel
+	local l = UI.label(parent, text, props)
+	l.TextColor3 = Color3.new(1, 1, 1)
+	l.TextStrokeTransparency = 0
+	UI.gradient(l, UI.Colors.Accent, UI.Colors.Accent2, 90)
+	local st = Instance.new("UIStroke")
+	st.Color = UI.Colors.Outline
+	st.Thickness = 2.5
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	st.Parent = l
+	return l
+end
+
+function UI.icon(parent: Instance, name: string, props: { [string]: any }?): GuiObject
+	local cell = UI.Icons[name]
+	if Config.Assets.IconsSheet ~= 0 and cell then
+		local img = Instance.new("ImageLabel")
+		img.BackgroundTransparency = 1
+		img.Image = assetId(Config.Assets.IconsSheet)
+		img.ImageRectSize = Vector2.new(384, 512)
+		img.ImageRectOffset = Vector2.new(cell[1] * 384, cell[2] * 512)
+		img.ScaleType = Enum.ScaleType.Fit
+		if props then
+			for k, v in props do
+				(img :: any)[k] = v
+			end
+		end
+		img.Parent = parent
+		return img
+	end
+	local l = UI.label(parent, ICON_FALLBACK[name] or "•", props)
+	l.TextStrokeTransparency = 1
+	return l
+end
+
+-- Botão chunky: sombra 3D, gradiente, brilho no topo, hover/press animados, som de clique
+function UI.button(parent: Instance, text: string, color: Color3, props: { [string]: any }?): TextButton
+	local b = Instance.new("TextButton")
+	b.AutoButtonColor = false
+	b.BackgroundColor3 = color
+	b.BorderSizePixel = 0
+	b.Font = UI.Font
+	b.Text = Locale.t(text)
+	b.TextColor3 = UI.Colors.Text
+	b.TextScaled = true
+	b.TextStrokeColor3 = UI.Colors.Outline
+	b.TextStrokeTransparency = 0.1
+	b.ZIndex = 2
+	if props then
+		for k, v in props do
+			(b :: any)[k] = v
+		end
+	end
+	b.Parent = parent
+	UI.corner(b, 14)
+	UI.stroke(b, UI.Colors.Outline, 3)
+	local h, s, v = color:ToHSV()
+	local dark = Color3.fromHSV(h, math.min(1, s * 1.1), v * 0.55)
+	local light = Color3.fromHSV(h, s * 0.8, math.min(1, v * 1.15))
+	UI.gradient(b, light, color, 90)
+	local sh = shadow(b, dark, 6)
+	local shine = Instance.new("Frame")
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = 0.75
+	shine.BorderSizePixel = 0
+	shine.Size = UDim2.new(1, -16, 0, 6)
+	shine.Position = UDim2.fromOffset(8, 5)
+	shine.ZIndex = b.ZIndex + 1
+	shine.Parent = b
+	UI.corner(shine, 3)
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 10)
+	pad.PaddingRight = UDim.new(0, 10)
+	pad.PaddingTop = UDim.new(0, 6)
+	pad.PaddingBottom = UDim.new(0, 6)
+	pad.Parent = b
+	local basePos = b.Position
+	b.MouseEnter:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.1), { Position = basePos - UDim2.fromOffset(0, 2) }):Play()
+	end)
+	b.MouseLeave:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.1), { Position = basePos }):Play()
+	end)
+	b.MouseButton1Down:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.06), { Position = basePos + UDim2.fromOffset(0, 5) }):Play()
+		sh.Position = UDim2.fromOffset(0, 1)
+		UI.sfx("Click", 0.5)
+	end)
+	b.MouseButton1Up:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.1), { Position = basePos }):Play()
+		sh.Position = UDim2.fromOffset(0, 6)
+	end)
+	return b
+end
+
+-- Botão redondo com ícone (menu lateral)
+function UI.iconButton(parent: Instance, iconName: string, caption: string, color: Color3, props: { [string]: any }?): TextButton
+	local b = UI.button(parent, "", color, props)
+	UI.icon(b, iconName, { Size = UDim2.new(1, -8, 1, -22), Position = UDim2.fromOffset(4, 0), ZIndex = b.ZIndex + 1 })
+	UI.label(b, caption, { Size = UDim2.new(1, 0, 0, 18), Position = UDim2.new(0, 0, 1, -18), TextScaled = false, TextSize = 13, ZIndex = b.ZIndex + 1 })
+	return b
+end
+
+-- Barra de progresso com brilho que percorre a barra
+function UI.bar(parent: Instance, color: Color3, props: { [string]: any }?): (Frame, Frame)
+	local bg = Instance.new("Frame")
+	bg.BackgroundColor3 = Color3.fromRGB(14, 15, 30)
+	bg.BorderSizePixel = 0
+	if props then
+		for k, v in props do
+			(bg :: any)[k] = v
+		end
+	end
+	bg.Parent = parent
+	UI.corner(bg, 10)
+	UI.stroke(bg, UI.Colors.Outline, 2)
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.BackgroundColor3 = color
+	fill.BorderSizePixel = 0
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.ZIndex = bg.ZIndex + 1
+	fill.Parent = bg
+	UI.corner(fill, 10)
+	local h, s, v = color:ToHSV()
+	UI.gradient(fill, Color3.fromHSV(h, s * 0.7, math.min(1, v * 1.2)), Color3.fromHSV(h, s, v * 0.75), 90)
+	local shine = Instance.new("Frame")
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = 0.6
+	shine.BorderSizePixel = 0
+	shine.Size = UDim2.new(0, 14, 1, -6)
+	shine.Position = UDim2.new(0, 0, 0, 3)
+	shine.ZIndex = fill.ZIndex + 1
+	shine.ClipsDescendants = true
+	shine.Parent = fill
+	UI.corner(shine, 6)
+	task.spawn(function()
+		while shine.Parent do
+			shine.Position = UDim2.new(0, -14, 0, 3)
+			TweenService:Create(shine, TweenInfo.new(1.6, Enum.EasingStyle.Linear), { Position = UDim2.new(1, 0, 0, 3) }):Play()
+			task.wait(2.8)
+		end
+	end)
+	return bg, fill
+end
+
+function UI.setBar(fill: Frame, pct: number, instant: boolean?)
+	pct = math.clamp(pct, 0, 1)
+	if instant then
+		fill.Size = UDim2.fromScale(pct, 1)
+	else
+		TweenService:Create(fill, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(pct, 1) }):Play()
+	end
+end
+
+function UI.pop(inst: GuiObject)
+	inst.Visible = true
+	local goal = inst.Size
+	inst.Size = UDim2.new(goal.X.Scale * 0.8, goal.X.Offset * 0.8, goal.Y.Scale * 0.8, goal.Y.Offset * 0.8)
+	TweenService:Create(inst, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal }):Play()
+end
+
+function UI.pulse(inst: GuiObject, scale: number?, time: number?)
+	local goal = inst.Size
+	local k = scale or 1.12
+	local big = UI.scaleUDim(goal, k)
+	local t = TweenService:Create(inst, TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = big })
+	t:Play()
+	t.Completed:Once(function()
+		TweenService:Create(inst, TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad), { Size = goal }):Play()
+	end)
+end
+
+function UI.scaleUDim(u: UDim2, k: number): UDim2
+	return UDim2.new(u.X.Scale * k, u.X.Offset * k, u.Y.Scale * k, u.Y.Offset * k)
+end
+
+-- Janela modal com cabeçalho dourado, fechamento animado e fundo escurecido
+function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Frame)
+	local dim = Instance.new("Frame")
+	dim.Name = "Dim_" .. titleText
+	dim.BackgroundColor3 = Color3.new(0, 0, 0)
+	dim.BackgroundTransparency = 0.45
+	dim.BorderSizePixel = 0
+	dim.Size = UDim2.fromScale(1, 1)
+	dim.Visible = false
+	dim.ZIndex = 10
+	dim.Parent = gui
+	local win = UI.panel(dim, {
+		Name = "Window",
+		Size = size,
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		ZIndex = 11,
+	})
+	UI.glow(win, UI.Colors.Accent, 22, 0.7)
+	local header = Instance.new("Frame")
+	header.BackgroundColor3 = UI.Colors.Accent
+	header.BorderSizePixel = 0
+	header.Size = UDim2.new(1, -40, 0, 46)
+	header.Position = UDim2.new(0, 20, 0, -18)
+	header.ZIndex = 13
+	header.Parent = win
+	UI.corner(header, 14)
+	UI.stroke(header, UI.Colors.Outline, 3)
+	UI.gradient(header, UI.Colors.Accent, UI.Colors.Accent2, 90)
+	UI.label(header, titleText, { Size = UDim2.new(1, -20, 1, -8), Position = UDim2.fromOffset(10, 4), ZIndex = 14, TextColor3 = UI.Colors.Outline, TextStrokeTransparency = 1 })
+	local close = UI.button(win, "✕", UI.Colors.Red, { Size = UDim2.fromOffset(44, 44), Position = UDim2.new(1, -30, 0, -16), ZIndex = 14 })
+	local body = Instance.new("Frame")
+	body.BackgroundTransparency = 1
+	body.Size = UDim2.new(1, -40, 1, -70)
+	body.Position = UDim2.fromOffset(20, 48)
+	body.ZIndex = 12
+	body.Parent = win
+	local function hide()
+		local t = TweenService:Create(win, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UI.scaleUDim(size, 0.85) })
+		t:Play()
+		t.Completed:Once(function()
+			dim.Visible = false
+			win.Size = size
+		end)
+	end
+	close.MouseButton1Click:Connect(hide)
+	-- compat: código antigo faz win.Visible = false / UI.pop(win)
+	win:GetPropertyChangedSignal("Visible"):Connect(function()
+		dim.Visible = win.Visible
+	end)
+	dim.MouseEnter:Connect(function() end)
+	return win, body
+end
+
+-- Sons compartilhados
+local sounds: { [string]: Sound } = {}
+local LocalizationService = game:GetService("LocalizationService")
+local Players = game:GetService("Players")
+local function voLocale(): string
+	local ok, loc = pcall(function()
+		return string.lower(Players.LocalPlayer.LocaleId)
+	end)
+	loc = if ok and loc then loc else "en"
+	if string.sub(loc, 1, 2) == "pt" then
+		return "pt-br"
+	elseif string.sub(loc, 1, 2) == "es" then
+		return "es"
+	end
+	return "en"
+end
+
+function UI.sfx(key: string, volume: number?)
+	local id = (Config.Sounds :: any)[key]
+	if string.sub(key, 1, 3) == "VO_" then
+		local tbl = (Config.Sounds.VO :: any)[voLocale()] or (Config.Sounds.VO :: any)["en"]
+		id = tbl and tbl[string.sub(key, 4)]
+		key = key .. "_" .. voLocale()
+	end
+	if not id or id == 0 then
+		return
+	end
+	local s = sounds[key]
+	if not s then
+		s = Instance.new("Sound")
+		s.SoundId = if type(id) == "number" then assetId(id) else id
+		s.Parent = SoundService
+		sounds[key] = s
+	end
+	s.Volume = volume or 0.6
+	s.PlaybackSpeed = 0.95 + math.random() * 0.1
+	s:Play()
+end
+
+-- Logo (imagem se existir, senão título com gradiente)
+function UI.logo(parent: Instance, props: { [string]: any }): GuiObject
+	if Config.Assets.Logo ~= 0 then
+		local img = Instance.new("ImageLabel")
+		img.BackgroundTransparency = 1
+		img.Image = assetId(Config.Assets.Logo)
+		img.ScaleType = Enum.ScaleType.Fit
+		for k, v in props do
+			(img :: any)[k] = v
+		end
+		img.Parent = parent
+		return img
+	end
+	return UI.title(parent, "FEED A GIANT", props)
+end
+
+return UI

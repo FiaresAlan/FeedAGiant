@@ -1,0 +1,211 @@
+--!strict
+-- Arena.lua — janela "GIANT CLASH": lista jogadores para desafiar, popup de desafio recebido, overlay da luta com barras de HP.
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Config = require(game.ReplicatedStorage.Shared.Config)
+local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local UI = require(script.Parent.Parent.UI)
+local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local State = require(script.Parent.Parent.State)
+
+local Arena = {}
+local Effects = require(script.Parent.Effects)
+local player = Players.LocalPlayer
+local win: Frame
+local listFrame: Frame
+local challengePopup: Frame
+local challengeText: TextLabel
+local fight: Frame
+local nameA: TextLabel
+local nameB: TextLabel
+local hpA: Frame
+local hpB: Frame
+local fightTitle: TextLabel
+local pendingFrom = 0
+Arena.playSound = nil :: ((string, number?) -> ())?
+Arena.shake = nil :: ((number, number) -> ())?
+
+local function sfx(k: string, v: number?)
+	if Arena.playSound then
+		Arena.playSound(k, v)
+	end
+end
+
+local function rebuildList()
+	for _, c in listFrame:GetChildren() do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	local n = 0
+	for _, p in Players:GetPlayers() do
+		if p == player then
+			continue
+		end
+		n += 1
+		local row = UI.frame(listFrame, { Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = UI.Colors.Panel })
+		UI.label(row, p.DisplayName, { Size = UDim2.new(1, -170, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left })
+		local b = UI.button(row, "DESAFIAR ⚔", UI.Colors.Red, { Size = UDim2.fromOffset(150, 40), Position = UDim2.new(1, -158, 0.5, -20) })
+		b.MouseButton1Click:Connect(function()
+			Remotes.RequestDuel:FireServer(p.UserId)
+		end)
+	end
+	if n == 0 then
+		UI.label(listFrame, "Nenhum oponente no servidor. Convide amigos!", { Size = UDim2.new(1, 0, 0, 40), TextColor3 = UI.Colors.Accent })
+	end
+end
+
+local function statsText(s: State.PlayerState): string
+	local a = s :: any
+	local cd = math.max(0, (a.lastDuel or 0) + (if s.passes.ArenaVIP then Config.Arena.DuelCooldown / 2 else Config.Arena.DuelCooldown) - os.time())
+	return Locale.fmt("arena_stats", nil, { w = a.arenaWins or 0, l = a.arenaLosses or 0, s = if cd > 0 then Locale.fmt("cooldown_s", nil, { n = cd }) else "Pronto para lutar!" })
+end
+
+local function buildWindow(gui: ScreenGui)
+	local body: Frame
+	win, body = UI.window(gui, "GIANT CLASH — ARENA", UDim2.fromOffset(520, 460))
+	local stats = UI.label(body, "", { Size = UDim2.new(1, 0, 0, 24), TextColor3 = UI.Colors.Accent })
+	UI.label(body, "Vencedor rouba as 2 comidas mais raras do PÁTIO do perdedor + 5% das moedas. Força = espécie × nível × rebirth × humor (+sorte).", { Size = UDim2.new(1, 0, 0, 40), Position = UDim2.fromOffset(0, 26), TextScaled = false, TextSize = 13, TextWrapped = true, TextTransparency = 0.2 })
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Size = UDim2.new(1, 0, 1, -76)
+	scroll.Position = UDim2.fromOffset(0, 72)
+	scroll.BackgroundTransparency = 1
+	scroll.BorderSizePixel = 0
+	scroll.ScrollBarThickness = 6
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	scroll.CanvasSize = UDim2.new()
+	scroll.Parent = body
+	listFrame = UI.frame(scroll, { Size = UDim2.new(1, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1 })
+	local lay = Instance.new("UIListLayout")
+	lay.Padding = UDim.new(0, 6)
+	lay.Parent = listFrame
+	State.onChanged(function(s)
+		stats.Text = statsText(s)
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if win.Visible then
+				stats.Text = statsText(State.current)
+			end
+		end
+	end)
+end
+
+local function buildPopup(gui: ScreenGui)
+	challengePopup = UI.panel(gui, { Size = UDim2.fromOffset(420, 150), Position = UDim2.new(0.5, 0, 0.25, 0), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = UI.Colors.Bg, Visible = false })
+	UI.stroke(challengePopup, UI.Colors.Red, 3)
+	challengeText = UI.label(challengePopup, "", { Size = UDim2.new(1, -20, 0, 70), Position = UDim2.fromOffset(10, 8), TextWrapped = true })
+	local acc = UI.button(challengePopup, "ACEITAR ⚔", UI.Colors.Green, { Size = UDim2.fromOffset(180, 48), Position = UDim2.fromOffset(20, 90) })
+	local dec = UI.button(challengePopup, "RECUSAR", Color3.fromRGB(110, 110, 130), { Size = UDim2.fromOffset(180, 48), Position = UDim2.fromOffset(220, 90) })
+	acc.MouseButton1Click:Connect(function()
+		Remotes.RequestDuelAnswer:FireServer(pendingFrom, true)
+		challengePopup.Visible = false
+	end)
+	dec.MouseButton1Click:Connect(function()
+		Remotes.RequestDuelAnswer:FireServer(pendingFrom, false)
+		challengePopup.Visible = false
+	end)
+end
+
+local function buildFight(gui: ScreenGui)
+	fight = UI.panel(gui, { Name = "FightOverlay", Size = UDim2.fromOffset(620, 110), Position = UDim2.new(0.5, 0, 0, 100), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = UI.Colors.Bg, BackgroundTransparency = 0.1, Visible = false })
+	UI.stroke(fight, UI.Colors.Accent, 3)
+	fightTitle = UI.title(fight, "⚔ GIANT CLASH ⚔", { Size = UDim2.new(1, 0, 0, 28), Position = UDim2.fromOffset(0, 4), TextColor3 = UI.Colors.Accent })
+	nameA = UI.label(fight, "", { Size = UDim2.fromOffset(280, 24), Position = UDim2.fromOffset(12, 36), TextXAlignment = Enum.TextXAlignment.Left })
+	nameB = UI.label(fight, "", { Size = UDim2.fromOffset(280, 24), Position = UDim2.new(1, -292, 0, 36), TextXAlignment = Enum.TextXAlignment.Right })
+	local bgA = UI.frame(fight, { Size = UDim2.fromOffset(280, 22), Position = UDim2.fromOffset(12, 68), BackgroundColor3 = Color3.fromRGB(20, 20, 30) })
+	UI.corner(bgA, 11)
+	hpA = UI.frame(bgA, { Size = UDim2.fromScale(1, 1), BackgroundColor3 = UI.Colors.Green })
+	UI.corner(hpA, 11)
+	local bgB = UI.frame(fight, { Size = UDim2.fromOffset(280, 22), Position = UDim2.new(1, -292, 0, 68), BackgroundColor3 = Color3.fromRGB(20, 20, 30) })
+	UI.corner(bgB, 11)
+	hpB = UI.frame(bgB, { Size = UDim2.fromScale(1, 1), AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), BackgroundColor3 = UI.Colors.Red })
+	UI.corner(hpB, 11)
+	UI.label(fight, "VS", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(0.5, -20, 0, 50), TextColor3 = UI.Colors.Accent })
+end
+
+function Arena.open()
+	rebuildList()
+	UI.pop(win)
+end
+
+function Arena.init(gui: ScreenGui)
+	buildWindow(gui)
+	buildPopup(gui)
+	buildFight(gui)
+	Players.PlayerAdded:Connect(function()
+		if win.Visible then
+			rebuildList()
+		end
+	end)
+	Players.PlayerRemoving:Connect(function()
+		if win.Visible then
+			rebuildList()
+		end
+	end)
+
+	Remotes.ArenaState.OnClientEvent:Connect(function(e)
+		if type(e) ~= "table" then
+			return
+		end
+		if e.kind == "Challenge" then
+			pendingFrom = e.from
+			challengeText.Text = Locale.fmt("challenge_popup", nil, { p = e.fromName, n = math.floor(e.power) })
+			UI.pop(challengePopup)
+			sfx("Bell", 0.8)
+			task.delay(20, function()
+				if pendingFrom == e.from then
+					challengePopup.Visible = false
+				end
+			end)
+		elseif e.kind == "Sent" then
+			win.Visible = false
+		elseif e.kind == "Declined" then
+			-- Notify já cobre; nada
+		elseif e.kind == "Start" then
+			local involved = e.a == player.UserId or e.b == player.UserId
+			fight.Visible = true
+			fightTitle.Text = Locale.fmt("fight_title", nil, { t = if e.tournament then "🏆 " .. Locale.t("CAMPEONATO") .. ": " else "⚔ GIANT CLASH: ", a = e.aName, b = e.bName })
+			nameA.Text = string.format("%s  (⚡%d)", e.aName, e.powerA)
+			nameB.Text = string.format("(⚡%d)  %s", e.powerB, e.bName)
+			hpA.Size = UDim2.fromScale(1, 1)
+			hpB.Size = UDim2.fromScale(1, 1)
+			sfx("Bell", if involved then 1 else 0.5)
+			UI.sfx("VO_Fight", if involved then 1 else 0.6)
+			if involved then
+				win.Visible = false
+			end
+		elseif e.kind == "Tick" then
+			TweenService:Create(hpA, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpA / 100, 0, 1), 1) }):Play()
+			TweenService:Create(hpB, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpB / 100, 0, 1), 1) }):Play()
+			sfx(if math.random() < 0.3 then "Heavy" else "Punch", 0.4)
+			if (e.a == player.UserId or e.b == player.UserId) and Arena.shake then
+				Arena.shake(0.6, 0.2)
+			end
+		elseif e.kind == "End" then
+			if e.winner == player.UserId then
+				fightTitle.Text = Locale.fmt("fight_won", nil, { x = if e.stolen and #e.stolen > 0 then Locale.fmt("fight_stole", nil, { s = table.concat(e.stolen, ", ") }) else "" })
+				sfx("Win", 1)
+				Effects.confetti(80)
+				Effects.flash(UI.Colors.Accent, 0.4)
+			elseif e.a == player.UserId or e.b == player.UserId then
+				fightTitle.Text = Locale.fmt("fight_lost", nil, { p = e.winnerName or "" })
+				sfx("KO", 0.9)
+			else
+				fightTitle.Text = Locale.fmt("fight_other", nil, { p = e.winnerName or "?" })
+			end
+			task.delay(4, function()
+				fight.Visible = false
+			end)
+		elseif e.kind == "Tournament" then
+			sfx("Bell", 1)
+		elseif e.kind == "Champion" then
+			UI.sfx("VO_Champion", 1)
+			Effects.confetti(120)
+		end
+	end)
+end
+
+return Arena

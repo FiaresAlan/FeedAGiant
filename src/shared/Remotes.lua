@@ -1,0 +1,73 @@
+--!strict
+-- Remotes.lua — cria/obtém RemoteEvents e RemoteFunctions de forma segura em servidor e cliente.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local folder = ReplicatedStorage:WaitForChild("Remotes")
+
+local EVENTS = {
+	"StateChanged", -- server -> client: snapshot parcial do estado do jogador
+	"Notify", -- server -> client: {text, color}
+	"HatchResult", -- server -> client: {foodId, rarity}
+	"EventStarted", -- server -> all: {id, name, duration, color}
+	"EventEnded",
+	"GiantFed", -- server -> all: {userId, xp}
+	"StealAlert", -- server -> owner: {thiefName}
+	"RequestFeed", -- client -> server: slotIndex
+	"RequestPlace", -- client -> server: inventoryIndex
+	"RequestPickup", -- client -> server: slotIndex
+	"RequestBuyBox", -- client -> server: lunchboxId
+	"RequestRebirth",
+	"RequestRedeemCode", -- client -> server: code
+	"RequestClaimDaily",
+	"RequestPurchase", -- client -> server: productKey
+	"RequestGamePass", -- client -> server: passKey
+	-- v2
+	"CombatState", -- server -> client: {stamina, maxStamina, hp, maxHp, blocking, combo, ko}
+	"CombatEvent", -- server -> all: {kind = Swing|Hit|KO|Impact, ...}
+	"RequestPunch", -- client -> server: heavy:boolean
+	"RequestBlock", -- client -> server: on:boolean
+	"DropState", -- server -> all: {id, foodId, name, rarity, pos, holdTime, contenders} | {id, removed}
+	"ArenaState", -- server -> client(s): {kind = Challenge|Sent|Start|Tick|End|Tournament|Declined}
+	"RequestDuel", -- client -> server: targetUserId
+	"RequestDuelAnswer", -- client -> server: challengerUserId, accept:boolean
+	"RequestBuySpecies", -- client -> server: speciesId
+	"RequestEquipSpecies", -- client -> server: speciesId
+	"GiantEvolved", -- server -> all: {userId, stageName, level}
+}
+
+local FUNCTIONS = {
+	"GetFullState",
+}
+
+local Remotes = {}
+
+for _, name in EVENTS do
+	local inst = folder:FindFirstChild(name)
+	if not inst then
+		if RunService:IsServer() then
+			inst = Instance.new("RemoteEvent")
+			inst.Name = name
+			inst.Parent = folder
+		else
+			inst = folder:WaitForChild(name)
+		end
+	end
+	Remotes[name] = inst :: RemoteEvent
+end
+
+for _, name in FUNCTIONS do
+	local inst = folder:FindFirstChild(name)
+	if not inst then
+		if RunService:IsServer() then
+			inst = Instance.new("RemoteFunction")
+			inst.Name = name
+			inst.Parent = folder
+		else
+			inst = folder:WaitForChild(name)
+		end
+	end
+	Remotes[name] = inst :: RemoteFunction
+end
+
+return Remotes

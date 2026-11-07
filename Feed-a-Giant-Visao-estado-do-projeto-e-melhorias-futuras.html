@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; img-src data: blob:; font-src data: https://fonts.gstatic.com; media-src data: blob:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="x-dns-prefetch-control" content="off">
+  <title>Feed a Giant — Visão, estado do projeto e melhorias futuras</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap">
+
+  <style>
+    /* Tess brand theme. Style with these tokens (never raw hex) so light and dark both work.
+       Colour: --bg --surface --surface-2 --fg --muted --subtle --accent --accent-strong --on-accent
+               --brand --border --border-strong --success --warning --danger --info (+ -soft variants)
+       Type:   --font-body --font-display --font-mono, --text-sm/base/lg/xl/2xl/3xl
+       Shape:  --space (16px), --space-1..7 (4,8,12,16,24,32,48px), --radius-sm --radius --radius-lg
+               --radius-pill, --shadow-sm --shadow --shadow-lg
+       Classes: .hero .lead .eyebrow .muted .card .grid .btn (.secondary .accent) .badge
+                (.success .warning .danger .info) .scroll-x */
+
+    /* ---------- 1. Design tokens (light) ---------- */
+    :root {
+      --bg: #faf9f7;
+      --surface: #ffffff;
+      --surface-2: #f1efe9;
+      --fg: #101010;
+      --muted: #4c4b47;
+      --subtle: #86847e;
+      --accent: #176b7b;
+      --accent-strong: #11525e;
+      --on-accent: #ffffff;
+      --brand: #0f4c5c;
+      --border: rgba(16, 16, 16, 0.10);
+      --border-strong: rgba(16, 16, 16, 0.18);
+      --success: #047857; --success-soft: #d1fae5;
+      --warning: #b45309; --warning-soft: #fef3c7;
+      --danger: #b91c1c; --danger-soft: #fee2e2;
+      --info: #1d4ed8; --info-soft: #dbeafe;
+      --hero-from: #dfe8ec; --hero-to: #f4fbfd;
+      --shadow-sm: 0 1px 2px rgba(16, 16, 16, 0.06);
+      --shadow: 0 12px 40px rgba(16, 16, 16, 0.08);
+      --shadow-lg: 0 24px 64px rgba(16, 16, 16, 0.12);
+      --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-display: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --text-sm: 0.875rem;
+      --text-base: 1rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.5rem;
+      --text-2xl: 2rem;
+      --text-3xl: 2.75rem;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 24px; --space-6: 32px; --space-7: 48px;
+      --space: var(--space-4);
+      --radius-sm: 6px;
+      --radius: 10px;
+      --radius-lg: 14px;
+      --radius-pill: 999px;
+      color-scheme: light;
+    }
+    /* ---------- 2. Dark tokens (system setting, unless forced light) ---------- */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0c0d0f; --surface: #131417; --surface-2: #1a1c1f; --fg: #f2f1ee; --muted: #b9b8b4;
+        --subtle: #7f7f7f; --accent: #7ecad8; --accent-strong: #9adce8; --on-accent: #06282e; --brand: #5ebdd0;
+        --border: rgba(255, 255, 255, 0.09); --border-strong: rgba(255, 255, 255, 0.16);
+        --success: #34d399; --success-soft: rgba(52, 211, 153, 0.14); --warning: #fbbf24; --warning-soft: rgba(251, 191, 36, 0.14);
+        --danger: #f87171; --danger-soft: rgba(248, 113, 113, 0.14); --info: #60a5fa; --info-soft: rgba(96, 165, 250, 0.14);
+        --hero-from: #17242b; --hero-to: #0c0d0f;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --shadow: 0 12px 40px rgba(0, 0, 0, 0.35); --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.45);
+        color-scheme: dark;
+      }
+    }
+    /* ---------- 2b. Dark tokens (explicit toggle) ---------- */
+    :root[data-theme="dark"] {
+      --bg: #0c0d0f; --surface: #131417; --surface-2: #1a1c1f; --fg: #f2f1ee; --muted: #b9b8b4;
+      --subtle: #7f7f7f; --accent: #7ecad8; --accent-strong: #9adce8; --on-accent: #06282e; --brand: #5ebdd0;
+      --border: rgba(255, 255, 255, 0.09); --border-strong: rgba(255, 255, 255, 0.16);
+      --success: #34d399; --success-soft: rgba(52, 211, 153, 0.14); --warning: #fbbf24; --warning-soft: rgba(251, 191, 36, 0.14);
+      --danger: #f87171; --danger-soft: rgba(248, 113, 113, 0.14); --info: #60a5fa; --info-soft: rgba(96, 165, 250, 0.14);
+      --hero-from: #17242b; --hero-to: #0c0d0f;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --shadow: 0 12px 40px rgba(0, 0, 0, 0.35); --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
+    }
+
+    /* ---------- 3. Base reset, type scale and layout (fixed) ---------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: var(--text-base)/1.6 var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      padding-block: max(32px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(var(--space), env(safe-area-inset-left, 0px));
+      padding-right: max(var(--space), env(safe-area-inset-right, 0px));
+    }
+    html, body { overflow-x: clip; }
+    ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+    .artifact { max-width: 960px; margin-inline: auto; display: grid; gap: var(--space-5); min-width: 0; }
+    /* Grid items default to min-width:auto and push wide content past the right edge; :where keeps p's 65ch. */
+    :where(.artifact > *) { max-width: 100%; min-width: 0; }
+    h1, h2, h3, h4 { font-family: var(--font-display); color: var(--fg); line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+    h1 { font-size: var(--text-3xl); font-weight: 700; letter-spacing: -0.02em; }
+    h2 { font-size: var(--text-2xl); font-weight: 500; letter-spacing: -0.015em; }
+    h3 { font-size: var(--text-xl); font-weight: 600; }
+    h4 { font-size: var(--text-lg); font-weight: 600; }
+    p, ul, ol { margin: 0; max-width: 65ch; }
+    ul, ol { padding-left: 1.25em; display: grid; gap: 0.35em; }
+    li::marker { color: var(--accent); }
+    small, .muted { color: var(--muted); }
+    strong, b { font-weight: 600; }
+    .lead { font-size: var(--text-lg); color: var(--muted); }
+    /* Brand manual: DM Mono is for small text only. */
+    .eyebrow { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+    .hero { display: grid; gap: var(--space-4); padding: clamp(var(--space-5), 5vw, var(--space-7)); border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: var(--shadow-sm); min-width: 0; display: grid; gap: var(--space-3); align-content: start; }
+    .grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+    /* Boxed sections keep inner spacing even when an artifact resets section or element padding. */
+    :root { --box-pad: var(--space-5); --hero-pad: clamp(var(--space-5), 5vw, var(--space-7)); }
+    @media (max-width: 600px) { :root { --box-pad: var(--space-4); --hero-pad: var(--space-5); } }
+    .artifact .hero { padding: var(--hero-pad); }
+    .artifact .card { padding: var(--box-pad); }
+    a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--accent-strong); }
+    .btn, .badge { justify-self: start; width: fit-content; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: 0.6em 1.2em; border-radius: var(--radius-pill); border: 1px solid transparent; background: var(--fg); color: var(--bg); font: 600 var(--text-sm)/1.2 var(--font-body); text-decoration: none; cursor: pointer; transition: background-color .2s, border-color .2s, color .2s; }
+    .btn:hover { color: var(--bg); opacity: 0.88; }
+    .btn.accent { background: var(--accent); color: var(--on-accent); }
+    .btn.secondary { background: transparent; color: var(--fg); border-color: var(--border-strong); }
+    .btn.secondary:hover { background: var(--surface-2); opacity: 1; }
+    button { font: inherit; }
+    .badge { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0.15em 0.65em; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--muted); font: 500 0.75rem/1.5 var(--font-mono); }
+    .badge.success { background: var(--success-soft); color: var(--success); }
+    .badge.warning { background: var(--warning-soft); color: var(--warning); }
+    .badge.danger { background: var(--danger-soft); color: var(--danger); }
+    .badge.info { background: var(--info-soft); color: var(--info); }
+    hr { border: 0; border-top: 1px solid var(--border); margin: 0; }
+    img, svg, video, canvas { max-width: 100%; height: auto; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--border); }
+    th { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--border-strong); }
+    tbody tr:hover { background: var(--surface-2); }
+    .artifact .scroll-x { overflow-x: auto; }
+    pre, code, kbd { font-family: var(--font-mono); font-size: 0.9em; }
+    :not(pre) > code, kbd { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.1em 0.35em; }
+    pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space); overflow-x: auto; margin: 0; line-height: 1.5; }
+    blockquote { margin: 0; padding: var(--space-2) var(--space-4); border-left: 3px solid var(--accent); color: var(--muted); max-width: 65ch; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    [hidden] { display: none !important; }
+    /* Shorten motion instead of removing it, so animated content still ends in its visible state. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
+
+  <style>
+  <!-- artifact:styles:start -->
+{}
+    section{margin:var(--space-6) 0}section.card{padding:var(--space-6)}.hero{padding:var(--space-7) var(--space-6)}.grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--space-4)}.grid .card{box-shadow:none;background:var(--surface-2)}li{margin:.55em 0}code{overflow-wrap:anywhere}h2{margin-top:0}
+  <!-- artifact:styles:end -->
+  </style>
+</head>
+<body>
+  <main class="artifact" data-artifact-id="artifact_01a1b5f0-abb2-7202-a9d0-405d5f32e087" data-artifact-version="1">
+    <!-- artifact:content:start -->
+    <div class="hero"><p class="eyebrow">Documento de projeto · 7 de novembro de 2026</p><h1>Feed a Giant</h1><p class="lead">O que é o jogo, o que já foi produzido, o que ainda precisa ser validado e para onde evoluir — sem implementar a v5.</p><span class="badge">Estado: protótipo avançado; publicação ainda requer configuração e testes no Roblox Studio</span></div><section class="card"><h2>1. O que é o projeto</h2><p><strong>Feed a Giant</strong> é um jogo de Roblox em que cada jogador cuida de um gigante numa base própria. Compra e abre lunchboxes, coleciona alimentos de raridades diferentes, decide entre colocá-los no pátio para gerar moedas ou alimentar o gigante para ganhar XP e fazê-lo crescer. O mundo compartilhado acrescenta disputa por drops, roubo/defesa de alimentos, combate, duelos e eventos de servidor.</p><p><strong>Promessa ao jogador:</strong> progressão visual fácil de entender (um gigante cada vez maior), descobertas raras dignas de mostrar aos amigos e situações sociais que rendem histórias e clipes. Isso é uma hipótese de design, <em>não</em> uma garantia de viralidade ou sucesso comercial.</p><h3>Loop principal</h3><ol><li>Ganhar moedas com alimentos expostos no pátio.</li><li>Comprar lunchboxes e descobrir novos alimentos e raridades.</li><li>Escolher entre renda passiva e XP ao alimentar o gigante.</li><li>Defender a base, disputar drops, duelar ou tentar roubar.</li><li>Progredir em níveis, espécies e rebirths; repetir com objetivos mais ambiciosos.</li></ol></section><section class="card"><h2>2. O que foi feito</h2><p>Os arquivos anteriores no workspace incluem pacotes <code>FeedAGiant.zip</code>, <code>FeedAGiant_v2.zip</code> e <code>FeedAGiant_v3.zip</code>, além de um diretório de projeto com place files <code>.rbxl</code>/<code>.rbxlx</code>, código Luau organizado para Rojo, <code>README.md</code>, <code>GAME_DESIGN.md</code>, plugin Rojo e peças visuais. A existência de um pacote não substitui um teste funcional no Studio.</p><div class="grid"><article class="card"><h3>Jogo e sistemas</h3><ul><li>Configuração compartilhada de economia, raridades, alimentos, espécies, loja e áudios.</li><li>Serviços de servidor para dados, gigante, mapa, lotes, loja, monetização, roubos, eventos, drops, combate, arena e placares.</li><li>Interface e controladores de cliente para HUD, inventário, loja, abertura de caixas, notificações, efeitos, drops, combate e arena.</li><li>Place file compilado em entregas anteriores; não há afirmação aqui de que a última edição do código já foi incorporada ao place.</li></ul></article><article class="card"><h3>Identidade e áudio existente</h3><ul><li>Ícone quadrado 512 × 512 e thumbnail 1920 × 1080 já gerados e entregues separadamente, além de incluídos em pacotes anteriores.</li><li>Elementos gráficos de UI existentes: logo, folha de ícones e painel.</li><li>Há efeitos sonoros e arquivos de narração anteriores para combate/eventos em PT-BR, inglês e espanhol.</li><li>Os IDs de áudio/imagem no Roblox precisam ser enviados e configurados pelo proprietário da experiência antes de os arquivos locais tocarem/aparecerem no jogo publicado.</li></ul></article></div><p>Também foram iniciadas alterações para selecionar a voz segundo o idioma do jogador e um levantamento das strings de interface e mensagens dinâmicas. <strong>Isso não equivale a uma localização completa.</strong></p></section><section class="card"><h2>3. Estado real da v4 e limitações</h2><p><strong>A v4 não foi exportada.</strong> Nas tentativas anteriores, a geração do CSV de localização, a integração completa das mensagens, a recompilação final e a criação do <code>FeedAGiant_v4.zip</code> não foram concluídas. Portanto, não trate a localização PT-BR/EN/ES como pronta para publicação. Os áudios multilíngues existentes são arquivos locais e ainda dependem de upload e IDs válidos no Roblox.</p><p><strong>A v5 não foi feita, conforme solicitado agora.</strong> Fogos de artifício noturnos, anúncio global de raridade alta, ciclo dia/noite e cinco músicas de fundo continuam sendo <em>propostas</em>, não funcionalidades entregues. As nove novas falas genéricas de raridade (Lendário/Mítico/Secreto × três idiomas) também não foram produzidas nesta etapa.</p><p><strong>Validação pendente:</strong> abrir a versão escolhida do place no Roblox Studio, testar com múltiplos jogadores, verificar DataStore e recibos de compra, desempenho mobile, permissões de áudio e consistência entre o código-fonte e o place publicado. Não há dados reais de retenção, receita ou taxa de conversão fornecidos neste projeto.</p></section><section class="card"><h2>4. O que fazer antes de publicar</h2><ol><li><strong>Congelar uma versão de referência:</strong> escolher o pacote mais recente funcional, comparar o código-fonte com o <code>.rbxl</code> e recompilar caso necessário.</li><li><strong>Rodar QA multiplayer no Studio:</strong> entrada e saída, salvamento, alimentação, rebirth, disputa de drop, roubo/defesa, duelo, arena e eventos; corrigir bugs antes de atrair tráfego.</li><li><strong>Configurar ativos e monetização:</strong> fazer upload dos gráficos/áudios permitidos, preencher IDs válidos, cadastrar passes/produtos e testar transações em ambiente apropriado.</li><li><strong>Fechar a localização:</strong> traduzir UI, nomes/descritivos e mensagens variáveis; testar idiomas reais na interface, banners e narração.</li><li><strong>Preparar operação:</strong> limites anti-exploit nos remotes, monitoramento de erros, analytics de onboarding/economia e teste em celular de entrada.</li></ol></section><section class="card"><h2>5. Melhorias futuras — priorizadas, não implementadas</h2><div class="grid"><article class="card"><h3>P0 · Segurança e qualidade</h3><p>Validação rigorosa de remotes no servidor, rate limits, integridade de inventário e recibos idempotentes; otimização de rede, partículas e UI para mobile; testes automatizados dos fluxos críticos; métricas de primeira sessão e retenção D1/D7. É a base para crescer sem quebrar a economia.</p></article><article class="card"><h3>P1 · Momento raro compartilhado</h3><p>Quando alguém conquista um alimento Lendário, Mítico ou Secreto, emitir um banner global com jogador e item. À noite, fogos dimensionados pela raridade; de dia, feixe de luz legível. Narrador <strong>genérico por raridade</strong>, no idioma de cada ouvinte, sem falar o nome do item. Aplicar cooldown/limite para não transformar descobertas frequentes em spam e oferecer redução de efeitos visuais.</p></article><article class="card"><h3>P1 · Identidade sonora</h3><p>Criar cinco faixas instrumentais próprias: base tranquila, exploração A/B alternadas, arena e evento/boss. Trocas com crossfade, volume ajustável, redução da música durante o narrador e botão para silenciar. Upload e permissão de uso devem ser conferidos no Roblox; sem IDs configurados, o sistema deve falhar silenciosamente.</p></article><article class="card"><h3>P2 · Progressão e coleção</h3><p>Índice visual de alimentos/espécies com silhuetas e metas de coleção; mutações visuais raras e balanceadas; melhorias cosméticas da base; novos objetivos de longo prazo somente depois de observar até onde os jogadores chegam.</p></article><article class="card"><h3>P2 · Comunidade</h3><p>Raids cooperativas, interação entre amigos e trocas com confirmação dupla e registro de auditoria. Fazer primeiro um protótipo de economia e proteção contra golpes: trocas sem segurança podem prejudicar o jogo.</p></article><article class="card"><h3>P3 · Monetização responsável</h3><p>Temporadas e cosméticos, evitando vantagens que destruam PvP ou forcem gasto para progredir. Testar preços e conteúdo com dados reais e respeitar regras atuais da Roblox para experiências e público infantil.</p></article></div></section><section class="card"><h2>6. Critério de sucesso para a próxima versão</h2><p>Uma próxima entrega só deve ser chamada de concluída quando o código e o place compilado corresponderem, os recursos estiverem ligados com IDs de áudio válidos, os textos funcionarem em PT-BR/EN/ES, a experiência passar pelo teste multiplayer/mobile e existir um zip verificável com instruções de instalação. As celebrações e músicas são uma oportunidade forte de acabamento e compartilhamento — mas não substituem diversão no primeiro minuto e confiabilidade do jogo.</p></section><p class="muted">Documento de situação e planejamento. Nenhuma funcionalidade de v5 foi implementada por este documento.</p>
+    <!-- artifact:content:end -->
+  </main>
+
+  <script>
+  <!-- artifact:script:start -->
+    
+  <!-- artifact:script:end -->
+  </script>
+</body>
+</html>

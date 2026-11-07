@@ -1,0 +1,18 @@
+# Travas do Roblox Studio
+*.rbxl.lock
+*.rbxlx.lock
+
+# Modelos 3D brutos (550 MB, 185k–800k triângulos, inutilizáveis no Roblox sem otimização).
+# Ficam só na máquina local; ver docs/HANDOFF_NEXT_SESSION.md §7.
+assets/Personagens (goblin, dragao)/
+
+# Saídas de build e temporários
+art/out/
+*.tmp
+*.blend1
+.DS_Store
+Thumbs.db
+
+# Ferramentas locais
+node_modules/
+roblox.toml
