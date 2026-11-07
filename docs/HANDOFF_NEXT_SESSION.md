@@ -35,7 +35,7 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 |---|---|
 | Diagnóstico e plano | ✅ **Concluído** (`docs/DIAGNOSTICO_E_PLANO.md`) |
 | Fase 0 — Fundação segura | ✅ **Concluída** (nota 8,75 por painel de 3 revisores cegos; §3a) |
-| Fase 1 — Mundo bonito | ⬜ Pendente (depende da decisão de estilo de arte, ver §6) |
+| Fase 1 — Mundo bonito | 🟨 **Rascunho 7,9** (3 rodadas usadas; ver §2b). Estilo decidido: cartoon pintado |
 | Fase 2 — Criaturas de verdade | ⬜ Pendente |
 | Fase 3 — Efeitos e juice | ⬜ Pendente |
 | Fase 4 — Primeiro minuto e retenção | ⬜ Pendente |
@@ -69,6 +69,24 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
   - validar argumentos em `ArenaService:256` e `CombatService:341/344`.
 - [ ] 0.7 Criar `leaderArena` (placar da Arena morto). Enviar ao cliente só o que mudou, em vez do estado inteiro a cada segundo. Guardar o resultado de `IsInGroup` em cache na entrada.
 - [ ] 0.8 Verificador Luau com **overall PASS**, teste com 2 a 3 jogadores no Studio, revisão independente (anti-exploit e dados), nota ≥ 8,5 na rubrica `system`, registro no ledger
+
+## 2b. Atualização de 07/11/2026 (noite): FASE 1, MUNDO NOVO (7,9; abaixo de 8,5)
+
+- **Estilo de arte decidido pelo usuário:** cartoon pintado (stylised PBR). Está registrado no GAME_BRIEF §5 e no CLAUDE.md.
+- **Luz:** `src/shared/LightingRecipes.lua` (receita Bright cartoon do vault, ajustada para sol de tarde e tom quente).
+- **Mundo novo gerado por código:** `src/server/World.lua`, com o MapKit do fwjelaa em `src/vendor/server/MapKit`.
+  - Ilha com praia e mar só de peça (a água de terreno custava cerca de 300 draw calls por vista).
+  - Praça com o Caldeirão do Banquete: pedestal, fogo brilhando e 4 bandeiras.
+  - Mesas de banquete, postes de luz, 3 lagos e bases com cor-tema e placa nos fundos.
+  - O Baseplate saiu dos project.json.
+  - Os drops agora caem a partir de r 50, e a chuva de comida a partir de r 40.
+- **Gates:** 24/24 rotas de caminhada, 0 props flutuando, faixa de drops livre, 4.860 peças, no máximo 467k triângulos e 43 draw calls por vista (alvo de celular: 500k e 500).
+- **Painel world:** 5,0 → 7,9 → 7,9. As 3 rodadas de correção foram usadas. Ledger e fotos em `docs/qa/FASE1_MUNDO_EVIDENCIAS.md` e `docs/qa/shots/fase1/`.
+- **Bloqueadores, com mediana W3 = 1 e W4 = 1:**
+  - **W3:** tudo são primitivas sem textura pintada. Isso se resolve com os modelos e MaterialVariants pintados da Fase 2.
+  - **W4:** os 3 revisores dizem que a luz ainda parece "dia padrão". Ajustes sutis não movem a nota. A sugestão deles é uma luz de fim de tarde mais forte (ClockTime 16,5 a 17, névoa e horizonte alaranjados, grama menos saturada). **Isso muda o clima e a identidade visual, então é decisão do usuário.**
+- **Próxima tarefa:** perguntar ao usuário se quer (a) aceitar 7,9 por enquanto e seguir para a Fase 2, que deve subir o W3, ou (b) testar o clima de fim de tarde mais forte no mundo atual.
+- **Ambiente:** o Studio tem limite de janelas abertas e fica sem memória com muitas cópias de teste. Feche cada cópia ao terminar: Arquivo → Fechar local → Não salvar.
 
 ## 3. Atualização final de 07/11/2026: FASE 0 CONCLUÍDA (8,75)
 

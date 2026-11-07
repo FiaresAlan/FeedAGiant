@@ -57,7 +57,7 @@ foram desligados **só no cliente da foto**. As versões anteriores estão em `r
 |---|---|---|---|
 | 1 | primeira versão + ajustes (borda, pedras, cores, caldeirão 1,7×, placares, faixas, slots, placa nos 2 lados) | [1,1,1,1,1,1] | 5,0 |
 | 2 | placa para os fundos; pedestal e bandeiras; banquete; postes; lagos; névoa; mar sem água de terreno; fotos com avatar | [2,2,1,1,1,2] | 7,9 |
-| 3 | sol de tarde e mais quente, correção de cor quente, raios de sol, fogo Neon com luz; placares de madeira; evento dourado; contorno no texto das placas; manchas de grama; arbustos nos caminhos | (este painel) | |
+| 3 | sol de tarde e mais quente, correção de cor quente, raios de sol, fogo Neon com luz; placares de madeira; evento dourado; contorno no texto das placas; manchas de grama; arbustos nos caminhos | [2,2,1,1,1,2] | 7,9 (máx. de rodadas atingido) |
 
 ## Não feito / limites
 - O marco e os props são primitivas, sem textura pintada. A textura pintada entra com os modelos da Fase 2.
