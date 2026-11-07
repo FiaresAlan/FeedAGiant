@@ -257,22 +257,7 @@ function MapService.init()
 		MapService.Bases[i] = buildBase(i, root)
 	end
 
-	-- Decoração: nuvens
-	for _ = 1, 20 do
-		local a = math.random() * math.pi * 2
-		local r = 150 + math.random() * 400
-		Util.makePart({
-			Name = "Cloud",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.new(20 + math.random() * 30, 10, 14 + math.random() * 10),
-			CFrame = CFrame.new(math.cos(a) * r, 140 + math.random() * 60, math.sin(a) * r),
-			Color = Color3.new(1, 1, 1),
-			Material = Enum.Material.SmoothPlastic,
-			CanCollide = false,
-			Transparency = 0.1,
-			Parent = root,
-		})
-	end
+	-- Nuvens: agora são as nuvens dinâmicas do Roblox (LightingRecipes), não bolas de Part.
 end
 
 function MapService.getBaseOf(player: Player): BaseInfo?

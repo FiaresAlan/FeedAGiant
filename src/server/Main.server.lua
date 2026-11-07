@@ -18,9 +18,11 @@ local LeaderboardService = require(Services.LeaderboardService)
 local CombatService = require(Services.CombatService)
 local DropService = require(Services.DropService)
 local ArenaService = require(Services.ArenaService)
+local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
 print("[FeedAGiant] Iniciando servidor...")
 
+LightingRecipes.apply("BrightCartoon") -- Fase 1: luz, céu e nuvens (um único dono: o servidor)
 MapService.init()
 DataService.init()
 GiantService.init()
