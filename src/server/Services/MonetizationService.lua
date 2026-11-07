@@ -103,7 +103,7 @@ local GRANTS: { [string]: Grant } = {
 	end,
 	LuckyBox = function(player, _profile)
 		-- force: já foi pago, entrega mesmo com a mochila cheia.
-		return ShopService.openBox(player, "rare", { free = true, minRarity = "Rare", force = true })
+		return ShopService.openBox(player, "rare", { free = true, minRarity = "Rare", force = true, paid = true })
 	end,
 	FreezeDecay7d = function(player, profile)
 		profile.freezeUntil = math.max(os.time(), profile.freezeUntil) + Config.Decay.FreezeProductSeconds

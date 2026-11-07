@@ -8,6 +8,10 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local GiantService = require(script.Parent.GiantService)
+local Guard = require(script.Parent.Parent.Guard)
+
+-- Maior índice de vaga possível (VIP tem mais vagas); o dono é conferido depois.
+local MAX_SLOT_INDEX = math.max(Config.PlotSlots, Config.PlotSlotsVIP)
 
 local PlotService = {}
 local foodModels: { [Player]: { [number]: Model } } = {}
@@ -169,14 +173,16 @@ function PlotService.hasInventorySpace(profile: DataService.Profile, count: numb
 	return #profile.inventory + (count or 1) <= Config.MaxInventory
 end
 
--- Dá uma comida. Com a mochila cheia, recusa (retorna false e avisa), a não ser que
--- `force` seja true (compras com Robux, comida devolvida/roubada: o item já existia).
-function PlotService.giveFood(player: Player, foodId: string, force: boolean?): boolean
+-- Dá uma comida. Com a mochila cheia (MaxInventory), recusa (retorna false e avisa).
+-- `force`: prêmios e itens que já existiam passam do limite normal até MaxInventoryHard.
+-- `paid`: comprado com Robux, entrega sempre (um recibo pago não pode ser recusado).
+function PlotService.giveFood(player: Player, foodId: string, force: boolean?, paid: boolean?): boolean
 	local profile = DataService.get(player)
 	if not profile or not Config.FoodById[foodId] then
 		return false
 	end
-	if not force and not PlotService.hasInventorySpace(profile) then
+	local cap = if paid then math.huge elseif force then Config.MaxInventoryHard else Config.MaxInventory
+	if #profile.inventory + 1 > cap then
 		Remotes.Notify:FireClient(player, {
 			text = "Mochila cheia! Alimente seu Gigante ou coloque comida no pátio.",
 			color = Color3.fromRGB(255, 90, 90),
@@ -288,19 +294,22 @@ end
 
 function PlotService.init()
 	Remotes.RequestPlace.OnServerEvent:Connect(function(player, invIndex)
-		if type(invIndex) == "number" then
+		if Guard.isIndex(invIndex, Config.MaxInventoryHard) and Guard.allow(player, "Plot") then
 			PlotService.place(player, invIndex)
 		end
 	end)
 	Remotes.RequestPickup.OnServerEvent:Connect(function(player, slot)
-		if type(slot) == "number" then
+		if Guard.isIndex(slot, MAX_SLOT_INDEX) and Guard.allow(player, "Plot") then
 			PlotService.pickup(player, slot)
 		end
 	end)
 	Remotes.RequestFeed.OnServerEvent:Connect(function(player, arg)
-		if type(arg) == "table" and type(arg.inv) == "number" then
+		if not Guard.allow(player, "Plot") then
+			return
+		end
+		if type(arg) == "table" and Guard.isIndex(arg.inv, Config.MaxInventoryHard) then
 			PlotService.feedFromInventory(player, arg.inv)
-		elseif type(arg) == "number" then
+		elseif Guard.isIndex(arg, MAX_SLOT_INDEX) then
 			PlotService.feed(player, arg)
 		end
 	end)

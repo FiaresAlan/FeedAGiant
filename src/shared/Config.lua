@@ -16,6 +16,8 @@ Config.PlotSlotsVIP = 16
 -- Fase 0.3: limite da mochila (antes era infinito e inchava o save e a rede).
 -- Recompensas grátis são recusadas com a mochila cheia; compras com Robux sempre entregam.
 Config.MaxInventory = 300
+-- Teto para prêmios/itens devolvidos que passam do limite normal (nunca se apagam itens).
+Config.MaxInventoryHard = 2000
 
 Config.Giant = {
 	BaseScale = 1,

@@ -57,6 +57,8 @@ local function runFoodRain(def)
 			Parent = folder,
 		})
 		p.Shape = Enum.PartType.Ball
+		-- Física da peça fica com o servidor: o cliente não consegue puxá-la até si.
+		p:SetNetworkOwner(nil)
 		Util.makeBillboard(
 			p,
 			food.name,

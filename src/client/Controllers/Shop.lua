@@ -58,7 +58,8 @@ end
 -- Resumo por raridade para o cartão da caixa ("Rare 22% · Epic 6% ...").
 local function oddsSummary(boxId: string, minRarity: string?): string
 	local byRarity: { [string]: number } = {}
-	for _, row in LunchboxOdds.rows(boxId, currentLuck(), minRarity) do
+	-- Caixa paga (tem raridade mínima) sorteia sem bônus de evento no servidor.
+	for _, row in LunchboxOdds.rows(boxId, if minRarity then 0 else currentLuck(), minRarity) do
 		byRarity[row.rarity] = (byRarity[row.rarity] or 0) + row.percent
 	end
 	local ordered = {}
@@ -92,7 +93,7 @@ local function renderOdds()
 			child:Destroy()
 		end
 	end
-	local luck = currentLuck()
+	local luck = if shown.minRarity then 0 else currentLuck()
 	oddsHeading.Text = if luck > 0
 		then string.format("%s  (Lucky Boxes ativo: +%d%% em Rare ou melhor)", shown.title, math.floor(luck * 100))
 		else shown.title

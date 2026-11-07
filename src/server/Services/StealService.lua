@@ -29,6 +29,7 @@ local CLICK_REACH = 25 -- igual ao ClickDetector.MaxActivationDistance do PlotSe
 local CHANNEL_MAX_MOVE = 6
 -- Velocidade máxima plausível (WalkSpeed 20 + pulos/empurrões). Mais rápido que isso = teleporte.
 local MAX_TRAVEL_SPEED = 45
+local DEPOSIT_MARGIN = 6 -- studs além da borda da base (latência)
 
 type Carry = { food: DataService.FoodInstance, from: Player, model: Model?, pickedAt: number, pickedPos: Vector3 }
 local carrying: { [Player]: Carry } = {}
@@ -172,35 +173,46 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	end
 
 	channeling[thief] = true
-	Remotes.StealAlert:FireClient(owner, { thiefName = thief.DisplayName, food = def.name })
-	Remotes.Notify:FireClient(thief, Locale.msg("stealing", { f = def.name }, Color3.fromRGB(255, 200, 80)))
+	-- O canal roda protegido: `channeling` é limpo SEMPRE, mesmo se algo der erro.
+	local beam: BasePart? = nil
+	local okRun, ok = pcall(function(): boolean
+		Remotes.StealAlert:FireClient(owner, { thiefName = thief.DisplayName, food = def.name })
+		Remotes.Notify:FireClient(thief, Locale.msg("stealing", { f = def.name }, Color3.fromRGB(255, 200, 80)))
 
-	local beam = Util.makePart({
-		Name = "StealBeam",
-		Size = Vector3.new(1.5, 40, 1.5),
-		CFrame = primary.CFrame * CFrame.new(0, 20, 0),
-		Color = Color3.fromRGB(255, 50, 50),
-		Material = Enum.Material.Neon,
-		Transparency = 0.3,
-		CanCollide = false,
-		Parent = foodModel,
-	})
+		beam = Util.makePart({
+			Name = "StealBeam",
+			Size = Vector3.new(1.5, 40, 1.5),
+			CFrame = primary.CFrame * CFrame.new(0, 20, 0),
+			Color = Color3.fromRGB(255, 50, 50),
+			Material = Enum.Material.Neon,
+			Transparency = 0.3,
+			CanCollide = false,
+			Parent = foodModel,
+		})
 
-	local startRoot = Guard.rootOf(thief)
-	local startPos = startRoot and startRoot.Position
-	local t0 = os.clock()
-	local ok = startPos ~= nil
-	while ok and os.clock() - t0 < Config.Steal.ChannelTime do
-		task.wait(0.1)
-		local root = Guard.rootOf(thief)
-		ok = root ~= nil
-			and foodModel.Parent ~= nil
-			and startPos ~= nil
-			and (root.Position - startPos).Magnitude <= CHANNEL_MAX_MOVE
-			and not CombatService.isKO(thief)
+		local startRoot = Guard.rootOf(thief)
+		local startPos = startRoot and startRoot.Position
+		local t0 = os.clock()
+		local alive = startPos ~= nil
+		while alive and os.clock() - t0 < Config.Steal.ChannelTime do
+			task.wait(0.1)
+			local root = Guard.rootOf(thief)
+			alive = root ~= nil
+				and foodModel.Parent ~= nil
+				and startPos ~= nil
+				and (root.Position - startPos).Magnitude <= CHANNEL_MAX_MOVE
+				and not CombatService.isKO(thief)
+		end
+		return alive
+	end)
+	if beam then
+		beam:Destroy()
 	end
-	beam:Destroy()
 	channeling[thief] = nil
+	if not okRun then
+		warn("[StealService] canal:", ok)
+		ok = false
+	end
 
 	-- Reconfere TUDO no fim: o mundo pode ter mudado durante os 3 s.
 	local current = DataService.get(owner)
@@ -228,13 +240,25 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	)
 end
 
-local function tryDeposit(thief: Player, depositPos: Vector3)
+local function tryDeposit(thief: Player, base: MapService.BaseInfo)
 	local c = carrying[thief]
 	if not c then
 		return
 	end
-	-- Anti-teleporte: não dá para chegar mais rápido que MAX_TRAVEL_SPEED.
-	local minTime = (depositPos - c.pickedPos).Magnitude / MAX_TRAVEL_SPEED
+	-- O toque (Touched) pode ser forjado pelo cliente: o servidor confere se o
+	-- personagem está mesmo dentro do quadrado da própria base.
+	local root = Guard.rootOf(thief)
+	if not root then
+		return
+	end
+	local here = base.origin:PointToObjectSpace(root.Position)
+	local half = Config.BaseSize / 2 + DEPOSIT_MARGIN
+	if math.abs(here.X) > half or math.abs(here.Z) > half then
+		return
+	end
+	-- Anti-teleporte: tempo mínimo do ponto do roubo até a borda da base, a MAX_TRAVEL_SPEED.
+	local toBase = (base.origin.Position - c.pickedPos).Magnitude - Config.BaseSize * 0.75
+	local minTime = math.max(0, toBase) / MAX_TRAVEL_SPEED
 	if os.clock() - c.pickedAt < minTime then
 		return -- chegou rápido demais; tenta de novo no próximo toque
 	end
@@ -275,7 +299,7 @@ local function onCharacterAdded(player: Player, char: Model)
 			if type(baseIndex) == "number" then
 				local base = MapService.Bases[baseIndex]
 				if base and base.owner == player then
-					tryDeposit(player, root.Position)
+					tryDeposit(player, base)
 				end
 			end
 		end)

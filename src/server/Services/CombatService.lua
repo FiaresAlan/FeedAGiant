@@ -12,6 +12,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local GiantService = require(script.Parent.GiantService)
+local Guard = require(script.Parent.Parent.Guard)
 
 local CombatService = {}
 
@@ -103,6 +104,9 @@ function CombatService.isKO(player: Player): boolean
 end
 
 local function push(player: Player)
+	if player.Parent == nil then
+		return -- saiu (ex.: push atrasado do KO): não recria o estado de quem já foi
+	end
 	local f = getFighter(player)
 	f.hp = math.min(f.hp, CombatService.maxHp(player))
 	Remotes.CombatState:FireClient(player, {
@@ -355,13 +359,13 @@ end
 
 function CombatService.init()
 	Remotes.RequestPunch.OnServerEvent:Connect(function(player, heavy)
-		if type(heavy) ~= "boolean" then
+		if type(heavy) ~= "boolean" or not Guard.allow(player, "Combat") then
 			return
 		end
 		tryPunch(player, heavy)
 	end)
 	Remotes.RequestBlock.OnServerEvent:Connect(function(player, on)
-		if type(on) ~= "boolean" then
+		if type(on) ~= "boolean" or not Guard.allow(player, "Combat") then
 			return
 		end
 		setBlock(player, on)
@@ -374,16 +378,26 @@ function CombatService.init()
 			fighters[player] = nil
 		end)
 	end)
-	Players.PlayerAdded:Connect(function(player)
+	local function onCharacter(player: Player)
+		local f = getFighter(player)
+		f.hp = CombatService.maxHp(player)
+		f.koUntil = 0
+		f.blocking = false
+		task.wait(0.5)
+		push(player)
+	end
+	local function watch(player: Player)
 		player.CharacterAdded:Connect(function()
-			local f = getFighter(player)
-			f.hp = CombatService.maxHp(player)
-			f.koUntil = 0
-			f.blocking = false
-			task.wait(0.5)
-			push(player)
+			onCharacter(player)
 		end)
-	end)
+		if player.Character then
+			task.spawn(onCharacter, player)
+		end
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do -- quem entrou antes do init
+		watch(player)
+	end
 
 	-- Regen de stamina / HP e consumo do bloqueio
 	task.spawn(function()
@@ -392,6 +406,7 @@ function CombatService.init()
 			local now = os.clock()
 			for player, f in fighters do
 				if not player.Parent then
+					fighters[player] = nil -- limpeza defensiva (PlayerRemoving já remove)
 					continue
 				end
 				local max = CombatService.maxStamina(player)

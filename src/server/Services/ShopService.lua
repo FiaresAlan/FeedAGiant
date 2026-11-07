@@ -21,6 +21,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
 local StealService = require(script.Parent.StealService)
+local Guard = require(script.Parent.Parent.Guard)
 
 local ShopService = {}
 local luckBonus = 0 -- alterado por EventService (Lucky Boxes)
@@ -33,6 +34,9 @@ export type OpenOptions = {
 	free: boolean?, -- não cobra moedas (recompensas e produtos)
 	minRarity: string?, -- Lucky Box: raridade mínima garantida
 	force: boolean?, -- entrega mesmo com a mochila cheia (já pago ou prêmio único)
+	-- paid: comprado com Robux. Sorteia SEM bônus de evento (as chances mostradas na
+	-- compra não mudam se o recibo chegar depois do evento) e entrega sempre.
+	paid: boolean?,
 }
 
 function ShopService.setLuckBonus(b: number)
@@ -67,8 +71,10 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		profile.coins -= box.price
 	end
 	profile.totalBoxes += 1
-	local food = LunchboxOdds.roll(boxId, luckBonus, opts.minRarity, rng)
-	PlotService.giveFood(player, food.id, true) -- espaço já conferido acima (ou forçado)
+	local food = LunchboxOdds.roll(boxId, if opts.paid then 0 else luckBonus, opts.minRarity, rng)
+	if not PlotService.giveFood(player, food.id, true, opts.paid == true) then
+		return false -- teto duro da mochila (só prêmios grátis chegam aqui)
+	end
 	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
 	Remotes.HatchResult:FireClient(
 		player,
@@ -238,13 +244,24 @@ end
 function ShopService.init()
 	ShopService.setLuckBonus(0)
 	Remotes.RequestBuySpecies.OnServerEvent:Connect(function(player, id, useToken)
-		if type(id) == "string" and #id <= 32 and (useToken == nil or type(useToken) == "boolean") then
+		if
+			type(id) == "string"
+			and #id <= 32
+			and (useToken == nil or type(useToken) == "boolean")
+			and Guard.allow(player, "Species")
+		then
 			ShopService.buySpecies(player, id, useToken == true)
 		end
 	end)
 	Remotes.RequestEquipSpecies.OnServerEvent:Connect(function(player, id)
 		local profile = DataService.get(player)
-		if type(id) == "string" and profile and profile.ownedSpecies[id] then
+		if
+			type(id) == "string"
+			and profile
+			and profile.ownedSpecies[id]
+			and profile.species ~= id
+			and Guard.allow(player, "Species")
+		then
 			GiantService.setSpecies(player, id)
 			PlotService.pushState(player)
 		end
@@ -263,13 +280,29 @@ function ShopService.init()
 		lastBuy[player] = now
 		ShopService.openBox(player, boxId)
 	end)
-	Remotes.RequestRebirth.OnServerEvent:Connect(ShopService.rebirth)
-	Remotes.RequestRedeemCode.OnServerEvent:Connect(function(player, code)
-		if type(code) == "string" and #code <= 64 then
-			ShopService.redeem(player, code)
+	Remotes.RequestRebirth.OnServerEvent:Connect(function(player)
+		if Guard.allow(player, "Rebirth") then
+			ShopService.rebirth(player)
 		end
 	end)
-	Remotes.RequestClaimDaily.OnServerEvent:Connect(ShopService.claimDaily)
+	Remotes.RequestRedeemCode.OnServerEvent:Connect(function(player, code)
+		if type(code) ~= "string" or #code > 64 then
+			return
+		end
+		if not Guard.allow(player, "Redeem") then
+			Remotes.Notify:FireClient(player, {
+				text = "Calma! Espere alguns segundos para tentar outro código.",
+				color = Color3.fromRGB(255, 200, 80),
+			})
+			return
+		end
+		ShopService.redeem(player, code)
+	end)
+	Remotes.RequestClaimDaily.OnServerEvent:Connect(function(player)
+		if Guard.allow(player, "Daily") then
+			ShopService.claimDaily(player)
+		end
+	end)
 	game:GetService("Players").PlayerRemoving:Connect(function(player)
 		lastBuy[player] = nil
 	end)

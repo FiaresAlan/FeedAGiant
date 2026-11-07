@@ -124,9 +124,9 @@ local function sanitize(player: Player, profile: Profile)
 	if profile.peakLevel < profile.level then
 		profile.peakLevel = profile.level
 	end
-	-- Inventário acima do limite (só possível em saves antigos): mantém os primeiros.
-	while #profile.inventory > Config.MaxInventory * 2 do
-		table.remove(profile.inventory)
+	-- Nunca apaga itens na carga (podem ter sido comprados com Robux). Só avisa.
+	if #profile.inventory > Config.MaxInventoryHard then
+		warn(`[DataService] inventário de {player.UserId} acima do teto: {#profile.inventory}`)
 	end
 end
 
