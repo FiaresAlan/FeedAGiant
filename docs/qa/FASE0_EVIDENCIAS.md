@@ -24,8 +24,26 @@ Script de sondagem injetado no servidor do place de teste (mesmo cache de módul
 | Parar o jogo (BindToClose) | sem erro no log |
 | Sons da caixa | IDs da v4 (9114653986/9114611543/9114646405) davam "Asset type does not match"; trocados por `Config.Sounds`; sem erro depois |
 
+## Rodada de correção 1 (commit a2e2680), place de teste novo
+Correções vindas do painel (6,25) e da auditoria de código: `Guard.allow` (token bucket por jogador e ação) em TODOS os
+`OnServerEvent`; `Guard.isIndex` (inteiro em faixa) em place/pickup/feed; depósito do roubo exige personagem dentro da
+própria base (servidor) e tempo mínimo até a base; mochila nunca apaga itens na carga (teto duro 2000; pago entrega
+sempre); caixa paga sorteia e mostra chances SEM bônus de evento; arena com ticks neutros, desistência = vitória de quem
+ficou, `busy`/torneio sempre limpos (pcall); combate não recria estado de quem saiu e liga `CharacterAdded` para quem já
+estava; canal de roubo em pcall; chuva de comida com `SetNetworkOwner(nil)`; equipar espécie já equipada não reconstrói.
+
+| Caso | Resultado |
+|---|---|
+| Verificador Luau | overall PASS (39 arquivos) |
+| Specs | 39 passed, 0 failed |
+| `Guard.isIndex` 3 / 1.5 / NaN / inf / -1 / "3" / 13 (máx 12) | true, false, false, false, false, false, false |
+| 20 tentativas de código seguidas | 3 aceitas (resto recusado com aviso) |
+| Mochila com 300: normal / force | recusa / aceita |
+| Mochila com 2000: force / pago / caixa paga / caixa grátis | recusa / aceita / aceita / recusa |
+| Fuzz do cliente: 1.971 chamadas em todos os RemoteEvents (nil, NaN, inf, -1, 1.5, 1e9, string de 500, tabelas, Instance, Vector3) + 60 seguidas por remote | **0 erros no servidor**; `GetFullState` responde depois |
+
 ## NÃO testado ainda
-- 2 jogadores (roubo, soco no ladrão, duelo da arena): o MCP do Studio só inicia Play solo.
+- 2 jogadores (roubo, depósito, soco no ladrão, duelo da arena): o MCP do Studio só inicia Play solo e o controle da tela do Studio não foi autorizado. Precisa do teste manual (Studio → Testar → Clientes e servidores, 2 jogadores).
 - Compras reais: os IDs de produtos/passes são 0 (placeholders); o fluxo de recibo é coberto pelo `Receipts.spec`.
 - Persistência entre sessões: o armazenamento de teste dura só uma sessão.
 
