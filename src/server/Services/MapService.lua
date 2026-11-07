@@ -81,7 +81,8 @@ local function buildBase(index: number, root: Folder): BaseInfo
 			Name = "Slot" .. i,
 			Size = Vector3.new(6, 0.4, 6),
 			CFrame = origin * CFrame.new(startX + col * spacing, 2.2, 8 + row * spacing - 10),
-			Color = if i <= Config.PlotSlots then Color3.fromRGB(60, 200, 120) else Color3.fromRGB(255, 200, 60),
+			-- cor-tema contrasta com o piso claro da base; os slots extras (VIP) seguem dourados
+			Color = if i <= Config.PlotSlots then Color3.fromHex(theme.color) else Color3.fromRGB(255, 200, 60),
 			Material = Enum.Material.SmoothPlastic,
 			Parent = model,
 		})
@@ -109,6 +110,14 @@ local function buildBase(index: number, root: Folder): BaseInfo
 	sign.Font = Enum.Font.FredokaOne
 	sign.TextColor3 = Color3.new(1, 1, 1)
 	sign.Parent = sg
+	-- Verso da placa (visto de dentro da base) mostra o mesmo texto
+	local sgBack = sg:Clone()
+	sgBack.Face = Enum.NormalId.Back
+	sgBack.Parent = signPart
+	local signBack = sgBack:FindFirstChildOfClass("TextLabel") :: TextLabel
+	sign:GetPropertyChangedSignal("Text"):Connect(function()
+		signBack.Text = sign.Text
+	end)
 
 	World.decorateBase(index, origin, model)
 
