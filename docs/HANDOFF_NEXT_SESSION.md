@@ -34,7 +34,7 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 | Fase | Situação |
 |---|---|
 | Diagnóstico e plano | ✅ **Concluído** (`docs/DIAGNOSTICO_E_PLANO.md`) |
-| Fase 0 — Fundação segura | ⏳ **Em andamento.** Só o item 0.1 (Git) está feito |
+| Fase 0 — Fundação segura | ⏳ **Em andamento.** 0.1–0.7 feitos e testados solo; nota 7,5, falta teste com 2 jogadores (§3a) |
 | Fase 1 — Mundo bonito | ⬜ Pendente (depende da decisão de estilo de arte, ver §6) |
 | Fase 2 — Criaturas de verdade | ⬜ Pendente |
 | Fase 3 — Efeitos e juice | ⬜ Pendente |
@@ -69,6 +69,21 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
   - validar argumentos em `ArenaService:256` e `CombatService:341/344`.
 - [ ] 0.7 Criar `leaderArena` (placar da Arena morto). Enviar ao cliente só o que mudou, em vez do estado inteiro a cada segundo. Guardar o resultado de `IsInGroup` em cache na entrada.
 - [ ] 0.8 Verificador Luau com **overall PASS**, teste com 2 a 3 jogadores no Studio, revisão independente (anti-exploit e dados), nota ≥ 8,5 na rubrica `system`, registro no ledger
+
+## 3a. Atualização de 07/11/2026, 2ª sessão: Fase 0 testada, nota 7,5 (abaixo de 8,5)
+
+**Estado:** itens 0.2 a 0.7 implementados **e testados** em play solo. Detalhes e números em `docs/qa/FASE0_EVIDENCIAS.md`.
+- Verificador Luau **overall PASS** (39 arquivos); 39 specs passam; falhas de carga e de armazenamento simuladas se comportam certo; fuzz com 1.971 chamadas sem erro no servidor; 60 fps no PC.
+- Rodada de correção 1 feita (limite de frequência em todos os remotes, índices inteiros, depósito do roubo conferido no servidor, mochila sem apagar itens, caixa paga sem bônus de evento, arena/combate/roubo mais robustos). 3 sons quebrados da caixa (IDs da v4) trocados por `Config.Sounds`.
+- Painel de 3 revisores cegos: 6,25 → **7,5**. Ledger em `.fwjelaa/ledger.jsonl`.
+- **Bloqueador (S1):** teste com 2 jogadores (roubo, depósito, soco no ladrão, duelo, sair no meio). O MCP só faz play solo e o controle de tela do Studio foi negado nesta sessão. Precisa do usuário rodar (Studio → Testar → Clientes e servidores, 2 jogadores) ou autorizar o controle de tela.
+- Restam 2 rodadas de correção (máx. 3).
+
+**Pendências que dependem do usuário (condição 4, economia/monetização):**
+1. LuckyBox comprada direto pelo cliente (`PromptProductPurchase`) por conta com restrição de itens aleatórios pagos: o recibo não pode ser recusado. Proposta: entregar um item fixo equivalente (ex.: uma comida Rare escolhida) em vez do sorteio. Precisa de aprovação.
+2. Itens do 0.8 ainda não tratados (médios da auditoria): checagem de velocidade/teleporte no servidor para quem disputa drop e no alcance do soco; roubo/duelo mexem em dois perfis sem transação (inerente, só registrado).
+
+**Próxima tarefa exata:** com o teste de 2 jogadores feito (pelo usuário ou com acesso à tela), registrar o resultado em `FASE0_EVIDENCIAS.md`, corrigir o que falhar e chamar novo painel de 3 revisores. Com ≥ 8,5, marcar a Fase 0 como concluída.
 
 ## 3b. Atualização de 07/11/2026 (sessão interrompida por limite de uso)
 

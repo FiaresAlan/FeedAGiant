@@ -42,6 +42,21 @@ estava; canal de roubo em pcall; chuva de comida com `SetNetworkOwner(nil)`; equ
 | Mochila com 2000: force / pago / caixa paga / caixa grátis | recusa / aceita / aceita / recusa |
 | Fuzz do cliente: 1.971 chamadas em todos os RemoteEvents (nil, NaN, inf, -1, 1.5, 1e9, string de 500, tabelas, Instance, Vector3) + 60 seguidas por remote | **0 erros no servidor**; `GetFullState` responde depois |
 
+## Desempenho (play solo no PC, place de teste; NÃO é medição em celular)
+| Medida | Valor |
+|---|---|
+| Cliente: fps médio em 30 s / pior quadro | 60,0 / 20,7 ms |
+| Servidor: Heartbeat em 20 s / pior passo | 60,0 Hz / 20,1 ms |
+| Rede servidor→cliente (DataSendKbps), mediana / máx. em 20 s | 0,90 / 1,40 kbps |
+| Instâncias: Workspace / PlayerGui | 614 / 1.116 |
+| Memória | o `GetTotalMemoryUsageMb` do Studio (~2,6 GB) mede o processo inteiro do Studio: não serve como número de celular |
+
+## Painéis de revisão (rubrica `system`, 3 revisores cegos, mediana por critério, soma refeita)
+| Rodada | Notas S1..S6 | Nota | Bloqueador |
+|---|---|---|---|
+| 1 (antes da correção) | [1,1,1,2,1,2] | 6,25 | sem limite de frequência nos remotes; 2 jogadores não testado |
+| 2 (depois da correção 1) | [1,2,1,2,1,2] | 7,5 | S1: roubo/depósito/soco/duelo com 2 jogadores não testado |
+
 ## NÃO testado ainda
 - 2 jogadores (roubo, depósito, soco no ladrão, duelo da arena): o MCP do Studio só inicia Play solo e o controle da tela do Studio não foi autorizado. Precisa do teste manual (Studio → Testar → Clientes e servidores, 2 jogadores).
 - Compras reais: os IDs de produtos/passes são 0 (placeholders); o fluxo de recibo é coberto pelo `Receipts.spec`.
