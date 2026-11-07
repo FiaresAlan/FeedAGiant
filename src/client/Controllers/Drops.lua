@@ -48,8 +48,10 @@ local function rebuildCard(d: any)
 	if not rows or not rows:IsA("Frame") then
 		return
 	end
+	-- Apaga TODAS as linhas (inclusive o aviso "Ninguém no círculo", que é TextLabel;
+	-- antes só os Frames saíam e o aviso se acumulava a cada atualização).
 	for _, c in rows:GetChildren() do
-		if c:IsA("Frame") then
+		if c:IsA("GuiObject") then
 			c:Destroy()
 		end
 	end

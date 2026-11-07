@@ -350,7 +350,14 @@ end
 
 function ArenaService.init()
 	Remotes.RequestDuel.OnServerEvent:Connect(function(player, targetId)
-		if type(targetId) == "number" and targetId == targetId and targetId > 0 and Guard.allow(player, "Duel") then
+		-- UserId inteiro e não zero (no teste local do Studio os jogadores têm ids negativos).
+		if
+			type(targetId) == "number"
+			and targetId == targetId
+			and targetId ~= 0
+			and math.floor(targetId) == targetId
+			and Guard.allow(player, "Duel")
+		then
 			requestDuel(player, targetId)
 		end
 	end)

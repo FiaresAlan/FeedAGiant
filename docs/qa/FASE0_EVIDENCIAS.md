@@ -57,8 +57,25 @@ estava; canal de roubo em pcall; chuva de comida com `SetNetworkOwner(nil)`; equ
 | 1 (antes da correção) | [1,1,1,2,1,2] | 6,25 | sem limite de frequência nos remotes; 2 jogadores não testado |
 | 2 (depois da correção 1) | [1,2,1,2,1,2] | 7,5 | S1: roubo/depósito/soco/duelo com 2 jogadores não testado |
 
+## Teste com 2 jogadores (Studio → Servidor e clientes, Player1 + Player2)
+Feito com controle de tela autorizado pelo usuário. O clique no roubo foi um clique **real** de mouse na janela do
+Player2. Socos e duelo saíram pelos remotes dos clientes, e o estado foi lido por scripts de sondagem no servidor.
+
+| Caso | Resultado |
+|---|---|
+| Roubo: Player2 clica na maçã do pátio do Player1 | aviso "Roubando Maçã… fique parado 3s!" e feixe vermelho; depois do canal, Player2 carregando e pátio do Player1 vazio |
+| Soco no ladrão: Player1 soca o Player2 que carrega a comida | HP do ladrão 115→68; ladrão larga a comida; ela volta para a mochila do Player1 ("Você recuperou sua comida!") |
+| Depósito com teletransporte (0,6 s depois de pegar; mínimo calculado 4,1 s) | **recusado** (continua carregando) |
+| Depósito depois do tempo mínimo, andando dentro da própria base | aceito: `totalSteals` +1, comida na mochila do Player2 |
+| Duelo completo (desafio + aceite pelos remotes) | ticks com dano parecido para os dois; vencedor Player2: +1 vitória, levou as 2 comidas do pátio do Player1; Player1 +1 derrota e proteção pós-derrota |
+| Sair no meio do duelo (Player1 expulso 6 s após o início) | fim "abortado", vitória para quem ficou (Player2, 2 vitórias); servidor sem erros |
+| Ladrão sai carregando | mesmo caminho do soco (`dropCarry(ladrão, true)` no `PlayerRemoving`): comida volta ao dono. Coberto pelo teste do soco, não repetido ao vivo |
+
+**Bugs achados no teste com 2 jogadores (corrigidos no commit seguinte):**
+1. Painel "Disputa de comida": o aviso "Ninguém no círculo — CORRA!" se acumulava a cada atualização (só os `Frame` eram apagados, e o aviso é `TextLabel`). Depois da correção, aparece uma linha só. O bug já vinha da v4.
+2. Duelo recusava jogadores com UserId negativo (jogadores de teste do Studio); agora aceita qualquer inteiro diferente de 0.
+
 ## NÃO testado ainda
-- 2 jogadores (roubo, depósito, soco no ladrão, duelo da arena): o MCP do Studio só inicia Play solo e o controle da tela do Studio não foi autorizado. Precisa do teste manual (Studio → Testar → Clientes e servidores, 2 jogadores).
 - Compras reais: os IDs de produtos/passes são 0 (placeholders); o fluxo de recibo é coberto pelo `Receipts.spec`.
 - Persistência entre sessões: o armazenamento de teste dura só uma sessão.
 
