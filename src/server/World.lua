@@ -137,6 +137,9 @@ local function buildCauldron(parent: Instance)
 	local P = World.Palette
 	local m = Instance.new("Model")
 	m.Name = "BanquetCauldron"
+	-- Marco sempre carregado no cliente se o StreamingEnabled for ligado (hoje está desligado).
+	-- Vault "Instance Streaming": Persistent só para poucos itens essenciais; este é o único.
+	m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local S = CAULDRON_SCALE
 	local function cyl(name: string, d: number, h: number, cf: CFrame, color: string, decor: boolean?): Part
 		local p = Build.part({
@@ -202,7 +205,14 @@ local function buildCauldron(parent: Instance)
 	local floor = plinthTop -- topo do pedestal
 	-- Fogueira de pedra (raio máximo = CAULDRON_RADIUS: a faixa de drops começa depois dele)
 	cyl("Hearth", 34 * S, 4 * S, CFrame.new(0, floor + 2 * S, 0), P.stone)
-	cyl("HearthTop", 30 * S, 0.6, CFrame.new(0, floor + 4 * S + 0.3, 0), P.stoneDark, true)
+	local hearthTopPart = cyl("HearthTop", 30 * S, 0.6, CFrame.new(0, floor + 4 * S + 0.3, 0), P.stoneDark, true)
+	-- Uma única luz quente no fogo (sem sombra: barata no celular)
+	local glow = Instance.new("PointLight")
+	glow.Color = hex("#FF9A3C")
+	glow.Range = 40
+	glow.Brightness = 2
+	glow.Shadows = false
+	glow.Parent = hearthTopPart
 	local hearthTop = floor + 4 * S
 	for i = 0, 3 do
 		local log = Build.decor(Build.part({
@@ -215,7 +225,8 @@ local function buildCauldron(parent: Instance)
 	end
 	for i = 0, 5 do
 		local pos = Vector3.new(math.cos(i) * 9 * S, hearthTop + 3.5 * S, math.sin(i) * 9 * S)
-		ballp("Flame", 4.5 * S, pos, if i % 2 == 0 then "#FFB000" else "#FF8C1A")
+		local flame = ballp("Flame", 4.5 * S, pos, if i % 2 == 0 then "#FFB000" else "#FF8C1A")
+		flame.Material = Enum.Material.Neon -- fogo = "lava" no guia simulator: o Neon passa do limiar do Bloom
 	end
 	-- Pernas e corpo: cobre quente (claro o bastante para ler de longe e no celular)
 	local bodyBottom = hearthTop + 4 * S
@@ -315,7 +326,7 @@ local function leaderboard(index: number, title: string, phi: number, parent: In
 		Name = "Leaderboard" .. index,
 		Size = Vector3.new(18, 22, 1.5),
 		CFrame = cf * CFrame.new(0, 15, 0),
-		Color = hex("#0D69AC"),
+		Color = hex("#5A3A22"), -- madeira escura: combina com barraca e mesas; texto claro contrasta
 	})
 	-- Moldura e pés
 	for _, x in { -9.5, 9.5 } do
@@ -405,7 +416,7 @@ function World.buildHub(root: Instance): Part
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(1, 26, 26),
 		CFrame = CFrame.new(eventPos + Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = hex("#B480FF"),
+		Color = hex("#F5CD30"),
 		Material = Enum.Material.Neon,
 	})
 	local eventRim = Build.decor(Build.part({
@@ -413,7 +424,7 @@ function World.buildHub(root: Instance): Part
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(0.6, 30, 30),
 		CFrame = CFrame.new(eventPos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = hex("#8C5B9F"),
+		Color = hex("#DA8541"),
 	}))
 	eventRim.Parent = hub
 
@@ -560,6 +571,11 @@ function World.buildPath(origin: CFrame, parent: Instance)
 	while d < total - 20 do
 		local side = if i % 2 == 0 then 1 else -1
 		World.lamp(CFrame.new(fromPos + unit * d + right * side * (PATH_W / 2 + 3)), parent)
+		local bush = Props.bush(
+			CFrame.new(fromPos + unit * (d + 8) - right * side * (PATH_W / 2 + 5)),
+			{ rng = Random.new(SEED + i + math.floor(d)), color = "#7C9C6B", scale = 1.1 }
+		)
+		bush.Parent = parent
 		d += 45
 		i += 1
 	end
@@ -672,6 +688,23 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 		return Scatter.run(o)
 	end
 	local P = World.Palette
+	run({
+		seed = SEED + 9,
+		spacing = 75,
+		clearance = 14,
+		make = function(cf: CFrame, rng: Random)
+			local r = rng:NextNumber(12, 26)
+			local patch = Build.decor(Build.part({
+				Name = "GrassPatch",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.1, r * 2, r * 2),
+				CFrame = CFrame.new(cf.Position + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = hex(if rng:NextNumber() < 0.5 then "#6FB25A" else "#4E8F42"),
+				CastShadow = false,
+			}))
+			return patch
+		end,
+	})
 	run({
 		seed = SEED + 1,
 		clusters = { spacing = 100, radius = 16, per = { 3, 5 }, minDist = 10 },

@@ -119,6 +119,9 @@ local function buildBase(index: number, root: Folder): BaseInfo
 	sign.TextScaled = true
 	sign.Font = Enum.Font.FredokaOne
 	sign.TextColor3 = Color3.new(1, 1, 1)
+	-- contorno escuro: lê em qualquer cor-tema (o branco sumia no amarelo)
+	sign.TextStrokeColor3 = Color3.fromRGB(30, 30, 40)
+	sign.TextStrokeTransparency = 0
 	sign.Parent = sg
 	-- Verso da placa (visto de dentro da base) mostra o mesmo texto
 	local sgBack = sg:Clone()

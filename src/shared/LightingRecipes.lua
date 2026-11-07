@@ -18,6 +18,7 @@ export type Recipe = {
 	grade: { [string]: any },
 	sky: { [string]: any },
 	clouds: { [string]: any },
+	sunRays: { [string]: any },
 }
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -32,11 +33,11 @@ LightingRecipes.Recipes = {
 			Ambient = rgb(110, 110, 125),
 			OutdoorAmbient = rgb(150, 150, 160),
 			Brightness = 2.5,
-			ColorShift_Top = rgb(255, 240, 215),
+			ColorShift_Top = rgb(255, 228, 190), -- revisão Fase 1: mais quente
 			ColorShift_Bottom = rgb(0, 0, 0),
 			EnvironmentDiffuseScale = 0.3,
 			EnvironmentSpecularScale = 0,
-			ClockTime = 13.5,
+			ClockTime = 15, -- revisão Fase 1: sol mais baixo = sombras mais longas e luz de tarde
 			GlobalShadows = true,
 		},
 		atmosphere = {
@@ -50,7 +51,9 @@ LightingRecipes.Recipes = {
 			Haze = 1.2,
 		},
 		bloom = { Intensity = 0.5, Size = 24, Threshold = 1.2 },
-		grade = { Brightness = 0.02, Contrast = 0.08, Saturation = 0.15, TintColor = rgb(255, 255, 255) },
+		grade = { Brightness = 0.02, Contrast = 0.12, Saturation = 0.12, TintColor = rgb(255, 247, 235) },
+		-- Raios de sol bem sutis (vault: só aparecem com o sol na tela; custo baixo)
+		sunRays = { Intensity = 0.04, Spread = 0.5 },
 		-- Céu padrão do Roblox (texturas internas; nenhum upload). Sol um pouco menor que o padrão (21).
 		sky = { SunAngularSize = 14, MoonAngularSize = 11, CelestialBodiesShown = true },
 		-- Nuvens leves de dia bonito (regra prática: abaixo do padrão 0,5/0,7 para não escurecer).
@@ -94,6 +97,7 @@ function LightingRecipes.apply(name: string)
 	assign(owned(Lighting, "Sky", "RecipeSky"), recipe.sky)
 	assign(owned(Lighting, "BloomEffect", "RecipeBloom"), recipe.bloom)
 	assign(owned(Lighting, "ColorCorrectionEffect", "RecipeGrade"), recipe.grade)
+	assign(owned(Lighting, "SunRaysEffect", "RecipeSunRays"), recipe.sunRays)
 	assign(owned(Workspace.Terrain, "Clouds", "RecipeClouds"), recipe.clouds)
 end
 
