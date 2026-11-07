@@ -56,6 +56,7 @@ estava; canal de roubo em pcall; chuva de comida com `SetNetworkOwner(nil)`; equ
 |---|---|---|---|
 | 1 (antes da correção) | [1,1,1,2,1,2] | 6,25 | sem limite de frequência nos remotes; 2 jogadores não testado |
 | 2 (depois da correção 1) | [1,2,1,2,1,2] | 7,5 | S1: roubo/depósito/soco/duelo com 2 jogadores não testado |
+| 3 (teste com 2 jogadores + 2 bugs corrigidos) | [2,2,1,2,1,2] | **8,75: aprovado** | nenhum; próximo ganho é S3 (medir no celular/emulador) |
 
 ## Teste com 2 jogadores (Studio → Servidor e clientes, Player1 + Player2)
 Feito com controle de tela autorizado pelo usuário. O clique no roubo foi um clique **real** de mouse na janela do

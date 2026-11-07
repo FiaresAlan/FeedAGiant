@@ -34,7 +34,7 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 | Fase | Situação |
 |---|---|
 | Diagnóstico e plano | ✅ **Concluído** (`docs/DIAGNOSTICO_E_PLANO.md`) |
-| Fase 0 — Fundação segura | ⏳ **Em andamento.** 0.1–0.7 feitos e testados solo; nota 7,5, falta teste com 2 jogadores (§3a) |
+| Fase 0 — Fundação segura | ✅ **Concluída** (nota 8,75 por painel de 3 revisores cegos; §3a) |
 | Fase 1 — Mundo bonito | ⬜ Pendente (depende da decisão de estilo de arte, ver §6) |
 | Fase 2 — Criaturas de verdade | ⬜ Pendente |
 | Fase 3 — Efeitos e juice | ⬜ Pendente |
@@ -69,6 +69,15 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
   - validar argumentos em `ArenaService:256` e `CombatService:341/344`.
 - [ ] 0.7 Criar `leaderArena` (placar da Arena morto). Enviar ao cliente só o que mudou, em vez do estado inteiro a cada segundo. Guardar o resultado de `IsInGroup` em cache na entrada.
 - [ ] 0.8 Verificador Luau com **overall PASS**, teste com 2 a 3 jogadores no Studio, revisão independente (anti-exploit e dados), nota ≥ 8,5 na rubrica `system`, registro no ledger
+
+## 3. Atualização final de 07/11/2026: FASE 0 CONCLUÍDA (8,75)
+
+- Teste com 2 jogadores feito ao vivo (Studio → Servidor e clientes, com controle de tela autorizado pelo usuário). Roubo, soco no ladrão, depósito anti-teletransporte, duelo completo e saída no meio do duelo funcionam. Detalhes em `docs/qa/FASE0_EVIDENCIAS.md`.
+- 2 bugs achados e corrigidos: o aviso "Ninguém no círculo" se acumulava no painel de disputa (vinha da v4); o duelo recusava os ids negativos dos jogadores de teste.
+- Painel 3: [2,2,1,2,1,2] = **8,75**. Ledger atualizado.
+- **Como testar 2 jogadores:** seletor do Studio → "Servidor e clientes", contador de jogadores → 2, Play. O MCP lista servidor e clientes como instâncias separadas; os `require` de um script injetado no servidor compartilham o estado do jogo.
+- **Pendências:** (1) decisão do usuário sobre a LuckyBox comprada por conta restrita (abaixo); (2) medir o desempenho no celular ou no emulador; (3) checagem de velocidade no servidor (drop/soco), da auditoria.
+- **Próxima tarefa:** Fase 1 (mundo bonito). Ela está bloqueada pela decisão de estilo de arte (§6, pendente 1): apresentar as opções ao usuário antes de construir.
 
 ## 3a. Atualização de 07/11/2026, 2ª sessão: Fase 0 testada, nota 7,5 (abaixo de 8,5)
 
