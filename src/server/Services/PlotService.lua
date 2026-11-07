@@ -12,6 +12,12 @@ local GiantService = require(script.Parent.GiantService)
 local PlotService = {}
 local foodModels: { [Player]: { [number]: Model } } = {}
 local globalCoinMultiplier = 1 -- alterado por EventService (Golden Hour)
+-- Fase 0.7: membro do grupo é consultado UMA vez na entrada (IsInGroup pode ceder/yield).
+local groupMember: { [Player]: boolean } = {}
+local autoFeedTick: { [Player]: number } = {}
+local fullTick: { [Player]: number } = {}
+local AUTO_FEED_EVERY = 5
+local FULL_PUSH_EVERY = 15
 
 function PlotService.setGlobalMultiplier(m: number)
 	globalCoinMultiplier = m
@@ -56,6 +62,7 @@ function PlotService.pushState(player: Player)
 		lastDuel = profile.lastDuel,
 		dropsWon = profile.dropsWon,
 		knockouts = profile.knockouts,
+		speciesTokens = profile.speciesTokens or 0,
 	})
 end
 
@@ -80,7 +87,7 @@ function PlotService.coinsPerSecond(player: Player): number
 	if profile.passes.DoubleCoins then
 		mult *= 2
 	end
-	if Config.GroupId ~= 0 and player:IsInGroup(Config.GroupId) then
+	if groupMember[player] then
 		mult *= 1.1
 	end
 	return math.floor(total * mult * globalCoinMultiplier)
@@ -158,14 +165,28 @@ function PlotService.getFoodModel(player: Player, slot: number): Model?
 	return foodModels[player] and foodModels[player][slot]
 end
 
-function PlotService.giveFood(player: Player, foodId: string)
+function PlotService.hasInventorySpace(profile: DataService.Profile, count: number?): boolean
+	return #profile.inventory + (count or 1) <= Config.MaxInventory
+end
+
+-- Dá uma comida. Com a mochila cheia, recusa (retorna false e avisa), a não ser que
+-- `force` seja true (compras com Robux, comida devolvida/roubada: o item já existia).
+function PlotService.giveFood(player: Player, foodId: string, force: boolean?): boolean
 	local profile = DataService.get(player)
-	if not profile then
-		return
+	if not profile or not Config.FoodById[foodId] then
+		return false
+	end
+	if not force and not PlotService.hasInventorySpace(profile) then
+		Remotes.Notify:FireClient(player, {
+			text = "Mochila cheia! Alimente seu Gigante ou coloque comida no pátio.",
+			color = Color3.fromRGB(255, 90, 90),
+		})
+		return false
 	end
 	table.insert(profile.inventory, { id = foodId, uid = DataService.newUid() })
 	DataService.markDirty(player)
 	PlotService.pushState(player)
+	return true
 end
 
 function PlotService.place(player: Player, invIndex: number)
@@ -292,7 +313,22 @@ function PlotService.init()
 		return true
 	end
 
-	-- Renda passiva (1x/seg)
+	local function checkGroup(player: Player)
+		if Config.GroupId == 0 then
+			return
+		end
+		local ok, isMember = pcall(player.IsInGroup, player, Config.GroupId)
+		if ok and player.Parent then
+			groupMember[player] = isMember == true
+		end
+	end
+	Players.PlayerAdded:Connect(checkGroup)
+	for _, p in Players:GetPlayers() do
+		task.spawn(checkGroup, p)
+	end
+
+	-- Renda passiva (1x/seg). Fase 0.7: o tick manda só {coins, cps, hunger} (pequeno);
+	-- o estado completo vai só quando algo muda (pushState chamado pelas ações).
 	task.spawn(function()
 		while true do
 			task.wait(1)
@@ -304,28 +340,47 @@ function PlotService.init()
 						profile.coins += cps
 						DataService.markDirty(player)
 					end
-					-- Auto-Feed pass: alimenta a comida mais fraca a cada 5s
-					if profile.passes.AutoFeed and os.time() % 5 == 0 then
-						local bestSlot: number? = nil
-						local bestOrder = 99
-						for key, food in profile.plot do
-							local def = Config.FoodById[food.id]
-							if def and Config.Rarities[def.rarity].order < bestOrder then
-								bestOrder = Config.Rarities[def.rarity].order
-								bestSlot = tonumber(key)
+					-- Auto-Feed pass: alimenta a comida mais fraca a cada AUTO_FEED_EVERY segundos
+					local fed = false
+					if profile.passes.AutoFeed then
+						autoFeedTick[player] = (autoFeedTick[player] or 0) + 1
+						if autoFeedTick[player] >= AUTO_FEED_EVERY then
+							autoFeedTick[player] = 0
+							local bestSlot: number? = nil
+							local bestOrder = 99
+							for key, food in profile.plot do
+								local def = Config.FoodById[food.id]
+								if def and Config.Rarities[def.rarity].order < bestOrder then
+									bestOrder = Config.Rarities[def.rarity].order
+									bestSlot = tonumber(key)
+								end
+							end
+							if bestSlot then
+								PlotService.feed(player, bestSlot) -- já envia o estado completo
+								fed = true
 							end
 						end
-						if bestSlot then
-							PlotService.feed(player, bestSlot)
-						end
 					end
-					PlotService.pushState(player)
+					fullTick[player] = (fullTick[player] or 0) + 1
+					if not fed and fullTick[player] >= FULL_PUSH_EVERY then
+						fullTick[player] = 0
+						PlotService.pushState(player) -- rede de segurança (antes: TODO segundo)
+					elseif not fed then
+						Remotes.StateChanged:FireClient(player, {
+							coins = profile.coins,
+							cps = cps,
+							hunger = profile.hunger,
+						})
+					end
 				end
 			end
 		end
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		groupMember[player] = nil
+		autoFeedTick[player] = nil
+		fullTick[player] = nil
 		if foodModels[player] then
 			for _, m in foodModels[player] do
 				m:Destroy()

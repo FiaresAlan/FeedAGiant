@@ -26,6 +26,7 @@ export type PlayerState = {
 	lastDuel: number?,
 	levelsLostToDecay: number?,
 	championUntil: number?,
+	speciesTokens: number?,
 }
 
 local State = {}
@@ -77,8 +78,9 @@ function State.init()
 		end
 	end)
 	task.spawn(function()
-		local ok, _ = pcall(function()
-			return Remotes.GetFullState:InvokeServer()
+		local getFullState = (Remotes :: any).GetFullState :: RemoteFunction
+		local ok = pcall(function()
+			getFullState:InvokeServer()
 		end)
 		if not ok then
 			warn("[Client] Falha ao solicitar estado inicial")

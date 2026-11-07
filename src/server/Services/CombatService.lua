@@ -355,14 +355,24 @@ end
 
 function CombatService.init()
 	Remotes.RequestPunch.OnServerEvent:Connect(function(player, heavy)
-		tryPunch(player, heavy == true)
+		if type(heavy) ~= "boolean" then
+			return
+		end
+		tryPunch(player, heavy)
 	end)
 	Remotes.RequestBlock.OnServerEvent:Connect(function(player, on)
-		setBlock(player, on == true)
+		if type(on) ~= "boolean" then
+			return
+		end
+		setBlock(player, on)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
 		fighters[player] = nil
+		-- Evita recriar o lutador por um push atrasado (task.delay) depois da saída.
+		task.defer(function()
+			fighters[player] = nil
+		end)
 	end)
 	Players.PlayerAdded:Connect(function(player)
 		player.CharacterAdded:Connect(function()

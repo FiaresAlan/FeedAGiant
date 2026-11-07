@@ -1,29 +1,34 @@
 --!strict
--- DataService — carrega/salva perfis com DataStore, com retry e autosave.
-local Players = game:GetService("Players")
+-- DataService — fachada do jogo sobre o PlayerData do fwjelaa (Fase 0.3).
+--
+-- O que mudou em relação à v4 (ver docs/DIAGNOSTICO_E_PLANO.md, C1/C2/H2/H3):
+--   * Trava de sessão: carregar e salvar usam UpdateAsync com lease + token (PlayerData).
+--     Outro servidor nunca sobrescreve o save, e trocar de servidor não volta no tempo.
+--   * Carregamento que falha NUNCA vira perfil padrão: o jogador é desconectado com uma
+--     mensagem clara e o save verdadeiro fica intacto.
+--   * Autosave escalonado (30 s, só se mudou), save + liberação ao sair, BindToClose que
+--     espera os saves de verdade (até 26 s). Save que falha continua pendente.
+--   * Compras: PurchaseId gravado no mesmo documento da entrega (ver MonetizationService).
+--   * Placares (OrderedDataStore) saem do caminho do save: a cada 120 s se mudou e ao sair.
+--
+-- A interface pública continua a mesma da v4 (get, waitFor, markDirty, newUid,
+-- getLeaderboard), então os outros serviços não precisam mudar.
 local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Vendor = ServerScriptService:WaitForChild("fwjelaa")
+local PlayerData = require(Vendor:WaitForChild("PlayerData"))
+local StudioMemoryStore = require(Vendor:WaitForChild("StudioMemoryStore"))
 
-local STORE_NAME = "FeedAGiant_v1"
-local store
-local leaderLevel
-local leaderRebirth
-local leaderArena
-local dataStoreAvailable = pcall(function()
-	store = DataStoreService:GetDataStore(STORE_NAME)
-	leaderLevel = DataStoreService:GetOrderedDataStore("FAG_TopLevel_v1")
-	leaderRebirth = DataStoreService:GetOrderedDataStore("FAG_TopRebirth_v1")
-end)
-
-if not dataStoreAvailable then
-	if RunService:IsStudio() then
-		warn("[DataService] DataStore indisponível neste place não publicado; usando perfis em memória.")
-	else
-		warn("[DataService] Não foi possível inicializar o DataStore.")
-	end
-end
+-- Nunca renomear depois do lançamento. O place nunca foi publicado, então não há
+-- dados antigos ("FeedAGiant_v1") para migrar.
+local STORE_NAME = "FeedAGiant_Profiles_v1"
+local SCHEMA_VERSION = 1
+local LEADERBOARD_INTERVAL = 120
 
 export type FoodInstance = { id: string, uid: string }
 export type Profile = {
@@ -60,17 +65,11 @@ export type Profile = {
 	championUntil: number,
 	lastDuel: number,
 	duelProtectionUntil: number,
+	-- Fase 0
+	speciesTokens: number, -- fichas do produto "Trocar Espécie" (jogador escolhe a espécie)
 }
 
 local DataService = {}
-local profiles: { [Player]: Profile } = {}
-local dirty: { [Player]: boolean } = {}
-local uidCounter = 0
-
-function DataService.newUid(): string
-	uidCounter += 1
-	return string.format("%d_%d", os.time(), uidCounter)
-end
 
 local function defaultProfile(): Profile
 	return {
@@ -106,97 +105,103 @@ local function defaultProfile(): Profile
 		championUntil = 0,
 		lastDuel = 0,
 		duelProtectionUntil = 0,
+		speciesTokens = 0,
 	}
 end
+DataService.defaultProfile = defaultProfile
 
-local function withRetry<T>(fn: () -> T, attempts: number): (boolean, T?)
-	local ok, result
-	for i = 1, attempts do
-		ok, result = pcall(fn)
-		if ok then
-			return true, result
-		end
-		warn("[DataService] tentativa " .. i .. " falhou:", result)
-		task.wait(1.5 * i)
-	end
-	return false, nil
-end
-
-local function load(player: Player)
-	local key = "u_" .. player.UserId
-	local ok, data = false, nil
-	if dataStoreAvailable and store then
-		ok, data = withRetry(function()
-			return store:GetAsync(key)
-		end, 3)
-	end
-	local profile = defaultProfile()
-	if ok and type(data) == "table" then
-		for k, v in data :: any do
-			(profile :: any)[k] = v
-		end
-		-- Migração v1 -> v2: perfis antigos não têm os campos novos; defaultProfile já os preencheu.
-		if not Config.SpeciesById[profile.species] then
-			profile.species = Config.DefaultSpecies
-		end
-		profile.ownedSpecies[profile.species] = true
-		if profile.peakLevel < profile.level then
-			profile.peakLevel = profile.level
-		end
-	end
-	if not ok and not RunService:IsStudio() then
-		warn("[DataService] Falha ao carregar " .. player.Name .. ". Jogando com perfil temporário.")
-	end
-	profiles[player] = profile
-end
-
-local function save(player: Player)
-	local profile = profiles[player]
-	if not profile then
+-- Corrige valores impossíveis vindos do save (idempotente; roda uma vez por carga).
+local sanitized: { [Player]: boolean } = {}
+local function sanitize(player: Player, profile: Profile)
+	if sanitized[player] then
 		return
 	end
-	if not dataStoreAvailable or not store then
-		dirty[player] = nil
-		return
+	sanitized[player] = true
+	if not Config.SpeciesById[profile.species] then
+		profile.species = Config.DefaultSpecies
 	end
-	local key = "u_" .. player.UserId
-	profile.lastSeen = os.time()
-	withRetry(function()
-		store:SetAsync(key, profile, { player.UserId })
-		return true
-	end, 3)
-	pcall(function()
-		leaderLevel:SetAsync(tostring(player.UserId), profile.level + profile.rebirths * 1000)
-		leaderRebirth:SetAsync(tostring(player.UserId), profile.rebirths)
-		leaderArena:SetAsync(tostring(player.UserId), profile.arenaWins + profile.championships * 10)
-	end)
-	dirty[player] = nil
+	profile.ownedSpecies[profile.species] = true
+	if profile.peakLevel < profile.level then
+		profile.peakLevel = profile.level
+	end
+	-- Inventário acima do limite (só possível em saves antigos): mantém os primeiros.
+	while #profile.inventory > Config.MaxInventory * 2 do
+		table.remove(profile.inventory)
+	end
 end
 
+function DataService.newUid(): string
+	return HttpService:GenerateGUID(false)
+end
+
+-- Perfil ativo (tabela do jogo) ou nil enquanto carrega / depois de sair / se o load falhou.
 function DataService.get(player: Player): Profile?
-	return profiles[player]
+	local p = PlayerData.Get(player)
+	if not p then
+		return nil
+	end
+	local profile = p.Data :: any
+	sanitize(player, profile)
+	return profile
 end
 
 function DataService.waitFor(player: Player, timeout: number?): Profile?
-	local t0 = os.clock()
-	while not profiles[player] do
-		if os.clock() - t0 > (timeout or 15) then
-			return nil
-		end
-		task.wait(0.1)
+	local p = PlayerData.WaitForProfile(player, timeout or 15)
+	if not p then
+		return nil
 	end
-	return profiles[player]
+	return DataService.get(player)
 end
 
 function DataService.markDirty(player: Player)
-	dirty[player] = true
+	local p = PlayerData.Get(player)
+	if p then
+		PlayerData.MarkDirty(p)
+	end
 end
 
-function DataService.getLeaderboard(
-	kind: "Level" | "Rebirth" | "Arena",
-	n: number
-): { { userId: number, value: number } }
-	local ds = if kind == "Level" then leaderLevel elseif kind == "Arena" then leaderArena else leaderRebirth
+function DataService.saveNow(player: Player): boolean
+	return PlayerData.SaveNowAsync(player)
+end
+
+---------------------------------------------------------------------------
+-- Placares globais (índices; o perfil é a verdade)
+---------------------------------------------------------------------------
+type BoardKind = "Level" | "Rebirth" | "Arena"
+local boards: { [BoardKind]: OrderedDataStore } = {}
+local lastWritten: { [number]: { [string]: number } } = {}
+
+local function boardValues(profile: Profile): { [BoardKind]: number }
+	return {
+		Level = profile.level + profile.rebirths * 1000,
+		Rebirth = profile.rebirths,
+		Arena = profile.arenaWins + profile.championships * 10,
+	}
+end
+
+local function writeBoards(userId: number, values: { [BoardKind]: number })
+	local previous = lastWritten[userId] or {}
+	for kind, value in values do
+		local ds = boards[kind]
+		if ds and previous[kind] ~= value then
+			if
+				DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementSortedAsync) < 1
+			then
+				return -- sem orçamento agora; tenta no próximo ciclo
+			end
+			local ok = pcall(function()
+				ds:SetAsync(tostring(userId), math.floor(value))
+			end)
+			if ok then
+				previous[kind] = value
+			end
+		end
+	end
+	lastWritten[userId] = previous
+end
+
+function DataService.getLeaderboard(kind: BoardKind, n: number): { { userId: number, value: number } }
+	local ds = boards[kind]
 	if not ds then
 		return {}
 	end
@@ -212,32 +217,59 @@ function DataService.getLeaderboard(
 	return out
 end
 
+---------------------------------------------------------------------------
+-- Ciclo de vida
+---------------------------------------------------------------------------
+
+-- Fase 1: configura o PlayerData e registra o perfil. Chamar antes de qualquer
+-- RegisterSlice de outros módulos (ex.: Receipts) e antes de DataService.start().
 function DataService.init()
-	Players.PlayerAdded:Connect(load)
-	for _, p in Players:GetPlayers() do
-		task.spawn(load, p)
+	PlayerData.Configure({
+		storeName = STORE_NAME,
+		schemaVersion = SCHEMA_VERSION,
+		studioFallbackStore = if RunService:IsStudio() then StudioMemoryStore.new() else nil,
+	})
+	-- Uma "slice" por campo: profile.Data fica com o mesmo formato plano da v4.
+	local template = defaultProfile()
+	for key in template do
+		PlayerData.RegisterSlice(key, function()
+			return (defaultProfile() :: any)[key]
+		end)
 	end
-	Players.PlayerRemoving:Connect(function(player)
-		save(player)
-		profiles[player] = nil
+
+	local okBoards = pcall(function()
+		boards.Level = DataStoreService:GetOrderedDataStore("FAG_TopLevel_v1")
+		boards.Rebirth = DataStoreService:GetOrderedDataStore("FAG_TopRebirth_v1")
+		boards.Arena = DataStoreService:GetOrderedDataStore("FAG_TopArena_v1")
 	end)
-	game:BindToClose(function()
-		if RunService:IsStudio() then
-			return
-		end
-		local jobs = {}
-		for player in profiles do
-			table.insert(jobs, task.spawn(save, player))
-		end
-		task.wait(3)
+	if not okBoards then
+		warn("[DataService] Placares indisponíveis (place não publicado?).")
+	end
+
+	-- Ao sair: grava lastSeen no snapshot final e atualiza os placares uma vez.
+	PlayerData.Releasing:Connect(function(_player: Player, p: PlayerData.Profile)
+		(p.Data :: any).lastSeen = os.time()
 	end)
+	PlayerData.OnRelease(function(player: Player, p: PlayerData.Profile)
+		local values = boardValues(p.Data :: any) -- lê antes de qualquer yield
+		writeBoards(p.UserId, values)
+		lastWritten[p.UserId] = nil
+		sanitized[player] = nil
+	end)
+end
+
+-- Fase 2: começa a carregar jogadores. Chamar depois de todos os init().
+function DataService.start()
+	PlayerData.Start()
 	task.spawn(function()
 		while true do
-			task.wait(60)
-			for player in dirty do
-				if player.Parent then
-					task.spawn(save, player)
+			task.wait(LEADERBOARD_INTERVAL)
+			for _, player in Players:GetPlayers() do
+				local profile = DataService.get(player)
+				if profile then
+					writeBoards(player.UserId, boardValues(profile))
 				end
+				task.wait(0.5) -- espalha as escritas
 			end
 		end
 	end)

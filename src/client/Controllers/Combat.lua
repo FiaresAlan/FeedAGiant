@@ -39,11 +39,13 @@ local function sound(key: string, volume: number?)
 		if not id or id == 0 then
 			return
 		end
-		s = Instance.new("Sound")
-		s.SoundId = id
-		s.Volume = volume or 0.6
-		s.Parent = SoundService
-		sounds[key] = s
+		local created = Instance.new("Sound")
+		created.SoundId = id
+		created.Volume = volume or 0.6
+		created.Parent = SoundService
+		sounds[key] = created
+		created:Play()
+		return
 	end
 	s:Play()
 end
@@ -211,30 +213,22 @@ local function buildBars(gui: ScreenGui)
 		BackgroundTransparency = 0.05,
 	})
 	UI.icon(box, "glove", { Size = UDim2.fromOffset(44, 44), Position = UDim2.fromOffset(10, 14), ZIndex = 3 })
-	strengthLabel = UI.label(
-		box,
-		"FORÇA x1.00",
-		{
-			Size = UDim2.fromOffset(80, 16),
-			Position = UDim2.fromOffset(-6, 62),
-			TextScaled = false,
-			TextSize = 12,
-			Font = UI.FontBody,
-			TextColor3 = UI.Colors.Accent,
-			ZIndex = 3,
-		}
-	)
-	UI.label(
-		box,
-		"HP",
-		{
-			Size = UDim2.fromOffset(34, 20),
-			Position = UDim2.fromOffset(60, 14),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = UI.Colors.Red,
-			ZIndex = 3,
-		}
-	)
+	strengthLabel = UI.label(box, "FORÇA x1.00", {
+		Size = UDim2.fromOffset(80, 16),
+		Position = UDim2.fromOffset(-6, 62),
+		TextScaled = false,
+		TextSize = 12,
+		Font = UI.FontBody,
+		TextColor3 = UI.Colors.Accent,
+		ZIndex = 3,
+	})
+	UI.label(box, "HP", {
+		Size = UDim2.fromOffset(34, 20),
+		Position = UDim2.fromOffset(60, 14),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Red,
+		ZIndex = 3,
+	})
 	local hpBg
 	hpBg, hpFill = UI.bar(
 		box,
@@ -247,63 +241,45 @@ local function buildBars(gui: ScreenGui)
 		{ Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 12, Font = UI.FontBody, ZIndex = 7 }
 	)
 	hpText.Name = "HpText"
-	UI.label(
-		box,
-		"STA",
-		{
-			Size = UDim2.fromOffset(34, 20),
-			Position = UDim2.fromOffset(60, 46),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = UI.Colors.Accent,
-			ZIndex = 3,
-		}
-	)
+	UI.label(box, "STA", {
+		Size = UDim2.fromOffset(34, 20),
+		Position = UDim2.fromOffset(60, 46),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Accent,
+		ZIndex = 3,
+	})
 	local stBg
 	stBg, staminaFill = UI.bar(
 		box,
 		UI.Colors.Accent,
 		{ Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 46), ZIndex = 3 }
 	)
-	blockBadge = UI.label(
-		box,
-		"🛡 BLOQUEANDO",
-		{
-			Size = UDim2.fromOffset(180, 20),
-			Position = UDim2.fromOffset(94, 70),
-			TextColor3 = UI.Colors.Blue,
-			TextScaled = false,
-			TextSize = 13,
-			Font = UI.FontBody,
-			Visible = false,
-			ZIndex = 3,
-		}
-	)
-	comboLabel = UI.title(
-		gui,
-		"",
-		{
-			Size = UDim2.fromOffset(300, 60),
-			Position = UDim2.new(0.5, 0, 0.3, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Visible = false,
-			ZIndex = 20,
-		}
-	)
-	koLabel = UI.title(
-		gui,
-		"K.O.!",
-		{
-			Size = UDim2.fromOffset(520, 110),
-			Position = UDim2.new(0.5, 0, 0.42, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Visible = false,
-			ZIndex = 60,
-		}
-	)
-	local hint = UI.label(
-		gui,
-		"Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  zona segura no seu pátio",
-		{
+	blockBadge = UI.label(box, "🛡 BLOQUEANDO", {
+		Size = UDim2.fromOffset(180, 20),
+		Position = UDim2.fromOffset(94, 70),
+		TextColor3 = UI.Colors.Blue,
+		TextScaled = false,
+		TextSize = 13,
+		Font = UI.FontBody,
+		Visible = false,
+		ZIndex = 3,
+	})
+	comboLabel = UI.title(gui, "", {
+		Size = UDim2.fromOffset(300, 60),
+		Position = UDim2.new(0.5, 0, 0.3, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Visible = false,
+		ZIndex = 20,
+	})
+	koLabel = UI.title(gui, "K.O.!", {
+		Size = UDim2.fromOffset(520, 110),
+		Position = UDim2.new(0.5, 0, 0.42, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Visible = false,
+		ZIndex = 60,
+	})
+	local hint =
+		UI.label(gui, "Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  zona segura no seu pátio", {
 			Size = UDim2.fromOffset(460, 18),
 			Position = UDim2.new(1, -12, 1, -126),
 			AnchorPoint = Vector2.new(1, 1),
@@ -312,8 +288,7 @@ local function buildBars(gui: ScreenGui)
 			Font = UI.FontBody,
 			TextTransparency = 0.35,
 			TextXAlignment = Enum.TextXAlignment.Right,
-		}
-	)
+		})
 	hint.Visible = not UserInputService.TouchEnabled
 end
 
@@ -321,16 +296,13 @@ local function buildMobile(gui: ScreenGui)
 	if not UserInputService.TouchEnabled then
 		return
 	end
-	local pad = UI.frame(
-		gui,
-		{
-			Name = "MobileCombat",
-			Size = UDim2.fromOffset(190, 190),
-			Position = UDim2.new(1, -16, 1, -134),
-			AnchorPoint = Vector2.new(1, 1),
-			BackgroundTransparency = 1,
-		}
-	)
+	local pad = UI.frame(gui, {
+		Name = "MobileCombat",
+		Size = UDim2.fromOffset(190, 190),
+		Position = UDim2.new(1, -16, 1, -134),
+		AnchorPoint = Vector2.new(1, 1),
+		BackgroundTransparency = 1,
+	})
 	local punch = UI.button(
 		pad,
 		"👊",
@@ -370,16 +342,21 @@ local function bindInput()
 		if gp then
 			return
 		end
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.J then
+		local key = input.KeyCode
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or key == Enum.KeyCode.J
+			or key == Enum.KeyCode.ButtonR1
+		then
 			Remotes.RequestPunch:FireServer(false)
-		elseif input.UserInputType == Enum.UserInputType.MouseButton2 or input.KeyCode == Enum.KeyCode.K then
+		elseif
+			input.UserInputType == Enum.UserInputType.MouseButton2
+			or key == Enum.KeyCode.K
+			or key == Enum.KeyCode.ButtonR2
+		then
 			Remotes.RequestPunch:FireServer(true)
-		elseif input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonL1 then
+		elseif key == Enum.KeyCode.F or key == Enum.KeyCode.ButtonL1 then
 			setBlock(true)
-		elseif input.KeyCode == Enum.KeyCode.ButtonR1 then
-			Remotes.RequestPunch:FireServer(false)
-		elseif input.KeyCode == Enum.KeyCode.ButtonR2 then
-			Remotes.RequestPunch:FireServer(true)
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input)

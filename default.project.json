@@ -5,12 +5,14 @@
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Shared": { "$path": "src/shared" },
+      "fwjelaa": { "$path": "src/vendor/shared" },
       "Remotes": { "$className": "Folder" },
       "Localization": { "$path": "src/localization" }
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "Server": { "$path": "src/server" }
+      "Server": { "$path": "src/server" },
+      "fwjelaa": { "$path": "src/vendor/server" }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",

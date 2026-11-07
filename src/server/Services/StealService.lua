@@ -1,5 +1,15 @@
 --!strict
--- StealService — roubo de comida entre bases, escudos, derrubar ladrão com o Bat.
+-- StealService — roubo de comida entre bases e escudos.
+--
+-- Fase 0.6 (ver docs/DIAGNOSTICO_E_PLANO.md, H4/H5/M5/M8):
+--   * O bastão da v1 foi REMOVIDO: batia por Touched numa peça controlada pelo cliente,
+--     sem checar distância nem zona segura (qualquer jogador do mapa podia ser derrubado).
+--     O contra-jogo continua: um ladrão que leva SOCO (CombatService, validado no servidor)
+--     derruba a comida, que volta para o dono.
+--   * Clique na comida: distância conferida no servidor (ClickDetector não é validado).
+--   * Fim do canal de 3 s: escudo do dono e o MESMO item (uid) são conferidos de novo.
+--   * Depósito: tempo mínimo de viagem entre o pátio roubado e a própria base
+--     (teleporte não deposita).
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
@@ -7,23 +17,30 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
+local CombatService = require(script.Parent.CombatService)
 
 local StealService = {}
 
-type Carry = { food: DataService.FoodInstance, from: Player, model: Model }
+local CLICK_REACH = 25 -- igual ao ClickDetector.MaxActivationDistance do PlotService
+local CHANNEL_MAX_MOVE = 6
+-- Velocidade máxima plausível (WalkSpeed 20 + pulos/empurrões). Mais rápido que isso = teleporte.
+local MAX_TRAVEL_SPEED = 45
+
+type Carry = { food: DataService.FoodInstance, from: Player, model: Model?, pickedAt: number, pickedPos: Vector3 }
 local carrying: { [Player]: Carry } = {}
 local channeling: { [Player]: boolean } = {}
-
-local function playerFromUserId(userId: number): Player?
-	return Players:GetPlayerByUserId(userId)
-end
 
 function StealService.isShielded(player: Player): boolean
 	local profile = DataService.get(player)
 	return profile ~= nil and profile.shieldUntil > os.time()
+end
+
+function StealService.isCarrying(player: Player): boolean
+	return carrying[player] ~= nil
 end
 
 function StealService.giveShield(player: Player, seconds: number)
@@ -61,8 +78,8 @@ end
 
 local function attachCarryVisual(thief: Player, def: Config.FoodDef): Model?
 	local char = thief.Character
-	local head = char and char:FindFirstChild("Head") :: BasePart?
-	if not head then
+	local head = char and char:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then
 		return nil
 	end
 	local model = Instance.new("Model")
@@ -94,6 +111,7 @@ local function attachCarryVisual(thief: Player, def: Config.FoodDef): Model?
 	return model
 end
 
+-- Ladrão perde a comida. returnTo = devolve ao dono (se ainda estiver no servidor).
 local function dropCarry(thief: Player, returnTo: boolean)
 	local c = carrying[thief]
 	if not c then
@@ -106,6 +124,7 @@ local function dropCarry(thief: Player, returnTo: boolean)
 	if returnTo and c.from.Parent then
 		local profile = DataService.get(c.from)
 		if profile then
+			-- A comida já existia: volta mesmo com a mochila cheia.
 			table.insert(profile.inventory, c.food)
 			DataService.markDirty(c.from)
 			PlotService.pushState(c.from)
@@ -121,12 +140,16 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	if carrying[thief] or channeling[thief] then
 		return
 	end
+	local primary = foodModel.PrimaryPart
+	if not primary or not Guard.withinReach(thief, primary, CLICK_REACH) then
+		return
+	end
 	local ownerId = foodModel:GetAttribute("OwnerUserId")
 	local slot = foodModel:GetAttribute("SlotIndex")
 	if type(ownerId) ~= "number" or type(slot) ~= "number" then
 		return
 	end
-	local owner = playerFromUserId(ownerId)
+	local owner = Players:GetPlayerByUserId(ownerId)
 	if not owner or owner == thief then
 		return
 	end
@@ -137,8 +160,13 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 		)
 		return
 	end
-	local foodId = foodModel:GetAttribute("FoodId")
-	local def = Config.FoodById[foodId]
+	local ownerProfile = DataService.get(owner)
+	local target = ownerProfile and ownerProfile.plot[tostring(slot)]
+	if not target then
+		return
+	end
+	local targetUid = target.uid
+	local def = Config.FoodById[target.id]
 	if not def then
 		return
 	end
@@ -147,45 +175,39 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	Remotes.StealAlert:FireClient(owner, { thiefName = thief.DisplayName, food = def.name })
 	Remotes.Notify:FireClient(thief, Locale.msg("stealing", { f = def.name }, Color3.fromRGB(255, 200, 80)))
 
-	local primary = foodModel.PrimaryPart
-	local beam
-	if primary then
-		beam = Util.makePart({
-			Name = "StealBeam",
-			Size = Vector3.new(1.5, 40, 1.5),
-			CFrame = primary.CFrame * CFrame.new(0, 20, 0),
-			Color = Color3.fromRGB(255, 50, 50),
-			Material = Enum.Material.Neon,
-			Transparency = 0.3,
-			CanCollide = false,
-			Parent = foodModel,
-		})
-	end
+	local beam = Util.makePart({
+		Name = "StealBeam",
+		Size = Vector3.new(1.5, 40, 1.5),
+		CFrame = primary.CFrame * CFrame.new(0, 20, 0),
+		Color = Color3.fromRGB(255, 50, 50),
+		Material = Enum.Material.Neon,
+		Transparency = 0.3,
+		CanCollide = false,
+		Parent = foodModel,
+	})
 
-	local startPos = thief.Character and thief.Character:GetPivot().Position
+	local startRoot = Guard.rootOf(thief)
+	local startPos = startRoot and startRoot.Position
 	local t0 = os.clock()
-	local ok = true
-	while os.clock() - t0 < Config.Steal.ChannelTime do
+	local ok = startPos ~= nil
+	while ok and os.clock() - t0 < Config.Steal.ChannelTime do
 		task.wait(0.1)
-		local char = thief.Character
-		if not char or not char.Parent or not foodModel.Parent or not startPos then
-			ok = false
-			break
-		end
-		if (char:GetPivot().Position - startPos).Magnitude > 6 then
-			ok = false
-			break
-		end
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if not hum or hum.Health <= 0 then
-			ok = false
-			break
-		end
+		local root = Guard.rootOf(thief)
+		ok = root ~= nil
+			and foodModel.Parent ~= nil
+			and startPos ~= nil
+			and (root.Position - startPos).Magnitude <= CHANNEL_MAX_MOVE
+			and not CombatService.isKO(thief)
 	end
-	if beam then
-		beam:Destroy()
-	end
+	beam:Destroy()
 	channeling[thief] = nil
+
+	-- Reconfere TUDO no fim: o mundo pode ter mudado durante os 3 s.
+	local current = DataService.get(owner)
+	local still = current and current.plot[tostring(slot)]
+	if ok and (not owner.Parent or StealService.isShielded(owner) or not still or still.uid ~= targetUid) then
+		ok = false
+	end
 	if not ok then
 		Remotes.Notify:FireClient(thief, { text = "Roubo cancelado.", color = Color3.fromRGB(255, 90, 90) })
 		return
@@ -195,7 +217,7 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 		return
 	end
 	local visual = attachCarryVisual(thief, def)
-	carrying[thief] = { food = food, from = owner, model = visual :: Model }
+	carrying[thief] = { food = food, from = owner, model = visual, pickedAt = os.clock(), pickedPos = primary.Position }
 	Remotes.Notify:FireClient(
 		thief,
 		{ text = "Pegou! Corra para sua base e toque no seu pátio.", color = Color3.fromRGB(80, 255, 120) }
@@ -206,10 +228,15 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	)
 end
 
-local function tryDeposit(thief: Player)
+local function tryDeposit(thief: Player, depositPos: Vector3)
 	local c = carrying[thief]
 	if not c then
 		return
+	end
+	-- Anti-teleporte: não dá para chegar mais rápido que MAX_TRAVEL_SPEED.
+	local minTime = (depositPos - c.pickedPos).Magnitude / MAX_TRAVEL_SPEED
+	if os.clock() - c.pickedAt < minTime then
+		return -- chegou rápido demais; tenta de novo no próximo toque
 	end
 	local profile = DataService.get(thief)
 	if not profile then
@@ -219,7 +246,7 @@ local function tryDeposit(thief: Player)
 	if c.model then
 		c.model:Destroy()
 	end
-	table.insert(profile.inventory, c.food)
+	table.insert(profile.inventory, c.food) -- item já existia: entra mesmo com mochila cheia
 	profile.totalSteals += 1
 	DataService.markDirty(thief)
 	PlotService.pushState(thief)
@@ -230,90 +257,63 @@ local function tryDeposit(thief: Player)
 	)
 end
 
-local function giveBat(player: Player)
-	local char = player.Character
-	if not char then
-		return
+local function onCharacterAdded(player: Player, char: Model)
+	local hum = char:WaitForChild("Humanoid", 5)
+	if hum and hum:IsA("Humanoid") then
+		hum.Died:Connect(function()
+			dropCarry(player, true)
+		end)
 	end
-	local backpack = player:FindFirstChildOfClass("Backpack")
-	if not backpack or backpack:FindFirstChild("Bastão") then
-		return
+	-- Depositar ao tocar no próprio pátio
+	local root = char:WaitForChild("HumanoidRootPart", 5)
+	if root and root:IsA("BasePart") then
+		root.Touched:Connect(function(hit)
+			if not carrying[player] then
+				return
+			end
+			local baseIndex = hit:GetAttribute("BaseIndex")
+			if type(baseIndex) == "number" then
+				local base = MapService.Bases[baseIndex]
+				if base and base.owner == player then
+					tryDeposit(player, root.Position)
+				end
+			end
+		end)
 	end
-	local tool = Instance.new("Tool")
-	tool.Name = "Bastão"
-	tool.RequiresHandle = true
-	tool.ToolTip = "Bata em ladrões para derrubar a comida"
-	local handle = Util.makePart({
-		Name = "Handle",
-		Anchored = false,
-		CanCollide = false,
-		Size = Vector3.new(0.6, 4, 0.6),
-		Color = Color3.fromRGB(150, 90, 40),
-		Material = Enum.Material.Wood,
-		Parent = tool,
-	})
-	local lastHit = 0
-	handle.Touched:Connect(function(hit)
-		if os.clock() - lastHit < 0.8 then
-			return
-		end
-		local target = Players:GetPlayerFromCharacter(hit.Parent)
-		if not target or target == player then
-			return
-		end
-		if not tool.Parent or tool.Parent ~= player.Character then
-			return
-		end
-		lastHit = os.clock()
-		if carrying[target] then
-			dropCarry(target, true)
-			Remotes.Notify:FireClient(
-				target,
-				{ text = "Você foi atingido e derrubou a comida!", color = Color3.fromRGB(255, 90, 90) }
-			)
-		end
-		local root = hit.Parent:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if root then
-			local dir = (root.Position - handle.Position).Unit
-			root.AssemblyLinearVelocity = dir * Config.Steal.KnockbackForce + Vector3.new(0, 30, 0)
-		end
-	end)
-	tool.Parent = backpack
 end
 
 function StealService.init()
-	Players.PlayerAdded:Connect(function(player)
+	local function watch(player: Player)
 		player.CharacterAdded:Connect(function(char)
-			task.wait(0.5)
-			giveBat(player)
-			local hum = char:FindFirstChildOfClass("Humanoid")
-			if hum then
-				hum.Died:Connect(function()
-					dropCarry(player, true)
-				end)
-			end
-			-- Depositar ao tocar no próprio pátio
-			local root = char:WaitForChild("HumanoidRootPart", 5) :: BasePart?
-			if root then
-				root.Touched:Connect(function(hit)
-					if not carrying[player] then
-						return
-					end
-					local baseIndex = hit:GetAttribute("BaseIndex")
-					if type(baseIndex) == "number" then
-						local base = MapService.Bases[baseIndex]
-						if base and base.owner == player then
-							tryDeposit(player)
-						end
-					end
-				end)
-			end
+			onCharacterAdded(player, char)
 		end)
-	end)
+		if player.Character then
+			task.spawn(onCharacterAdded, player, player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, p in Players:GetPlayers() do
+		watch(p)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		dropCarry(player, true)
 		channeling[player] = nil
 	end)
+
+	-- Ladrão que leva soco derruba a comida (substitui o bastão da v1).
+	local previousOnHit = CombatService.OnHit
+	CombatService.OnHit = function(attacker: Player, victim: Player, heavy: boolean)
+		if previousOnHit then
+			previousOnHit(attacker, victim, heavy)
+		end
+		if carrying[victim] then
+			dropCarry(victim, true)
+			Remotes.Notify:FireClient(
+				victim,
+				{ text = "Você levou um soco e derrubou a comida!", color = Color3.fromRGB(255, 90, 90) }
+			)
+		end
+	end
 
 	-- Cliques em comidas (ClickDetector criado pelo PlotService)
 	Workspace.DescendantAdded:Connect(function(inst)
@@ -324,7 +324,8 @@ function StealService.init()
 					local ownerId = model:GetAttribute("OwnerUserId")
 					if ownerId == clicker.UserId then
 						local slot = model:GetAttribute("SlotIndex")
-						if type(slot) == "number" then
+						local part = model.PrimaryPart
+						if type(slot) == "number" and part and Guard.withinReach(clicker, part, CLICK_REACH) then
 							PlotService.feed(clicker, slot)
 						end
 					else

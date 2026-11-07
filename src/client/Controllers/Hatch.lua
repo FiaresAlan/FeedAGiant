@@ -143,15 +143,12 @@ function Hatch.init(gui: ScreenGui)
 	})
 	UI.corner(box, 20)
 	UI.stroke(box, Color3.new(0, 0, 0), 4)
-	local lid = UI.frame(
-		box,
-		{
-			Size = UDim2.new(1, 16, 0, 36),
-			Position = UDim2.fromOffset(-8, -10),
-			BackgroundColor3 = Color3.fromRGB(40, 40, 60),
-			ZIndex = 52,
-		}
-	)
+	local lid = UI.frame(box, {
+		Size = UDim2.new(1, 16, 0, 36),
+		Position = UDim2.fromOffset(-8, -10),
+		BackgroundColor3 = Color3.fromRGB(40, 40, 60),
+		ZIndex = 52,
+	})
 	UI.corner(lid, 10)
 	UI.label(
 		box,

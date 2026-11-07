@@ -1,8 +1,10 @@
 --!strict
 -- Shop.lua — janela da Loja: Lunchboxes (moedas), Game Passes e Dev Products (Robux), além de janela de Códigos.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local LunchboxOdds = require(game.ReplicatedStorage.Shared.LunchboxOdds)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
@@ -16,6 +18,7 @@ local win: Frame
 local codesWin: Frame
 local boxButtons: { [string]: TextButton } = {}
 local passButtons: { [string]: TextButton } = {}
+local gatedButtons: { [TextButton]: boolean } = {}
 
 local PASS_INFO = {
 	{ key = "DoubleCoins", name = "2x Moedas", desc = "Dobra toda a renda do pátio." },
@@ -39,24 +42,124 @@ local PRODUCT_INFO = {
 	{ key = "ArenaRematch", name = "Revanche", desc = "Zera o cooldown de duelo agora." },
 	{
 		key = "SpeciesReroll",
-		name = "Espécie Surpresa",
-		desc = "Desbloqueia uma espécie aleatória que você não tem.",
+		name = "Ficha de Espécie",
+		desc = "Desbloqueie a espécie comprável que VOCÊ escolher (Loja › Espécies).",
 	},
 }
 
-local function oddsText(box: Config.LunchboxDef): string
-	local parts = {}
+---------------------------------------------------------------------------
+-- Chances (Fase 0.5): tudo vem de LunchboxOdds, a MESMA tabela do sorteio no servidor.
+---------------------------------------------------------------------------
+local function currentLuck(): number
+	local v = ReplicatedStorage:GetAttribute(LunchboxOdds.LUCK_ATTRIBUTE)
+	return if type(v) == "number" then v else 0
+end
+
+-- Resumo por raridade para o cartão da caixa ("Rare 22% · Epic 6% ...").
+local function oddsSummary(boxId: string, minRarity: string?): string
+	local byRarity: { [string]: number } = {}
+	for _, row in LunchboxOdds.rows(boxId, currentLuck(), minRarity) do
+		byRarity[row.rarity] = (byRarity[row.rarity] or 0) + row.percent
+	end
 	local ordered = {}
-	for rarity, w in box.weights do
-		table.insert(ordered, { r = rarity, w = w, o = Config.Rarities[rarity].order })
+	for rarity, pct in byRarity do
+		table.insert(ordered, { r = rarity, p = pct, o = Config.Rarities[rarity].order })
 	end
 	table.sort(ordered, function(a, b)
 		return a.o < b.o
 	end)
+	local Odds = require(ReplicatedStorage:WaitForChild("fwjelaa"):WaitForChild("Odds"))
+	local parts = {}
 	for _, e in ordered do
-		table.insert(parts, string.format("%s %s%%", e.r, tostring(e.w)))
+		table.insert(parts, string.format("%s %s", e.r, Odds.Format(e.p)))
 	end
 	return table.concat(parts, "  ·  ")
+end
+
+local oddsWin: Frame
+local oddsHeading: TextLabel
+local oddsList: ScrollingFrame
+local oddsShown: { boxId: string, minRarity: string?, title: string }? = nil
+local summaryLabels: { [string]: TextLabel } = {}
+
+local function renderOdds()
+	local shown = oddsShown
+	if not shown or not oddsList then
+		return
+	end
+	for _, child in oddsList:GetChildren() do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+	local luck = currentLuck()
+	oddsHeading.Text = if luck > 0
+		then string.format("%s  (Lucky Boxes ativo: +%d%% em Rare ou melhor)", shown.title, math.floor(luck * 100))
+		else shown.title
+	local rows = LunchboxOdds.rows(shown.boxId, luck, shown.minRarity)
+	for i, row in rows do
+		local color = Config.Rarities[row.rarity].color
+		UI.label(oddsList, string.format("%s  [%s]   %s", row.name, row.rarity, row.text), {
+			Size = UDim2.new(1, -10, 0, 24),
+			LayoutOrder = i,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextScaled = false,
+			TextSize = 16,
+			TextColor3 = color,
+		})
+	end
+	UI.label(oddsList, LunchboxOdds.Disclaimer, {
+		Size = UDim2.new(1, -10, 0, 36),
+		LayoutOrder = #rows + 1,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 12,
+		TextWrapped = true,
+		TextTransparency = 0.3,
+	})
+	oddsList.CanvasSize = UDim2.fromOffset(0, #rows * 28 + 48)
+end
+
+local function buildOddsWindow(gui: ScreenGui)
+	local body: Frame
+	oddsWin, body = UI.window(gui, "CHANCES", UDim2.fromOffset(460, 440))
+	oddsHeading = UI.label(body, "", {
+		Size = UDim2.new(1, 0, 0, 40),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 16,
+		TextWrapped = true,
+	})
+	oddsList = Instance.new("ScrollingFrame")
+	oddsList.Size = UDim2.new(1, 0, 1, -48)
+	oddsList.Position = UDim2.fromOffset(0, 46)
+	oddsList.BackgroundTransparency = 1
+	oddsList.BorderSizePixel = 0
+	oddsList.ScrollBarThickness = 6
+	oddsList.Parent = body
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 4)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = oddsList
+	ReplicatedStorage:GetAttributeChangedSignal(LunchboxOdds.LUCK_ATTRIBUTE):Connect(function()
+		renderOdds()
+		for boxId, label in summaryLabels do
+			label.Text = oddsSummary(boxId, nil)
+		end
+	end)
+end
+
+function Shop.showOdds(boxId: string, minRarity: string?, title: string)
+	oddsShown = { boxId = boxId, minRarity = minRarity, title = title }
+	renderOdds()
+	if not oddsWin.Visible then
+		UI.pop(oddsWin)
+	end
+end
+
+-- Itens aleatórios pagos: o servidor publica o atributo PaidRandomAllowed (PolicyService).
+local function paidRandomAllowed(): boolean
+	return player:GetAttribute("PaidRandomAllowed") == true
 end
 
 local function buildBoxesTab(parent: Frame)
@@ -80,17 +183,13 @@ local function buildBoxesTab(parent: Frame)
 			{ Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(12, 15), BackgroundColor3 = box.color }
 		)
 		UI.label(icon, "?", { Size = UDim2.fromScale(1, 1), TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.3 })
-		UI.label(
-			card,
-			box.name,
-			{
-				Size = UDim2.new(1, -260, 0, 32),
-				Position = UDim2.fromOffset(104, 10),
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextColor3 = box.color,
-			}
-		)
-		UI.label(card, oddsText(box), {
+		UI.label(card, box.name, {
+			Size = UDim2.new(1, -260, 0, 32),
+			Position = UDim2.fromOffset(104, 10),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = box.color,
+		})
+		summaryLabels[box.id] = UI.label(card, oddsSummary(box.id, nil), {
 			Size = UDim2.new(1, -260, 0, 50),
 			Position = UDim2.fromOffset(104, 46),
 			TextXAlignment = Enum.TextXAlignment.Left,
@@ -102,8 +201,15 @@ local function buildBoxesTab(parent: Frame)
 		})
 		local btn = UI.button(card, Util.formatNumber(box.price) .. " $", UI.Colors.Green, {
 			Size = UDim2.fromOffset(140, 52),
-			Position = UDim2.new(1, -152, 0.5, -26),
+			Position = UDim2.new(1, -152, 0.5, -34),
 		})
+		local oddsBtn = UI.button(card, "CHANCES", UI.Colors.Blue, {
+			Size = UDim2.fromOffset(140, 28),
+			Position = UDim2.new(1, -152, 0.5, 22),
+		})
+		oddsBtn.MouseButton1Click:Connect(function()
+			Shop.showOdds(box.id, nil, box.name)
+		end)
 		btn.MouseButton1Click:Connect(function()
 			Remotes.RequestBuyBox:FireServer(box.id)
 		end)
@@ -129,29 +235,21 @@ local function buildRobuxTab(parent: Frame)
 		order += 1
 		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 76), LayoutOrder = order })
 		UI.stroke(card, color, 2)
-		UI.label(
-			card,
-			name,
-			{
-				Size = UDim2.new(1, -200, 0, 30),
-				Position = UDim2.fromOffset(12, 6),
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextColor3 = color,
-			}
-		)
-		UI.label(
-			card,
-			desc,
-			{
-				Size = UDim2.new(1, -200, 0, 32),
-				Position = UDim2.fromOffset(12, 38),
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextScaled = false,
-				TextSize = 14,
-				TextWrapped = true,
-				TextTransparency = 0.2,
-			}
-		)
+		UI.label(card, name, {
+			Size = UDim2.new(1, -200, 0, 30),
+			Position = UDim2.fromOffset(12, 6),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = color,
+		})
+		UI.label(card, desc, {
+			Size = UDim2.new(1, -200, 0, 32),
+			Position = UDim2.fromOffset(12, 38),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextScaled = false,
+			TextSize = 14,
+			TextWrapped = true,
+			TextTransparency = 0.2,
+		})
 		local btn = UI.button(
 			card,
 			buttonText,
@@ -163,37 +261,63 @@ local function buildRobuxTab(parent: Frame)
 	end
 
 	order += 1
-	UI.label(
-		scroll,
-		"GAME PASSES",
-		{
-			Size = UDim2.new(1, -10, 0, 24),
-			LayoutOrder = order,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = UI.Colors.Accent,
-		}
-	)
+	UI.label(scroll, "GAME PASSES", {
+		Size = UDim2.new(1, -10, 0, 24),
+		LayoutOrder = order,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Accent,
+	})
 	for _, p in PASS_INFO do
 		passButtons[p.key] = row(p.name, p.desc, UI.Colors.Accent, "COMPRAR", function()
 			Remotes.RequestGamePass:FireServer(p.key)
 		end)
 	end
 	order += 1
-	UI.label(
-		scroll,
-		"PRODUTOS",
-		{
-			Size = UDim2.new(1, -10, 0, 24),
-			LayoutOrder = order,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = UI.Colors.Blue,
-		}
-	)
+	UI.label(scroll, "PRODUTOS", {
+		Size = UDim2.new(1, -10, 0, 24),
+		LayoutOrder = order,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Blue,
+	})
 	for _, p in PRODUCT_INFO do
-		row(p.name, p.desc, UI.Colors.Blue, "ROBUX", function()
+		local def = (Config.DevProducts :: any)[p.key]
+		local gated = def and (def.paidRandom == true or def.fundsRandom == true)
+		local btn = row(p.name, p.desc, UI.Colors.Blue, "ROBUX", function()
+			if gated and not paidRandomAllowed() then
+				return -- o servidor também recusa; aqui só evita o clique inútil
+			end
 			Remotes.RequestPurchase:FireServer(p.key)
 		end)
+		if def and def.paidRandom then
+			-- Chances SEMPRE visíveis antes da compra (regra de 2026).
+			btn.Size = UDim2.fromOffset(160, 30)
+			btn.Position = UDim2.new(1, -172, 0.5, -32)
+			local card = btn.Parent :: GuiObject
+			local oddsBtn = UI.button(card, "CHANCES", UI.Colors.Accent, {
+				Size = UDim2.fromOffset(160, 26),
+				Position = UDim2.new(1, -172, 0.5, 4),
+			})
+			oddsBtn.MouseButton1Click:Connect(function()
+				Shop.showOdds("rare", "Rare", p.name .. " (Lunchbox Rara, mínimo Rare)")
+			end)
+		end
+		if gated then
+			gatedButtons[btn] = true
+		end
 	end
+	local function refreshGated()
+		for btn in gatedButtons do
+			if paidRandomAllowed() then
+				btn.Text = "ROBUX"
+				btn.BackgroundColor3 = UI.Colors.Blue
+			else
+				btn.Text = "INDISPONÍVEL"
+				btn.BackgroundColor3 = Color3.fromRGB(90, 90, 100)
+			end
+		end
+	end
+	player:GetAttributeChangedSignal("PaidRandomAllowed"):Connect(refreshGated)
+	refreshGated()
 end
 
 local speciesCards: { [string]: TextButton } = {}
@@ -230,29 +354,21 @@ local function buildSpeciesTab(parent: Frame)
 		)
 		UI.corner(icon, 28)
 		UI.stroke(icon, sp.color, 3)
-		UI.label(
-			card,
-			sp.name .. "  [" .. sp.rarityTag .. "]",
-			{
-				Size = UDim2.new(1, -260, 0, 26),
-				Position = UDim2.fromOffset(76, 6),
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextColor3 = sp.color,
-			}
-		)
-		UI.label(
-			card,
-			sp.desc,
-			{
-				Size = UDim2.new(1, -260, 0, 30),
-				Position = UDim2.fromOffset(76, 32),
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextScaled = false,
-				TextSize = 13,
-				TextWrapped = true,
-				TextTransparency = 0.2,
-			}
-		)
+		UI.label(card, sp.name .. "  [" .. sp.rarityTag .. "]", {
+			Size = UDim2.new(1, -260, 0, 26),
+			Position = UDim2.fromOffset(76, 6),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = sp.color,
+		})
+		UI.label(card, sp.desc, {
+			Size = UDim2.new(1, -260, 0, 30),
+			Position = UDim2.fromOffset(76, 32),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextScaled = false,
+			TextSize = 13,
+			TextWrapped = true,
+			TextTransparency = 0.2,
+		})
 		UI.label(
 			card,
 			string.format("XP x%.2f • $ x%.2f • Arena %d/%dHP", sp.xpMult, sp.coinMult, sp.arenaPower, sp.arenaHp),
@@ -275,7 +391,9 @@ local function buildSpeciesTab(parent: Frame)
 			elseif sp.robux and sp.passKey then
 				Remotes.RequestGamePass:FireServer(sp.passKey)
 			else
-				Remotes.RequestBuySpecies:FireServer(sp.id)
+				-- Com Ficha de Espécie, usa a ficha; senão compra com moedas.
+				local useToken = (s.speciesTokens or 0) > 0
+				Remotes.RequestBuySpecies:FireServer(sp.id, useToken)
 			end
 		end)
 		speciesCards[sp.id] = btn
@@ -299,6 +417,9 @@ local function refreshSpecies(s: State.PlayerState)
 		elseif sp.robux then
 			btn.Text = "ROBUX"
 			btn.BackgroundColor3 = Color3.fromRGB(90, 200, 90)
+		elseif (a.speciesTokens or 0) > 0 then
+			btn.Text = string.format("USAR FICHA (%d)", a.speciesTokens)
+			btn.BackgroundColor3 = UI.Colors.Accent
 		else
 			btn.Text = "$ " .. Util.formatNumber(sp.price)
 			btn.BackgroundColor3 = if s.coins >= sp.price then sp.color else Color3.fromRGB(90, 90, 110)
@@ -416,6 +537,7 @@ function Shop.init(gui: ScreenGui)
 	end)
 
 	buildCodes(gui)
+	buildOddsWindow(gui)
 	State.onChanged(refresh)
 	State.onChanged(refreshSpecies)
 	print("[Client] Shop pronto para", player.Name)

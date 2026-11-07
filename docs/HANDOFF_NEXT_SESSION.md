@@ -70,7 +70,44 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 - [ ] 0.7 Criar `leaderArena` (placar da Arena morto). Enviar ao cliente só o que mudou, em vez do estado inteiro a cada segundo. Guardar o resultado de `IsInGroup` em cache na entrada.
 - [ ] 0.8 Verificador Luau com **overall PASS**, teste com 2 a 3 jogadores no Studio, revisão independente (anti-exploit e dados), nota ≥ 8,5 na rubrica `system`, registro no ledger
 
-## 4. Próxima tarefa exata
+## 3b. Atualização de 07/11/2026 (sessão interrompida por limite de uso)
+
+**Itens 0.2 a 0.7 implementados no código, mas AINDA NÃO TESTADOS no Studio.** Último commit: "WIP Fase 0.3–0.7".
+
+**O que foi feito:**
+- **0.2:** concluído. Criados `GAME_BRIEF.md`, `CLAUDE.md`, `selene.toml` e `stylua.toml`, mais um commit separado só com a formatação.
+- **Módulos do Fwjelaa vendorizados:**
+  - `src/vendor/shared` (vira `ReplicatedStorage.fwjelaa`): Signal, Odds e RateLimit;
+  - `src/vendor/server` (vira `ServerScriptService.fwjelaa`): PlayerData, Receipts, Policy e StudioMemoryStore;
+  - ajustes locais documentados no cabeçalho de cada arquivo;
+  - `test.project.json` mapeia `tests/` para `ServerScriptService.FwjelaaTests`.
+- **0.3:** `DataService` virou uma fachada sobre o PlayerData, mantendo a mesma interface. Também:
+  - `DataService.start()` é chamado no fim do `Main`;
+  - `Config.MaxInventory = 300`;
+  - `PlotService.giveFood(player, id, force)` retorna boolean.
+- **0.4:** `MonetizationService` reescrita sobre Receipts e Policy. Os passes são reconferidos na entrada. "Trocar Espécie" virou **Ficha de Espécie** (`profile.speciesTokens`), em que o jogador escolhe a espécie.
+- **0.5:** `src/shared/LunchboxOdds.lua` é a tabela única de chances, com a mesma distribuição da v4 (verificada no teste `tests/LunchboxOdds.spec.luau`). A loja ganhou o botão CHANCES. Os produtos `paidRandom`/`fundsRandom` ficam bloqueados para quem tem restrição.
+- **0.6:**
+  - bastão removido (agora ladrão socado derruba a comida);
+  - `src/server/Guard.lua` confere distância nos cliques e toques;
+  - o roubo reconfere escudo e uid no fim e bloqueia depósito por teleporte;
+  - o drop confere a altura;
+  - os códigos foram para `src/server/Secrets.lua`;
+  - argumentos validados na Arena e no Combat.
+- **0.7:** `leaderArena` criado. O tick manda só `{coins, cps, hunger}`, e o estado completo vai quando algo muda e a cada 15 s. `IsInGroup` é guardado em cache.
+
+**Próxima tarefa exata:**
+1. Rodar o verificador. Faltavam:
+   - um `fwjelaa-ignore` justificado em `EventService.lua:68` (o Touched é ligado por peça, que é destruída depois);
+   - os avisos `UDim2.fromScale`/`fromOffset` do selene;
+   - as variáveis sem uso `stBg`, `hBg` e o `i` de `MapService`;
+   - o `elseif` vazio em `Arena.lua:258`;
+   - talvez `Remotes.GetFullState.OnServerInvoke` em `PlotService` precise de cast.
+2. Montar o place de teste: `rojo build test.project.json -o <scratchpad>/x.rbxl`, abrir e rodar `require(game.ServerScriptService.FwjelaaTests.Runner)()`.
+3. Play test: entrar, comprar caixa, alimentar, depois testar `MemoryStoreFailNext` e `SimulateLoadFailure`, e por fim 2 jogadores (roubo, soco no ladrão).
+4. Revisão independente (rubrica `system`) e registro no ledger.
+
+## 4. Próxima tarefa exata (original)
 
 **Fase 0, item 0.2.** Criar `docs/GAME_BRIEF.md`, `selene.toml` e `stylua.toml`, rodar o verificador e confirmar que restam só erros reais de código, não de configuração. Comando:
 

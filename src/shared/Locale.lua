@@ -474,9 +474,9 @@ Locale.Templates = {
 		es = "Robando {f}... ¡quédate quieto 3s!",
 	},
 	stolen_owner = {
-		["pt-br"] = "{p} ROUBOU seu {f}! Acerte-o com o bastão!",
-		en = "{p} STOLE your {f}! Hit them with the bat!",
-		es = "¡{p} ROBÓ tu {f}! ¡Golpéalo con el bate!",
+		["pt-br"] = "{p} ROUBOU seu {f}! Dê um soco nele para recuperar!",
+		en = "{p} STOLE your {f}! Punch them to get it back!",
+		es = "¡{p} ROBÓ tu {f}! ¡Dale un puñetazo para recuperarlo!",
 	},
 	steal_done = {
 		["pt-br"] = "Roubo concluído: {f} é sua!",

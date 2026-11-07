@@ -77,7 +77,8 @@ local function stealFromLoser(winner: Player, loser: Player): { string }
 	for i = 1, math.min(n, #slots) do
 		local item = PlotService.removeFromPlot(loser, slots[i].slot)
 		if item then
-			PlotService.giveFood(winner, item.id)
+			-- force: a comida já existia (saiu do pátio do perdedor); nunca pode sumir.
+			PlotService.giveFood(winner, item.id, true)
 			table.insert(names, Config.FoodById[item.id].name)
 		end
 	end
@@ -208,15 +209,12 @@ local function requestDuel(challenger: Player, targetId: number)
 		)
 	end
 	pending[target] = { challenger = challenger, at = os.time() }
-	Remotes.ArenaState:FireClient(
-		target,
-		{
-			kind = "Challenge",
-			from = challenger.UserId,
-			fromName = challenger.DisplayName,
-			power = math.floor(ArenaService.power(challenger)),
-		}
-	)
+	Remotes.ArenaState:FireClient(target, {
+		kind = "Challenge",
+		from = challenger.UserId,
+		fromName = challenger.DisplayName,
+		power = math.floor(ArenaService.power(challenger)),
+	})
 	Remotes.ArenaState:FireClient(challenger, { kind = "Sent", to = target.UserId, toName = target.DisplayName })
 	task.delay(20, function()
 		local p = pending[target]
@@ -250,6 +248,8 @@ local function answerDuel(target: Player, challengerId: number, accept: boolean)
 	if tp then
 		tp.lastDuel = os.time()
 	end
+	PlotService.pushState(challenger)
+	PlotService.pushState(target)
 	task.spawn(runDuel, challenger, target, false)
 end
 
@@ -275,18 +275,18 @@ local function runTournament()
 		local nextRound = {}
 		for i = 1, #pool, 2 do
 			local a, b = pool[i], pool[i + 1]
-			if not b then
-				table.insert(nextRound, a)
-			elseif a.Parent and b.Parent then
+			if b and a.Parent and b.Parent then
 				local w = runDuel(a, b, true)
 				if w then
 					table.insert(nextRound, w)
 				end
 				task.wait(3)
-			elseif a.Parent then
-				table.insert(nextRound, a)
-			elseif b.Parent then
-				table.insert(nextRound, b)
+			else
+				-- Sem adversário (ímpar) ou um dos dois saiu: quem ficou avança.
+				local stays = if a.Parent then a elseif b and b.Parent then b else nil
+				if stays then
+					table.insert(nextRound, stays)
+				end
 			end
 		end
 		pool = nextRound
@@ -299,7 +299,7 @@ local function runTournament()
 			profile.championUntil = os.time() + A.ChampionTrophyDays * 86400
 			profile.coins += A.TournamentPrizeCoins
 			DataService.markDirty(champ)
-			ShopService.openBox(champ, A.TournamentPrizeBox, true, nil)
+			ShopService.openBox(champ, A.TournamentPrizeBox, { free = true, force = true })
 			GiantService.refresh(champ, true)
 			PlotService.pushState(champ)
 		end
@@ -316,14 +316,15 @@ end
 
 function ArenaService.init()
 	Remotes.RequestDuel.OnServerEvent:Connect(function(player, targetId)
-		if type(targetId) == "number" then
+		if type(targetId) == "number" and targetId == targetId and targetId > 0 then
 			requestDuel(player, targetId)
 		end
 	end)
 	Remotes.RequestDuelAnswer.OnServerEvent:Connect(function(player, challengerId, accept)
-		if type(challengerId) == "number" then
-			answerDuel(player, challengerId, accept == true)
+		if type(challengerId) ~= "number" or challengerId ~= challengerId or type(accept) ~= "boolean" then
+			return
 		end
+		answerDuel(player, challengerId, accept)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		pending[player] = nil

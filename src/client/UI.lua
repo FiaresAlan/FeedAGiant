@@ -297,17 +297,13 @@ function UI.iconButton(
 ): TextButton
 	local b = UI.button(parent, "", color, props)
 	UI.icon(b, iconName, { Size = UDim2.new(1, -8, 1, -22), Position = UDim2.fromOffset(4, 0), ZIndex = b.ZIndex + 1 })
-	UI.label(
-		b,
-		caption,
-		{
-			Size = UDim2.new(1, 0, 0, 18),
-			Position = UDim2.new(0, 0, 1, -18),
-			TextScaled = false,
-			TextSize = 13,
-			ZIndex = b.ZIndex + 1,
-		}
-	)
+	UI.label(b, caption, {
+		Size = UDim2.new(1, 0, 0, 18),
+		Position = UDim2.new(0, 0, 1, -18),
+		TextScaled = false,
+		TextSize = 13,
+		ZIndex = b.ZIndex + 1,
+	})
 	return b
 end
 
@@ -421,17 +417,13 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	UI.corner(header, 14)
 	UI.stroke(header, UI.Colors.Outline, 3)
 	UI.gradient(header, UI.Colors.Accent, UI.Colors.Accent2, 90)
-	UI.label(
-		header,
-		titleText,
-		{
-			Size = UDim2.new(1, -20, 1, -8),
-			Position = UDim2.fromOffset(10, 4),
-			ZIndex = 14,
-			TextColor3 = UI.Colors.Outline,
-			TextStrokeTransparency = 1,
-		}
-	)
+	UI.label(header, titleText, {
+		Size = UDim2.new(1, -20, 1, -8),
+		Position = UDim2.fromOffset(10, 4),
+		ZIndex = 14,
+		TextColor3 = UI.Colors.Outline,
+		TextStrokeTransparency = 1,
+	})
 	local close = UI.button(
 		win,
 		"✕",
@@ -467,7 +459,6 @@ end
 
 -- Sons compartilhados
 local sounds: { [string]: Sound } = {}
-local LocalizationService = game:GetService("LocalizationService")
 local Players = game:GetService("Players")
 local function voLocale(): string
 	local ok, loc = pcall(function()
@@ -492,8 +483,11 @@ function UI.sfx(key: string, volume: number?)
 	if not id or id == 0 then
 		return
 	end
-	local s = sounds[key]
-	if not s then
+	local s: Sound
+	local cached = sounds[key]
+	if cached then
+		s = cached
+	else
 		s = Instance.new("Sound")
 		s.SoundId = if type(id) == "number" then assetId(id) else id
 		s.Parent = SoundService

@@ -67,7 +67,8 @@ for _, name in FUNCTIONS do
 			inst = folder:WaitForChild(name)
 		end
 	end
-	Remotes[name] = inst :: RemoteFunction
+	-- RemoteFunctions ficam no mesmo módulo; o cast evita misturar tipos com os RemoteEvents.
+	(Remotes :: any)[name] = inst
 end
 
 return Remotes

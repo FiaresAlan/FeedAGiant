@@ -37,14 +37,10 @@ local function confetti(n: number)
 		p.Parent = confettiHolder
 		UI.corner(p, 3)
 		local dur = 2.2 + math.random() * 1.6
-		TweenService:Create(
-			p,
-			TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.In),
-			{
-				Position = UDim2.new(p.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.1, 0),
-				Rotation = p.Rotation + math.random(-540, 540),
-			}
-		):Play()
+		TweenService:Create(p, TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+			Position = UDim2.new(p.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.1, 0),
+			Rotation = p.Rotation + math.random(-540, 540),
+		}):Play()
 		task.delay(dur, function()
 			p:Destroy()
 		end)
@@ -173,17 +169,13 @@ function Effects.init(gui: ScreenGui)
 	confettiHolder.ClipsDescendants = true
 	confettiHolder.ZIndex = 45
 	confettiHolder.Parent = gui
-	banner = UI.title(
-		gui,
-		"",
-		{
-			Size = UDim2.fromOffset(700, 60),
-			Position = UDim2.new(0.5, 0, 0.18, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			TextColor3 = UI.Colors.Accent,
-			Visible = false,
-		}
-	)
+	banner = UI.title(gui, "", {
+		Size = UDim2.fromOffset(700, 60),
+		Position = UDim2.new(0.5, 0, 0.18, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		TextColor3 = UI.Colors.Accent,
+		Visible = false,
+	})
 	Remotes.GiantEvolved.OnClientEvent:Connect(function(e)
 		if type(e) ~= "table" then
 			return

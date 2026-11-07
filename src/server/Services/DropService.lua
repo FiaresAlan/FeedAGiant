@@ -15,6 +15,9 @@ local CombatService = require(script.Parent.CombatService)
 
 local DropService = {}
 local D = Config.Drops
+-- Diferença máxima de altura entre o jogador e o centro do círculo (studs).
+-- Personagem em pé fica ~3 acima do chão; pulos chegam a ~7.
+local MAX_DROP_HEIGHT = 9
 
 type Drop = {
 	id: number,
@@ -119,7 +122,8 @@ local function award(drop: Drop, winner: Player)
 		profile.dropsWon += 1
 		DataService.markDirty(winner)
 	end
-	PlotService.giveFood(winner, drop.food.id)
+	-- force: prêmio disputado; perder depois de vencer seria frustrante (1 item por drop).
+	PlotService.giveFood(winner, drop.food.id, true)
 	local rar = Config.Rarities[drop.food.rarity]
 	Remotes.Notify:FireClient(winner, Locale.msg("drop_defended", { f = drop.food.name }, rar.color))
 	if rar.order >= 3 then
@@ -159,15 +163,12 @@ local function broadcastState(drop: Drop)
 	local list = {}
 	for plr, prog in drop.progress do
 		if plr.Parent then
-			table.insert(
-				list,
-				{
-					userId = plr.UserId,
-					name = plr.DisplayName,
-					progress = prog / drop.holdTime,
-					inside = drop.inside[plr] == true,
-				}
-			)
+			table.insert(list, {
+				userId = plr.UserId,
+				name = plr.DisplayName,
+				progress = prog / drop.holdTime,
+				inside = drop.inside[plr] == true,
+			})
 		end
 	end
 	table.sort(list, function(a, b)
@@ -226,7 +227,9 @@ local function runDrop(drop: Drop)
 				continue
 			end
 			local flat = Vector3.new(root.Position.X - drop.pos.X, 0, root.Position.Z - drop.pos.Z)
-			local isIn = flat.Magnitude <= D.ZoneRadius and not CombatService.isKO(plr)
+			-- Fase 0.6: altura também conta (quem flutua acima do círculo não pode ser socado).
+			local height = math.abs(root.Position.Y - drop.pos.Y)
+			local isIn = flat.Magnitude <= D.ZoneRadius and height <= MAX_DROP_HEIGHT and not CombatService.isKO(plr)
 			local wasIn = drop.inside[plr] == true
 			if isIn then
 				anyone = true

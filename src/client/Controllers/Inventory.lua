@@ -60,15 +60,11 @@ local function foodRow(
 		{ Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(8, 9), BackgroundColor3 = def.color }
 	)
 	UI.corner(swatch, def.shape == "Ball" and 20 or 8)
-	UI.label(
-		row,
-		def.name,
-		{
-			Size = UDim2.new(1, -60 - #actions * 92, 0, 26),
-			Position = UDim2.fromOffset(56, 4),
-			TextXAlignment = Enum.TextXAlignment.Left,
-		}
-	)
+	UI.label(row, def.name, {
+		Size = UDim2.new(1, -60 - #actions * 92, 0, 26),
+		Position = UDim2.fromOffset(56, 4),
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	UI.label(row, Locale.fmt("food_row", nil, { r = def.rarity, x = rar.xp, c = rar.cps }), {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 20),
 		Position = UDim2.fromOffset(56, 32),

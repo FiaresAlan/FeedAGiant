@@ -11,6 +11,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local ShopService = require(script.Parent.ShopService)
 local GiantService = require(script.Parent.GiantService)
+local Guard = require(script.Parent.Parent.Guard)
 
 local EventService = {}
 local active: string? = nil
@@ -69,10 +70,10 @@ local function runFoodRain(def)
 				return
 			end
 			local plr = Players:GetPlayerFromCharacter(hit.Parent)
-			if plr then
+			-- Touched dispara para peças do cliente a qualquer distância: confere no servidor.
+			if plr and Guard.withinReach(plr, p, 6) and PlotService.giveFood(plr, food.id) then
 				taken = true
 				p:Destroy()
-				PlotService.giveFood(plr, food.id)
 				Remotes.Notify:FireClient(
 					plr,
 					Locale.msg("rain_caught", { f = food.name }, Color3.fromRGB(80, 200, 255))
@@ -126,7 +127,16 @@ local function runHungryBoss(def)
 	local click = Instance.new("ClickDetector")
 	click.MaxActivationDistance = 40
 	click.Parent = body
+	local lastFeed: { [Player]: number } = {}
 	click.MouseClick:Connect(function(plr)
+		if not Guard.withinReach(plr, body, click.MaxActivationDistance) then
+			return
+		end
+		local now = os.clock()
+		if (lastFeed[plr] or 0) + 0.2 > now then
+			return
+		end
+		lastFeed[plr] = now
 		local profile = DataService.get(plr)
 		if not profile or #profile.inventory == 0 then
 			Remotes.Notify:FireClient(
@@ -162,7 +172,7 @@ local function runHungryBoss(def)
 	for i = 1, math.min(3, #ranking) do
 		local plr = ranking[i].plr
 		if plr.Parent then
-			ShopService.openBox(plr, "legendary", true, "Legendary")
+			ShopService.openBox(plr, "legendary", { free = true, minRarity = "Legendary", force = true })
 			Remotes.Notify:FireAllClients(
 				Locale.msg("boss_rank", { p = plr.DisplayName, n = i }, Color3.fromRGB(255, 180, 20))
 			)

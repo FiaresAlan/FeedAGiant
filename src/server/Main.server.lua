@@ -33,11 +33,18 @@ EventService.init()
 CombatService.init()
 DropService.init()
 ArenaService.init()
+-- Só agora começa a carregar perfis: todos os serviços já registraram o que precisam
+-- (PlayerData exige isso; ver fwjelaa-systems, ordem de inicialização).
+DataService.start()
 
 local function onPlayerAdded(player: Player)
-	local profile = DataService.waitFor(player, 20)
+	-- PlayerData pode levar ~7-25 s se outro servidor ainda segura a sessão (lease).
+	local profile = DataService.waitFor(player, 45)
 	if not profile then
-		player:Kick("Falha ao carregar seus dados. Tente novamente.")
+		-- Load que falhou já desconecta com mensagem própria; isto cobre só o timeout.
+		if player.Parent then
+			player:Kick("Falha ao carregar seus dados. Nada foi alterado. Tente novamente.")
+		end
 		return
 	end
 	local base = MapService.claimBase(player)
@@ -68,13 +75,10 @@ local function onPlayerAdded(player: Player)
 	if profile.totalBoxes == 0 and #profile.inventory == 0 and next(profile.plot) == nil then
 		PlotService.giveFood(player, "apple")
 		PlotService.giveFood(player, "bread")
-		Remotes.Notify:FireClient(
-			player,
-			{
-				text = "Bem-vindo! Coloque comida no pátio e alimente seu Gigante.",
-				color = Color3.fromRGB(255, 220, 80),
-			}
-		)
+		Remotes.Notify:FireClient(player, {
+			text = "Bem-vindo! Coloque comida no pátio e alimente seu Gigante.",
+			color = Color3.fromRGB(255, 220, 80),
+		})
 	end
 end
 

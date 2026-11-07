@@ -69,64 +69,46 @@ local function buildTopBar(gui: ScreenGui)
 	})
 
 	-- Moedas (cápsula dourada com ícone)
-	local coinBox = UI.frame(
-		bar,
-		{
-			Size = UDim2.fromOffset(200, 56),
-			Position = UDim2.fromOffset(12, 12),
-			BackgroundColor3 = UI.Colors.Bg,
-			ZIndex = 2,
-		}
-	)
+	local coinBox = UI.frame(bar, {
+		Size = UDim2.fromOffset(200, 56),
+		Position = UDim2.fromOffset(12, 12),
+		BackgroundColor3 = UI.Colors.Bg,
+		ZIndex = 2,
+	})
 	UI.stroke(coinBox, UI.Colors.Accent, 2)
 	UI.glow(coinBox, UI.Colors.Accent, 10, 0.8)
 	UI.icon(coinBox, "coin", { Size = UDim2.fromOffset(44, 44), Position = UDim2.fromOffset(6, 6), ZIndex = 3 })
-	coinsLabel = UI.title(
-		coinBox,
-		"0",
-		{
-			Size = UDim2.fromOffset(140, 30),
-			Position = UDim2.fromOffset(54, 3),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 3,
-		}
-	)
-	cpsLabel = UI.label(
-		coinBox,
-		"+0/s",
-		{
-			Size = UDim2.fromOffset(140, 18),
-			Position = UDim2.fromOffset(56, 34),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = UI.Colors.Green,
-			TextScaled = false,
-			TextSize = 14,
-			Font = UI.FontBody,
-			ZIndex = 3,
-		}
-	)
+	coinsLabel = UI.title(coinBox, "0", {
+		Size = UDim2.fromOffset(140, 30),
+		Position = UDim2.fromOffset(54, 3),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+	})
+	cpsLabel = UI.label(coinBox, "+0/s", {
+		Size = UDim2.fromOffset(140, 18),
+		Position = UDim2.fromOffset(56, 34),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Green,
+		TextScaled = false,
+		TextSize = 14,
+		Font = UI.FontBody,
+		ZIndex = 3,
+	})
 
 	-- Nível + XP
-	local lvlBox = UI.frame(
-		bar,
-		{
-			Size = UDim2.fromOffset(220, 56),
-			Position = UDim2.fromOffset(222, 12),
-			BackgroundColor3 = UI.Colors.Bg,
-			ZIndex = 2,
-		}
-	)
+	local lvlBox = UI.frame(bar, {
+		Size = UDim2.fromOffset(220, 56),
+		Position = UDim2.fromOffset(222, 12),
+		BackgroundColor3 = UI.Colors.Bg,
+		ZIndex = 2,
+	})
 	UI.stroke(lvlBox, UI.Colors.Blue, 2)
-	levelLabel = UI.label(
-		lvlBox,
-		"Bebê Nv. 1",
-		{
-			Size = UDim2.new(1, -16, 0, 24),
-			Position = UDim2.fromOffset(8, 3),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 3,
-		}
-	)
+	levelLabel = UI.label(lvlBox, "Bebê Nv. 1", {
+		Size = UDim2.new(1, -16, 0, 24),
+		Position = UDim2.fromOffset(8, 3),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+	})
 	local xpBg
 	xpBg, xpFill = UI.bar(
 		lvlBox,
@@ -140,26 +122,19 @@ local function buildTopBar(gui: ScreenGui)
 	)
 
 	-- Fome / humor
-	local hBox = UI.frame(
-		bar,
-		{
-			Size = UDim2.fromOffset(136, 56),
-			Position = UDim2.fromOffset(452, 12),
-			BackgroundColor3 = UI.Colors.Bg,
-			ZIndex = 2,
-		}
-	)
+	local hBox = UI.frame(bar, {
+		Size = UDim2.fromOffset(136, 56),
+		Position = UDim2.fromOffset(452, 12),
+		BackgroundColor3 = UI.Colors.Bg,
+		ZIndex = 2,
+	})
 	UI.stroke(hBox, UI.Colors.Green, 2)
-	hungerText = UI.label(
-		hBox,
-		"Fome",
-		{
-			Size = UDim2.new(1, -16, 0, 24),
-			Position = UDim2.fromOffset(8, 3),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 3,
-		}
-	)
+	hungerText = UI.label(hBox, "Fome", {
+		Size = UDim2.new(1, -16, 0, 24),
+		Position = UDim2.fromOffset(8, 3),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+	})
 	local hBg
 	hBg, hungerFill = UI.bar(
 		hBox,
@@ -298,15 +273,11 @@ local function refresh(s: State.PlayerState)
 		end
 	end
 	cpsLabel.Text = "+" .. Util.formatNumber(s.cps) .. "/s"
-	levelLabel.Text = Locale.fmt(
-		"level_label",
-		nil,
-		{
-			s = (s :: any).stage or "Gigante",
-			n = s.level,
-			m = string.format("%.1f", 1 + s.level * Config.Giant.ScalePerLevel),
-		}
-	)
+	levelLabel.Text = Locale.fmt("level_label", nil, {
+		s = (s :: any).stage or "Gigante",
+		n = s.level,
+		m = string.format("%.1f", 1 + s.level * Config.Giant.ScalePerLevel),
+	})
 	local pct = s.xpNeeded > 0 and math.clamp(s.xp / s.xpNeeded, 0, 1) or 0
 	TweenService:Create(xpFill, TweenInfo.new(0.25), { Size = UDim2.fromScale(pct, 1) }):Play()
 	xpText.Text = Util.formatNumber(s.xp) .. " / " .. Util.formatNumber(s.xpNeeded) .. " XP"

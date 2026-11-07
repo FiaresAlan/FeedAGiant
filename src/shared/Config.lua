@@ -5,7 +5,7 @@ local Config = {}
 Config.GameName = "FEED A GIANT"
 Config.Version = "4.0.0"
 Config.GroupId = 0 -- coloque o ID do seu grupo para bônus de 10%
-Config.PromoCodes = { GIGANTE = 1000, LAUNCH = 2500 }
+-- Códigos promocionais: ficam em src/server/Secrets.lua (não replicado).
 
 Config.MaxPlayers = 8
 Config.StartingCoins = 250
@@ -13,6 +13,9 @@ Config.BaseRadius = 320
 Config.BaseSize = 60
 Config.PlotSlots = 12
 Config.PlotSlotsVIP = 16
+-- Fase 0.3: limite da mochila (antes era infinito e inchava o save e a rede).
+-- Recompensas grátis são recusadas com a mochila cheia; compras com Robux sempre entregam.
+Config.MaxInventory = 300
 
 Config.Giant = {
 	BaseScale = 1,
@@ -551,7 +554,7 @@ Config.GamePasses = {
 Config.GamePassInfo = {
 	DoubleCoins = { name = "2x Moedas", desc = "Dobra TODA a renda passiva. Para sempre.", price = 299 },
 	VIP = { name = "VIP", desc = "Nametag dourada, 1.5x XP e +4 slots no pátio.", price = 499 },
-	AutoFeed = { name = "Auto-Feed", desc = "Seu Gigante come sozinho do pátio a cada 30s.", price = 399 },
+	AutoFeed = { name = "Auto-Feed", desc = "Seu Gigante come sozinho do pátio a cada 5s.", price = 399 },
 	DragonGiant = {
 		name = "Gigante DRAGÃO",
 		desc = "Espécie secreta: 2x XP, 1.5x moedas, domina a arena e NUNCA encolhe.",
@@ -570,16 +573,22 @@ Config.GamePassInfo = {
 	BoxerPro = { name = "Boxeador Pro", desc = "+25% dano nos socos, +30% stamina e luvas douradas.", price = 449 },
 	ArenaVIP = { name = "Arena VIP", desc = "Metade do cooldown de duelo e rouba 3 comidas por vitória.", price = 399 },
 }
+-- paidRandom: o produto entrega algo aleatório (regras de itens aleatórios pagos de 2026:
+--   chances visíveis antes da compra + PolicyService.ArePaidRandomItemsRestricted por jogador).
+-- fundsRandom: o produto vende moedas, que compram Lunchboxes (aleatórias). Para jogadores
+--   em que itens aleatórios pagos são restritos, esses produtos também ficam bloqueados,
+--   então para eles as moedas são só ganhas jogando (interpretação documentada em
+--   docs/GAME_BRIEF.md; reconferir no Creator Hub antes de lançar).
 Config.DevProducts = {
-	Coins10k = { id = 0, coins = 10000 },
-	Coins100k = { id = 0, coins = 100000 },
+	Coins10k = { id = 0, coins = 10000, fundsRandom = true },
+	Coins100k = { id = 0, coins = 100000, fundsRandom = true },
 	SuperShield = { id = 0 },
-	LuckyBox = { id = 0 },
+	LuckyBox = { id = 0, paidRandom = true },
 	FreezeDecay7d = { id = 0 }, -- congela o encolhimento por 7 dias
 	RestoreLevels = { id = 0 }, -- recupera TODOS os níveis perdidos por decay
 	StaminaRefill = { id = 0 }, -- stamina cheia + 60s de stamina infinita
 	ArenaRematch = { id = 0 }, -- zera o cooldown de duelo agora
-	SpeciesReroll = { id = 0 }, -- troca de espécie grátis mantendo o nível
+	SpeciesReroll = { id = 0 }, -- dá 1 Ficha de Espécie: o jogador ESCOLHE a espécie (não é sorteio)
 }
 Config.DevProductInfo = {
 	Coins10k = { name = "10.000 Moedas", desc = "Pacote inicial de moedas.", price = 99 },
@@ -599,8 +608,8 @@ Config.DevProductInfo = {
 	StaminaRefill = { name = "Energético", desc = "Stamina cheia agora + 60s de stamina infinita.", price = 29 },
 	ArenaRematch = { name = "Revanche Imediata", desc = "Zera o cooldown de duelo da arena.", price = 39 },
 	SpeciesReroll = {
-		name = "Trocar Espécie",
-		desc = "Troca para qualquer espécie comprável mantendo o nível.",
+		name = "Ficha de Espécie",
+		desc = "Desbloqueie a espécie comprável que VOCÊ escolher, mantendo o nível.",
 		price = 99,
 	},
 }

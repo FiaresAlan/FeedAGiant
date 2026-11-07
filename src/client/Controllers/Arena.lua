@@ -45,15 +45,11 @@ local function rebuildList()
 		end
 		n += 1
 		local row = UI.frame(listFrame, { Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = UI.Colors.Panel })
-		UI.label(
-			row,
-			p.DisplayName,
-			{
-				Size = UDim2.new(1, -170, 1, 0),
-				Position = UDim2.fromOffset(12, 0),
-				TextXAlignment = Enum.TextXAlignment.Left,
-			}
-		)
+		UI.label(row, p.DisplayName, {
+			Size = UDim2.new(1, -170, 1, 0),
+			Position = UDim2.fromOffset(12, 0),
+			TextXAlignment = Enum.TextXAlignment.Left,
+		})
 		local b = UI.button(
 			row,
 			"DESAFIAR ⚔",
@@ -81,15 +77,11 @@ local function statsText(s: State.PlayerState): string
 			+ (if s.passes.ArenaVIP then Config.Arena.DuelCooldown / 2 else Config.Arena.DuelCooldown)
 			- os.time()
 	)
-	return Locale.fmt(
-		"arena_stats",
-		nil,
-		{
-			w = a.arenaWins or 0,
-			l = a.arenaLosses or 0,
-			s = if cd > 0 then Locale.fmt("cooldown_s", nil, { n = cd }) else "Pronto para lutar!",
-		}
-	)
+	return Locale.fmt("arena_stats", nil, {
+		w = a.arenaWins or 0,
+		l = a.arenaLosses or 0,
+		s = if cd > 0 then Locale.fmt("cooldown_s", nil, { n = cd }) else "Pronto para lutar!",
+	})
 end
 
 local function buildWindow(gui: ScreenGui)
@@ -138,16 +130,13 @@ local function buildWindow(gui: ScreenGui)
 end
 
 local function buildPopup(gui: ScreenGui)
-	challengePopup = UI.panel(
-		gui,
-		{
-			Size = UDim2.fromOffset(420, 150),
-			Position = UDim2.new(0.5, 0, 0.25, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = UI.Colors.Bg,
-			Visible = false,
-		}
-	)
+	challengePopup = UI.panel(gui, {
+		Size = UDim2.fromOffset(420, 150),
+		Position = UDim2.new(0.5, 0, 0.25, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = UI.Colors.Bg,
+		Visible = false,
+	})
 	UI.stroke(challengePopup, UI.Colors.Red, 3)
 	challengeText = UI.label(
 		challengePopup,
@@ -177,71 +166,51 @@ local function buildPopup(gui: ScreenGui)
 end
 
 local function buildFight(gui: ScreenGui)
-	fight = UI.panel(
-		gui,
-		{
-			Name = "FightOverlay",
-			Size = UDim2.fromOffset(620, 110),
-			Position = UDim2.new(0.5, 0, 0, 100),
-			AnchorPoint = Vector2.new(0.5, 0),
-			BackgroundColor3 = UI.Colors.Bg,
-			BackgroundTransparency = 0.1,
-			Visible = false,
-		}
-	)
+	fight = UI.panel(gui, {
+		Name = "FightOverlay",
+		Size = UDim2.fromOffset(620, 110),
+		Position = UDim2.new(0.5, 0, 0, 100),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundColor3 = UI.Colors.Bg,
+		BackgroundTransparency = 0.1,
+		Visible = false,
+	})
 	UI.stroke(fight, UI.Colors.Accent, 3)
 	fightTitle = UI.title(
 		fight,
 		"⚔ GIANT CLASH ⚔",
 		{ Size = UDim2.new(1, 0, 0, 28), Position = UDim2.fromOffset(0, 4), TextColor3 = UI.Colors.Accent }
 	)
-	nameA = UI.label(
-		fight,
-		"",
-		{
-			Size = UDim2.fromOffset(280, 24),
-			Position = UDim2.fromOffset(12, 36),
-			TextXAlignment = Enum.TextXAlignment.Left,
-		}
-	)
-	nameB = UI.label(
-		fight,
-		"",
-		{
-			Size = UDim2.fromOffset(280, 24),
-			Position = UDim2.new(1, -292, 0, 36),
-			TextXAlignment = Enum.TextXAlignment.Right,
-		}
-	)
-	local bgA = UI.frame(
-		fight,
-		{
-			Size = UDim2.fromOffset(280, 22),
-			Position = UDim2.fromOffset(12, 68),
-			BackgroundColor3 = Color3.fromRGB(20, 20, 30),
-		}
-	)
+	nameA = UI.label(fight, "", {
+		Size = UDim2.fromOffset(280, 24),
+		Position = UDim2.fromOffset(12, 36),
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	nameB = UI.label(fight, "", {
+		Size = UDim2.fromOffset(280, 24),
+		Position = UDim2.new(1, -292, 0, 36),
+		TextXAlignment = Enum.TextXAlignment.Right,
+	})
+	local bgA = UI.frame(fight, {
+		Size = UDim2.fromOffset(280, 22),
+		Position = UDim2.fromOffset(12, 68),
+		BackgroundColor3 = Color3.fromRGB(20, 20, 30),
+	})
 	UI.corner(bgA, 11)
 	hpA = UI.frame(bgA, { Size = UDim2.fromScale(1, 1), BackgroundColor3 = UI.Colors.Green })
 	UI.corner(hpA, 11)
-	local bgB = UI.frame(
-		fight,
-		{
-			Size = UDim2.fromOffset(280, 22),
-			Position = UDim2.new(1, -292, 0, 68),
-			BackgroundColor3 = Color3.fromRGB(20, 20, 30),
-		}
-	)
+	local bgB = UI.frame(fight, {
+		Size = UDim2.fromOffset(280, 22),
+		Position = UDim2.new(1, -292, 0, 68),
+		BackgroundColor3 = Color3.fromRGB(20, 20, 30),
+	})
 	UI.corner(bgB, 11)
-	hpB = UI.frame(
-		bgB,
-		{
-			Size = UDim2.fromScale(1, 1),
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(1, 0),
-			BackgroundColor3 = UI.Colors.Red,
-		}
-	)
+	hpB = UI.frame(bgB, {
+		Size = UDim2.fromScale(1, 1),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		BackgroundColor3 = UI.Colors.Red,
+	})
 	UI.corner(hpB, 11)
 	UI.label(
 		fight,
@@ -291,15 +260,11 @@ function Arena.init(gui: ScreenGui)
 		elseif e.kind == "Start" then
 			local involved = e.a == player.UserId or e.b == player.UserId
 			fight.Visible = true
-			fightTitle.Text = Locale.fmt(
-				"fight_title",
-				nil,
-				{
-					t = if e.tournament then "🏆 " .. Locale.t("CAMPEONATO") .. ": " else "⚔ GIANT CLASH: ",
-					a = e.aName,
-					b = e.bName,
-				}
-			)
+			fightTitle.Text = Locale.fmt("fight_title", nil, {
+				t = if e.tournament then "🏆 " .. Locale.t("CAMPEONATO") .. ": " else "⚔ GIANT CLASH: ",
+				a = e.aName,
+				b = e.bName,
+			})
 			nameA.Text = string.format("%s  (⚡%d)", e.aName, e.powerA)
 			nameB.Text = string.format("(⚡%d)  %s", e.powerB, e.bName)
 			hpA.Size = UDim2.fromScale(1, 1)
@@ -320,15 +285,11 @@ function Arena.init(gui: ScreenGui)
 			end
 		elseif e.kind == "End" then
 			if e.winner == player.UserId then
-				fightTitle.Text = Locale.fmt(
-					"fight_won",
-					nil,
-					{
-						x = if e.stolen and #e.stolen > 0
-							then Locale.fmt("fight_stole", nil, { s = table.concat(e.stolen, ", ") })
-							else "",
-					}
-				)
+				fightTitle.Text = Locale.fmt("fight_won", nil, {
+					x = if e.stolen and #e.stolen > 0
+						then Locale.fmt("fight_stole", nil, { s = table.concat(e.stolen, ", ") })
+						else "",
+				})
 				sfx("Win", 1)
 				Effects.confetti(80)
 				Effects.flash(UI.Colors.Accent, 0.4)

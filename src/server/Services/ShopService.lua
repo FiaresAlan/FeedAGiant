@@ -1,9 +1,22 @@
 --!strict
--- ShopService — compra de Lunchboxes, rebirth, códigos promocionais, daily reward.
+-- ShopService — Lunchboxes, rebirth, códigos promocionais, recompensa diária, espécies.
+--
+-- Fase 0 (ver docs/DIAGNOSTICO_E_PLANO.md):
+--   * H1: o anti-spam fica SÓ no pedido do jogador (RequestBuyBox). Caixas grátis/pagas
+--     (diário, campeonato, Lucky Box, bônus de volta) nunca são descartadas em silêncio.
+--   * Mochila cheia: a caixa comprada com moedas é recusada ANTES de cobrar.
+--   * 0.5: sorteio pela tabela única LunchboxOdds (a mesma mostrada na loja).
+--   * 0.6: códigos promocionais lidos de Server/Secrets (não replicado).
+--   * Ficha de espécie: o produto "Trocar Espécie" dá uma ficha; o jogador ESCOLHE a
+--     espécie (antes era sorteio pago sem chances visíveis).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local LunchboxOdds = require(game.ReplicatedStorage.Shared.LunchboxOdds)
+local Secrets = require(script.Parent.Parent.Secrets)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
@@ -12,46 +25,50 @@ local StealService = require(script.Parent.StealService)
 local ShopService = {}
 local luckBonus = 0 -- alterado por EventService (Lucky Boxes)
 local lastBuy: { [Player]: number } = {}
+local rng = Random.new()
+
+local BUY_COOLDOWN = 0.4
+
+export type OpenOptions = {
+	free: boolean?, -- não cobra moedas (recompensas e produtos)
+	minRarity: string?, -- Lucky Box: raridade mínima garantida
+	force: boolean?, -- entrega mesmo com a mochila cheia (já pago ou prêmio único)
+}
 
 function ShopService.setLuckBonus(b: number)
-	luckBonus = b
+	luckBonus = math.max(0, b)
+	ReplicatedStorage:SetAttribute(LunchboxOdds.LUCK_ATTRIBUTE, luckBonus)
 end
 
-function ShopService.rollFood(box: Config.LunchboxDef, forceMinRarity: string?): Config.FoodDef
-	local rarity = Util.weightedPick(box.weights, luckBonus)
-	if forceMinRarity and Config.Rarities[rarity].order < Config.Rarities[forceMinRarity].order then
-		rarity = forceMinRarity
-	end
-	local pool = {}
-	for _, f in Config.Foods do
-		if f.rarity == rarity then
-			table.insert(pool, f)
-		end
-	end
-	return pool[math.random(1, #pool)]
+function ShopService.getLuckBonus(): number
+	return luckBonus
 end
 
-function ShopService.openBox(player: Player, boxId: string, free: boolean?, forceMinRarity: string?)
+-- Abre uma caixa. Retorna true se entregou. Nunca descarta em silêncio: toda recusa avisa.
+function ShopService.openBox(player: Player, boxId: string, options: OpenOptions?): boolean
+	local opts: OpenOptions = options or {}
 	local profile = DataService.get(player)
 	local box = Config.LunchboxById[boxId]
 	if not profile or not box then
-		return
+		return false
 	end
-	local now = os.clock()
-	if (lastBuy[player] or 0) + 0.4 > now then
-		return
+	if not opts.force and not PlotService.hasInventorySpace(profile) then
+		Remotes.Notify:FireClient(player, {
+			text = "Mochila cheia! Alimente seu Gigante ou coloque comida no pátio.",
+			color = Color3.fromRGB(255, 90, 90),
+		})
+		return false
 	end
-	lastBuy[player] = now
-	if not free then
+	if not opts.free then
 		if profile.coins < box.price then
 			Remotes.Notify:FireClient(player, { text = "Moedas insuficientes!", color = Color3.fromRGB(255, 90, 90) })
-			return
+			return false
 		end
 		profile.coins -= box.price
 	end
 	profile.totalBoxes += 1
-	local food = ShopService.rollFood(box, forceMinRarity)
-	PlotService.giveFood(player, food.id)
+	local food = LunchboxOdds.roll(boxId, luckBonus, opts.minRarity, rng)
+	PlotService.giveFood(player, food.id, true) -- espaço já conferido acima (ou forçado)
 	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
 	Remotes.HatchResult:FireClient(
 		player,
@@ -68,6 +85,7 @@ function ShopService.openBox(player: Player, boxId: string, free: boolean?, forc
 	end
 	DataService.markDirty(player)
 	PlotService.pushState(player)
+	return true
 end
 
 function ShopService.rebirth(player: Player)
@@ -96,11 +114,12 @@ end
 
 function ShopService.redeem(player: Player, code: string)
 	local profile = DataService.get(player)
-	if not profile or type(code) ~= "string" then
+	if not profile then
 		return
 	end
-	code = string.upper(string.sub(code, 1, 20))
-	local reward = Config.PromoCodes[code]
+	code = string.upper((string.gsub(string.sub(code, 1, 40), "%s", "")))
+	code = string.sub(code, 1, 20)
+	local reward = Secrets.PromoCodes[code]
 	if not reward then
 		Remotes.Notify:FireClient(player, { text = "Código inválido.", color = Color3.fromRGB(255, 90, 90) })
 		return
@@ -141,7 +160,8 @@ function ShopService.claimDaily(player: Player)
 	local reward = Config.DailyRewards[profile.dailyStreak]
 	profile.coins += reward
 	if profile.dailyStreak == #Config.DailyRewards then
-		ShopService.openBox(player, "epic", true)
+		-- Prêmio do 7º dia: entregue mesmo com a mochila cheia (só acontece uma vez por ciclo).
+		ShopService.openBox(player, "epic", { free = true, force = true })
 		profile.dailyStreak = 0
 	end
 	DataService.markDirty(player)
@@ -152,7 +172,28 @@ function ShopService.claimDaily(player: Player)
 	)
 end
 
-function ShopService.buySpecies(player: Player, speciesId: string)
+-- Espécies compráveis com moedas que o jogador ainda não tem (alvo da ficha).
+function ShopService.tokenTargets(profile: DataService.Profile): { string }
+	local out = {}
+	for _, sp in Config.Species do
+		if not sp.robux and not profile.ownedSpecies[sp.id] then
+			table.insert(out, sp.id)
+		end
+	end
+	return out
+end
+
+local function unlockSpecies(player: Player, profile: DataService.Profile, sp: Config.SpeciesDef)
+	profile.ownedSpecies[sp.id] = true
+	DataService.markDirty(player)
+	GiantService.setSpecies(player, sp.id)
+	PlotService.pushState(player)
+	Remotes.Notify:FireAllClients(
+		Locale.msg("species_unlocked_broadcast", { p = player.DisplayName, s = sp.name, r = sp.rarityTag }, sp.color)
+	)
+end
+
+function ShopService.buySpecies(player: Player, speciesId: string, useToken: boolean)
 	local profile = DataService.get(player)
 	local sp = Config.SpeciesById[speciesId]
 	if not profile or not sp then
@@ -167,6 +208,18 @@ function ShopService.buySpecies(player: Player, speciesId: string)
 		Remotes.Notify:FireClient(player, Locale.msg("pass_only", { s = sp.name }, Color3.fromRGB(255, 200, 80)))
 		return
 	end
+	if useToken then
+		if (profile.speciesTokens or 0) < 1 then
+			Remotes.Notify:FireClient(
+				player,
+				{ text = "Você não tem Ficha de Espécie.", color = Color3.fromRGB(255, 90, 90) }
+			)
+			return
+		end
+		profile.speciesTokens -= 1
+		unlockSpecies(player, profile, sp)
+		return
+	end
 	if profile.coins < sp.price then
 		Remotes.Notify:FireClient(
 			player,
@@ -179,19 +232,14 @@ function ShopService.buySpecies(player: Player, speciesId: string)
 		return
 	end
 	profile.coins -= sp.price
-	profile.ownedSpecies[speciesId] = true
-	DataService.markDirty(player)
-	GiantService.setSpecies(player, speciesId)
-	PlotService.pushState(player)
-	Remotes.Notify:FireAllClients(
-		Locale.msg("species_unlocked_broadcast", { p = player.DisplayName, s = sp.name, r = sp.rarityTag }, sp.color)
-	)
+	unlockSpecies(player, profile, sp)
 end
 
 function ShopService.init()
-	Remotes.RequestBuySpecies.OnServerEvent:Connect(function(player, id)
-		if type(id) == "string" then
-			ShopService.buySpecies(player, id)
+	ShopService.setLuckBonus(0)
+	Remotes.RequestBuySpecies.OnServerEvent:Connect(function(player, id, useToken)
+		if type(id) == "string" and #id <= 32 and (useToken == nil or type(useToken) == "boolean") then
+			ShopService.buySpecies(player, id, useToken == true)
 		end
 	end)
 	Remotes.RequestEquipSpecies.OnServerEvent:Connect(function(player, id)
@@ -202,18 +250,29 @@ function ShopService.init()
 		end
 	end)
 	GiantService.OnReturnBonus = function(player, _away)
-		ShopService.openBox(player, Config.Decay.ReturnBonusBox, true, nil)
+		ShopService.openBox(player, Config.Decay.ReturnBonusBox, { free = true, force = true })
 	end
 	Remotes.RequestBuyBox.OnServerEvent:Connect(function(player, boxId)
-		if type(boxId) == "string" then
-			ShopService.openBox(player, boxId)
+		if type(boxId) ~= "string" or not Config.LunchboxById[boxId] then
+			return
 		end
+		local now = os.clock()
+		if (lastBuy[player] or 0) + BUY_COOLDOWN > now then
+			return -- anti-spam só aqui: pedido do próprio jogador, nada foi cobrado
+		end
+		lastBuy[player] = now
+		ShopService.openBox(player, boxId)
 	end)
 	Remotes.RequestRebirth.OnServerEvent:Connect(ShopService.rebirth)
 	Remotes.RequestRedeemCode.OnServerEvent:Connect(function(player, code)
-		ShopService.redeem(player, code)
+		if type(code) == "string" and #code <= 64 then
+			ShopService.redeem(player, code)
+		end
 	end)
 	Remotes.RequestClaimDaily.OnServerEvent:Connect(ShopService.claimDaily)
+	game:GetService("Players").PlayerRemoving:Connect(function(player)
+		lastBuy[player] = nil
+	end)
 end
 
 return ShopService
