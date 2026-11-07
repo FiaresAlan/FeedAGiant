@@ -11,7 +11,6 @@
 -- Kit: MapKit do fwjelaa (FWJ STUDIOS), vendorizado em ServerScriptService.fwjelaa.MapKit.
 -- Paleta e métricas: make-map/styles/simulator.md. Notas do vault: Stylized Lighting Recipes,
 -- Art Budgets - Triangles Draw Calls Memory (orçamento < 10k peças).
-local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 
@@ -61,7 +60,7 @@ local PLAZA_INNER_R = 120 -- topo y = 2 (drops, loja, evento)
 local PLAZA_OUTER_R = 138 -- degrau com topo y = 1
 local PATH_W = 14
 local SEED = 2026
--- Marco: escala 1,7 (~120 studs com o vapor). Raio da fogueira = 17 * escala ≈ 29 studs;
+-- Marco: escala 1,7 (~130 studs com pedestal e vapor). Raio da fogueira = 17 * escala ≈ 29 studs;
 -- a faixa de drops começa em r 50 (DropService) com círculo de raio 14 → livre a partir de r 36.
 local CAULDRON_SCALE = 1.7
 
@@ -115,18 +114,16 @@ function World.buildGround(root: Instance)
 	ground.Name = "Ground"
 	disc("Island", ISLAND_R, 0, 10, P.grass, ground, 4)
 	disc("Beach", ISLAND_R + BEACH_W, -0.6, 10, P.sand, ground, 4)
-	-- Água de verdade só perto da ilha; uma peça plana leva o mar até o horizonte
-	-- (make-map: água de terreno é o que mais custa draw calls; manter ~700 studs em volta).
-	local terrain = Workspace.Terrain
-	terrain.WaterColor = hex(P.water)
-	terrain.WaterTransparency = 0.3
-	terrain.WaterReflectance = 0.15
-	terrain:FillBlock(CFrame.new(0, -5, 0), Vector3.new(1400, 6, 1400), Enum.Material.Water)
+	-- Mar só de peça (sem água de terreno). Medido na Fase 1: a água de terreno em 1.400 studs
+	-- custava ~290 mil triângulos por vista (mais da metade do orçamento de celular).
+	-- Faixa clara rasa perto da praia + mar azul até o horizonte (estilo cartoon).
+	disc("Shallows", ISLAND_R + BEACH_W + 70, -2.2, 1, "#4FA3E0", ground, 4)
 	local sea = Build.decor(Build.part({
 		Name = "FarSea",
 		Size = Vector3.new(8000, 1, 8000),
 		CFrame = CFrame.new(0, -2.8, 0),
 		Color = hex(P.water),
+		Reflectance = 0.1,
 		CastShadow = false,
 	}))
 	sea.Parent = ground
@@ -166,7 +163,43 @@ local function buildCauldron(parent: Instance)
 		p.Parent = m
 		return p
 	end
-	local floor = 2 -- topo da praça interna
+	-- Pedestal de pedra em degraus (eleva o marco acima das placas e da praça; raio ≤ 29)
+	local plinthTop = 2
+	local steps: { { r: number, h: number, color: string } } = {
+		{ r = 29, h = 3, color = P.stone },
+		{ r = 26, h = 3, color = "#BDBCBF" },
+		{ r = 23, h = 3, color = P.stone },
+	}
+	for i, step in steps do
+		cyl("Plinth" .. i, step.r * 2, step.h, CFrame.new(0, plinthTop + step.h / 2, 0), step.color)
+		plinthTop += step.h
+	end
+	-- Quatro bandeiras altas nas diagonais, com as cores das bases (leem de longe).
+	-- Mastros saem do piso da praça em r 34: fora do caldeirão (raio ~32) e antes da faixa
+	-- de drops (círculos a partir de r 36).
+	for k = 0, 3 do
+		local a = math.rad(45 + k * 90)
+		local poleBase = Vector3.new(math.cos(a) * 34, 2, math.sin(a) * 34)
+		local pole = Build.part({
+			Name = "FlagPole",
+			Size = Vector3.new(1.4, 64, 1.4),
+			CFrame = CFrame.new(poleBase + Vector3.new(0, 32, 0)),
+			Color = hex(P.white),
+		})
+		pole.Parent = m
+		local theme = World.BaseThemes[k * 2 + 1]
+		local flag = Build.decor(Build.part({
+			Name = "Flag",
+			Size = Vector3.new(0.4, 9, 15),
+			-- bandeira para fora (lado oposto ao caldeirão)
+			CFrame = CFrame.lookAt(poleBase + Vector3.new(0, 58, 0), poleBase * 2 + Vector3.new(0, 58, 0))
+				* CFrame.new(0, 0, -7.5),
+			Color = hex(theme.color),
+		}))
+		flag.Parent = m
+		ballp("PoleTop", 2.6, poleBase + Vector3.new(0, 64.5, 0), "#F5CD30")
+	end
+	local floor = plinthTop -- topo do pedestal
 	-- Fogueira de pedra (raio máximo = CAULDRON_RADIUS: a faixa de drops começa depois dele)
 	cyl("Hearth", 34 * S, 4 * S, CFrame.new(0, floor + 2 * S, 0), P.stone)
 	cyl("HearthTop", 30 * S, 0.6, CFrame.new(0, floor + 4 * S + 0.3, 0), P.stoneDark, true)
@@ -428,6 +461,62 @@ function World.buildHub(root: Instance): Part
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = hub
 
+	-- Mesas de banquete (tema do jogo) no anel livre entre a faixa de drops (r ≤ 96) e a borda
+	local tableRng = Random.new(SEED + 11)
+	local foodColors = { "#FF5959", "#F5CD30", "#DA8541", "#A0522D", "#5B9A4C" }
+	for _, phi in { 67.5, 112.5, 247.5, 292.5 } do
+		local c = facingCenter(polar(phi, 109, 2))
+		local top = Build.part({
+			Name = "BanquetTable",
+			Size = Vector3.new(18, 1, 6),
+			CFrame = c * CFrame.new(0, 3.5, 0),
+			Color = hex(P.woodLight),
+		})
+		top.Parent = hub
+		local cloth = Build.decor(Build.part({
+			Name = "TableCloth",
+			Size = Vector3.new(18.4, 0.2, 3),
+			CFrame = c * CFrame.new(0, 4.1, 0),
+			Color = hex("#FF5959"),
+		}))
+		cloth.Parent = hub
+		for _, x in { -8, 8 } do
+			for _, z in { -2.4, 2.4 } do
+				local leg = Build.decor(Build.part({
+					Name = "TableLeg",
+					Size = Vector3.new(0.8, 3, 0.8),
+					CFrame = c * CFrame.new(x, 1.5, z),
+					Color = hex(P.wood),
+				}))
+				leg.Parent = hub
+			end
+		end
+		for _, z in { -5, 5 } do
+			local bench = Build.part({
+				Name = "Bench",
+				Size = Vector3.new(16, 0.8, 2),
+				CFrame = c * CFrame.new(0, 1.9, z),
+				Color = hex(P.wood),
+			})
+			bench.Parent = hub
+		end
+		for i = -3, 3 do
+			local food = Build.decor(Build.part({
+				Name = "TableFood",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.one * tableRng:NextNumber(1.4, 2.2),
+				CFrame = c * CFrame.new(i * 2.3, 4.9, tableRng:NextNumber(-1.2, 1.2)),
+				Color = hex(foodColors[tableRng:NextInteger(1, #foodColors)]),
+			}))
+			food.Parent = hub
+		end
+	end
+	-- Postes de luz dos dois lados de cada entrada de caminho na praça
+	for k = 0, 7 do
+		for _, side in { -1, 1 } do
+			World.lamp(CFrame.new(polar(k * 45 + side * 6.5, PLAZA_OUTER_R - 4, 1)), hub)
+		end
+	end
 	hub.Parent = root
 	shopPad.Parent = root
 	eventPad.Parent = root
@@ -462,6 +551,47 @@ function World.buildPath(origin: CFrame, parent: Instance)
 		edge.Parent = path
 	end
 	path.Parent = parent
+	-- Postes ao longo do caminho, alternando os lados, a cada ~45 studs
+	local unit = (endPos - fromPos).Unit
+	local right = unit:Cross(Vector3.yAxis).Unit
+	local total = (endPos - fromPos).Magnitude
+	local i = 0
+	local d = 30
+	while d < total - 20 do
+		local side = if i % 2 == 0 then 1 else -1
+		World.lamp(CFrame.new(fromPos + unit * d + right * side * (PATH_W / 2 + 3)), parent)
+		d += 45
+		i += 1
+	end
+end
+
+-- Poste de luz estilizado (sem PointLight: de dia não aparece e custaria desempenho no celular)
+function World.lamp(cf: CFrame, parent: Instance)
+	local m = Instance.new("Model")
+	m.Name = "Lamp"
+	local post = Build.part({
+		Name = "Post",
+		Size = Vector3.new(1, 11, 1),
+		CFrame = cf * CFrame.new(0, 5.5, 0),
+		Color = hex("#4A4749"),
+	})
+	post.Parent = m
+	local cap = Build.decor(Build.part({
+		Name = "Cap",
+		Size = Vector3.new(2.4, 0.6, 2.4),
+		CFrame = cf * CFrame.new(0, 11.2, 0),
+		Color = hex("#4A4749"),
+	}))
+	cap.Parent = m
+	local bulb = Build.decor(Build.part({
+		Name = "Bulb",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(2.2, 2.2, 2.2),
+		CFrame = cf * CFrame.new(0, 12.4, 0),
+		Color = hex("#FFE08A"),
+	}))
+	bulb.Parent = m
+	m.Parent = parent
 end
 
 ---------------------------------------------------------------------------
@@ -479,6 +609,52 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 		table.insert(exclude, { center = p, radius = Config.BaseSize * 0.75 + 8 })
 		-- Caminho: segmento base→praça, com 6 studs livres de cada lado
 		table.insert(exclude, { a = p, b = Vector2.zero, radius = PATH_W / 2 + 6 })
+	end
+	-- Lagos (água estilizada de peça: barata e no estilo; a água de terreno fica só no mar)
+	for i, pond in { { 67.5, 235, 30 }, { 202.5, 240, 34 }, { 292.5, 230, 26 } } do
+		local c = polar(pond[1], pond[2], 0)
+		local pr = pond[3]
+		local rim = Build.part({
+			Name = "PondRim",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.4, (pr + 4) * 2, (pr + 4) * 2),
+			CFrame = CFrame.new(c + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = hex(World.Palette.sand),
+			CastShadow = false,
+		})
+		rim.Parent = nature
+		local water = Build.part({
+			Name = "PondWater",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.4, pr * 2, pr * 2),
+			CFrame = CFrame.new(c + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = hex("#4FA3E0"),
+			Reflectance = 0.15,
+			CastShadow = false,
+		})
+		water.Parent = nature
+		local rng = Random.new(SEED + 50 + i)
+		for _ = 1, 5 do
+			local a, r = rng:NextNumber(0, math.pi * 2), rng:NextNumber(4, pr - 5)
+			local pad = Build.decor(Build.part({
+				Name = "LilyPad",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.2, 4, 4),
+				CFrame = CFrame.new(c + Vector3.new(math.cos(a) * r, 0.45, math.sin(a) * r))
+					* CFrame.Angles(0, 0, math.rad(90)),
+				Color = hex("#348E40"),
+			}))
+			pad.Parent = nature
+		end
+		for _ = 1, 4 do
+			local a = rng:NextNumber(0, math.pi * 2)
+			local rock = Props.rock(
+				CFrame.new(c + Vector3.new(math.cos(a) * (pr + 3), 0, math.sin(a) * (pr + 3))),
+				{ rng = rng, scale = rng:NextNumber(0.9, 1.4) }
+			)
+			rock.Parent = nature
+		end
+		table.insert(exclude, { center = Vector2.new(c.X, c.Z), radius = pr + 7 })
 	end
 	local box = ISLAND_R - 12
 	local common = {
@@ -498,7 +674,7 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 	local P = World.Palette
 	run({
 		seed = SEED + 1,
-		clusters = { spacing = 95, radius = 16, per = { 3, 5 }, minDist = 10 },
+		clusters = { spacing = 100, radius = 16, per = { 3, 5 }, minDist = 10 },
 		clearance = 7,
 		make = function(cf: CFrame, rng: Random)
 			return Props.tree(cf, { rng = rng, leaf = P.grass, leafDark = "#348E40" })
@@ -506,7 +682,7 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 	})
 	run({
 		seed = SEED + 2,
-		spacing = 44,
+		spacing = 60,
 		clearance = 3,
 		make = function(cf: CFrame, rng: Random)
 			return Props.bush(cf, { rng = rng, color = "#7C9C6B" })
@@ -522,7 +698,8 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 	})
 	run({
 		seed = SEED + 4,
-		clusters = { spacing = 90, radius = 6, per = { 3, 5 }, minDist = 2 },
+		-- orçamento de celular: cada flor tem 6 esferas (medido: vista da natureza passou de 500k triângulos)
+		clusters = { spacing = 130, radius = 6, per = { 2, 4 }, minDist = 2 },
 		clearance = 1,
 		make = function(cf: CFrame, rng: Random)
 			return Props.flower(cf, { rng = rng })
@@ -533,7 +710,7 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 		seed = SEED + 5,
 		spacing = 150,
 		clearance = 16,
-		limit = 14,
+		limit = 10,
 		make = function(cf: CFrame, rng: Random)
 			return Props.boulder(
 				cf * CFrame.new(0, -1, 0),

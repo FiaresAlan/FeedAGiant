@@ -91,14 +91,24 @@ local function buildBase(index: number, root: Folder): BaseInfo
 		table.insert(slots, slot)
 	end
 
-	-- Placa com nome
+	-- Placa com nome: nos FUNDOS da base, alta, virada para o centro. Na frente ela tapava
+	-- a vista do caldeirão (revisão da Fase 1); aqui ela é lida por quem chega pelo caminho.
 	local signPart = Util.makePart({
 		Name = "Sign",
-		Size = Vector3.new(size, 6, 1),
-		CFrame = origin * CFrame.new(0, 10, -size / 2),
+		Size = Vector3.new(40, 7, 1),
+		CFrame = origin * CFrame.new(0, 15, size / 2 + 1),
 		Color = Color3.fromHex(theme.color),
 		Parent = model,
 	})
+	for _, x in { -20.5, 20.5 } do
+		Util.makePart({
+			Name = "SignPost",
+			Size = Vector3.new(1.6, 19, 1.6),
+			CFrame = origin * CFrame.new(x, 9.5, size / 2 + 1),
+			Color = Color3.fromHex("#F8F8F8"),
+			Parent = model,
+		})
+	end
 	local sg = Instance.new("SurfaceGui")
 	sg.Face = Enum.NormalId.Front
 	sg.Parent = signPart

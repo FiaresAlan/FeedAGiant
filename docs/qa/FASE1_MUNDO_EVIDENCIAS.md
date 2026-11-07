@@ -4,50 +4,57 @@ Estilo: cartoon pintado (GAME_BRIEF §5). Guia: `make-map/styles/simulator.md`. 
 (`src/shared/LightingRecipes.lua`). Mundo gerado por código a cada início de servidor (`src/server/World.lua`, semente fixa)
 com o MapKit do fwjelaa vendorizado (`src/vendor/server/MapKit`).
 
-## O que foi construído
-- **Ilha** de grama (raio 470) com praia e água de terreno só perto da ilha (1.400 studs) + peça plana até o horizonte.
-- **Praça** em dois degraus (r 138 / r 120), com anel e 8 faixas-guia no piso apontando para o centro.
-- **Marco:** Caldeirão do Banquete no centro (escala 1,7; ~120 studs com o vapor): fogueira de pedra, caldeirão de cobre,
-  sopa, coxa, cenoura e concha gigantes, vapor de nuvens.
-- **Loja** (norte, barraca + plataforma Neon), **evento** (sul, pedestal Neon), **3 placares** entre os caminhos,
-  5 canteiros com flores.
-- **8 caminhos** de 14 studs com bordas, da base até a praça.
-- **8 bases** com cor-tema (piso claro com studs, borda, slots e placa na cor-tema, cerca branca, arbustos na entrada).
-- **Natureza:** 133 árvores em grupos, 170 arbustos, 162 flores, pedras e 14 colinas baixas; nada a menos de 6 studs
-  dos caminhos.
+## O que existe agora (depois da rodada de correção 2)
+- **Ilha** de grama (raio 470) com praia, faixa de água rasa e mar até o horizonte, tudo de peça (sem água de terreno).
+- **Praça** em dois degraus (r 138 / r 120), anel e 8 faixas-guia no piso apontando para o centro.
+- **Marco:** Caldeirão do Banquete sobre **pedestal de pedra de 3 degraus**, cobre, sopa, coxa, cenoura e concha
+  gigantes, vapor de nuvens; **4 bandeiras** de 64 studs nas cores das bases (r 34, fora do caldeirão e da faixa de drops).
+- **4 mesas de banquete** com toalha, bancos e comida; 5 canteiros; loja (norte), evento (sul), 3 placares.
+- **Postes de luz:** 2 em cada entrada de caminho na praça + ao longo de todos os caminhos (a cada ~45 studs, alternando).
+- **8 caminhos** de 14 studs com bordas.
+- **8 bases** com cor-tema (piso claro, borda, slots e pedestal na cor-tema, cerca branca). **Placa nos fundos**, alta e
+  virada para o centro: não tapa mais a vista do caldeirão.
+- **3 lagos** com vitórias-régias e pedras; árvores em grupos, arbustos, flores, pedras e colinas baixas.
+- Névoa mais forte (Atmosphere Density 0,3 / Haze 1,2) para dar profundidade.
 
 ## Verificação (place de teste, Play)
 | Gate | Resultado |
 |---|---|
 | Verificador Luau | overall PASS (45 arquivos) |
 | Caminhada (PathfindingService, agente raio 2 / altura 5) | **24/24 rotas** (8 bases → loja, faixa de drops, evento) |
-| Props flutuando/enterrados (raycast do pivô) | **0 de 495** |
+| Props flutuando/enterrados (raycast do pivô) | **0 de 285** |
 | Peças não ancoradas no mapa | **0** |
-| Peças no mapa | 5.183 (alvo < 10.000) |
-| Contrato com o jogo | `ShopPad`, `EventPad`, `Leaderboard1..3` em `Workspace.Map`; drops em r 50–82 (+14), fora do caldeirão (r ≤ 29) e da loja/evento (r ≥ 98) |
+| Decoração com colisão (flores, arbustos, nuvens) | **0** |
+| Obstáculos sólidos na faixa de drops (r 36–96) | **0** |
+| Bandeiras fora do caldeirão | mastro r 34 > raio do caldeirão 32,3 |
+| Peças no mapa | 4.734 (alvo < 10.000) |
 
-**Orçamento por vista** (SceneAnalysisService, sem sombras; alvo celular 500k triângulos / 500 draw calls):
+**Orçamento por vista** (SceneAnalysisService, sem sombras, qualidade fixada; alvo celular 500k triângulos / 500 draw calls):
 
-| Vista | Triângulos | Draw calls |
+| Vista | Qualidade 5 | Qualidade 10 |
 |---|---|---|
-| Saindo da base, olhando o centro | 403.462 | 291 |
-| Aérea | 394.682 | 295 |
-| Praça | 375.282 | 267 |
-| Natureza | 442.988 | 356 |
+| Saindo da base, olhando o centro | 272k / 31 draws | 287k / 41 draws |
+| Aérea | 394k / 34 | 430k / 38 |
+| Praça | 175k / 28 | 188k / 33 |
+| Natureza (nordeste) | 314k / 28 | 345k / 32 |
+| Natureza (noroeste) | 347k / 33 | 379k / 38 |
+
+Medido antes da troca da água: a água de terreno custava ~290k triângulos e ~300 draw calls por vista. Foi removida.
 
 ## Fotos (`docs/qa/shots/fase1/`)
-`00_antes.jpg` (antes: campo plano) · `01_vista_da_base.jpg` · `02_aerea.jpg` · `03_praca.jpg` · `04_base_amarela.jpg` ·
-`05_base_verde_corrigida.jpg`. Capturas com a UI escondida (câmera travada no cliente).
+`00_antes.jpg` (antes: campo plano) · `01_caminho_com_avatar.jpg` · `02_aerea.jpg` · `03_praca_banquete.jpg` ·
+`04_dentro_da_base.jpg` · `05_chegando_na_base.jpg`. Capturas com o avatar R15 no quadro e com a UI de tela e os letreiros
+flutuantes (nomes, drops, chuva de comida do evento) desligados **só no cliente da foto**. As fotos da primeira versão
+estão em `rodada1/`.
 
-## Rodada de correção 1 (feita antes do painel)
-Borda da ilha facetada (4 cópias giradas do disco); pedras demais e pequenas (espaçamento 80→140, escala maior);
-caminho e praça brancos demais (tons de areia mais quentes); caldeirão pequeno e escuro (escala 1,7, cobre);
-verso dos placares escuro (azul); piso da praça vazio (8 faixas-guia); slots sumindo na base verde (slots na cor-tema);
-verso da placa da base vazio (texto nos dois lados).
+## Histórico das rodadas
+| Rodada | O que mudou | Nota do painel |
+|---|---|---|
+| 1 (antes do painel) | borda da ilha arredondada, menos pedras, caminho/praça mais quentes, caldeirão 1,7× e de cobre, placares azuis, faixas no piso, slots na cor-tema, placa nos dois lados | 5,0 (mediana [1,1,1,1,1,1]) |
+| 2 | placa para os fundos; pedestal e bandeiras no marco; mesas de banquete; postes nas entradas e nos caminhos; 3 lagos; névoa; mar sem água de terreno; fotos com avatar e sem letreiros | (este painel) |
 
 ## Não feito / limites
-- Terreno com relevo e lago/rio, e props do Asset Pack: ficam para uma próxima rodada (as colinas são de peças).
-- O marco é feito de primitivas (sem malha nem textura pintada). As texturas pintadas entram com os modelos na Fase 2.
-- Desempenho medido só no PC.
-- O aviso "Tecnologia de migração de iluminação" aparece no Studio ao dar Play: é do Studio, porque o projeto
-  deixou de usar `Technology` (obsoleta).
+- O marco e os props são primitivas sem textura pintada; a textura pintada entra com os modelos na Fase 2.
+- O texto branco da placa da base amarela tem pouco contraste (`05_chegando_na_base.jpg`). Próximo ajuste: contorno escuro no texto.
+- Desempenho medido só no PC (qualidade fixada em 5 e 10). Falta o teste em celular de verdade.
+- Ao dar Play, o Studio mostra o aviso "Tecnologia de migração de iluminação", porque o projeto deixou de usar `Technology` (obsoleta).

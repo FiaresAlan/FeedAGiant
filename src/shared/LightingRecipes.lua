@@ -40,12 +40,14 @@ LightingRecipes.Recipes = {
 			GlobalShadows = true,
 		},
 		atmosphere = {
-			Density = 0.25,
+			-- Ajuste da revisão da Fase 1 (profundidade): Density 0,25→0,3 e Haze 0,5→1,2
+			-- (vault Atmosphere: Haze tinge o horizonte; a ilha e o mar ganham degradê de distância).
+			Density = 0.3,
 			Offset = 0.1,
 			Color = rgb(200, 225, 255),
 			Decay = rgb(120, 160, 210),
 			Glare = 0,
-			Haze = 0.5,
+			Haze = 1.2,
 		},
 		bloom = { Intensity = 0.5, Size = 24, Threshold = 1.2 },
 		grade = { Brightness = 0.02, Contrast = 0.08, Saturation = 0.15, TintColor = rgb(255, 255, 255) },
