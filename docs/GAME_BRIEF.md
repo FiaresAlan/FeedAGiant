@@ -31,8 +31,8 @@
 - **Fora do escopo até a Fase 5:** trocas entre jogadores, pets, guerra entre servidores.
 
 ## 5. Direção de arte
-- **Estilo:** **[PENDENTE]**. Opção (A), cartoon estilizado (recomendada), ou (B) semi-realista. Bloqueia a Fase 1. Exige justificativa e confirmação do usuário (condição 4).
-- **Paleta e clima:** [PENDENTE, junto com o estilo]. Hoje é diurno, saturado, com Neon nos destaques.
+- **Estilo:** **cartoon pintado (stylised PBR)**, escolhido pelo usuário em 07/11/2026. Formas estilizadas com texturas pintadas simples (cor, mais normal opcional, rugosidade alta, metalness 0) e iluminação trabalhada. Superfícies grandes e repetidas usam a camada barata "cartoon liso" (cor + SmoothPlastic). Criaturas: reduzidas para no máximo 20 mil triângulos e repintadas em toon, mantendo a silhueta.
+- **Paleta e clima:** diurno e saturado; a paleta é definida na Fase 1 (`src/shared/Palette.lua`) e precisa passar no teste em tons de cinza. Neon só com orçamento (destaques de raridade e de interação).
 - **Assets existentes:**
   - `assets/ui` (logo, ícones, painel, já enviados ao Roblox);
   - `assets/Personagens (goblin, dragao)`, só local: 185k a 800k triângulos, precisam ser otimizados para no máximo 20 mil.
@@ -93,3 +93,4 @@
 | 07/11/2026 | Manter a extensão `.lua` (não renomear para `.luau`) | Renomear tudo | Rojo e luau-lsp tratam os dois iguais; renomear só gera ruído no histórico | — |
 | 07/11/2026 | Formatação StyLua aplicada num commit separado, sem mudar lógica | Formatar junto com as correções | Deixa os diffs das correções legíveis | — |
 | 07/11/2026 | Checagem de distância no servidor para ClickDetector | Confiar em MaxActivationDistance | O vault (Roblox docs) diz que não é validado no servidor; o revisor discordou; a checagem é barata | Clickable and Interactive Parts |
+| 07/11/2026 | Estilo de arte: cartoon pintado (stylised PBR); confirmado pelo usuário | Cartoon liso (só cor); semi-realista | Realismo não é o atrativo; maioria no celular (realismo fica chapado e pesa na memória); simuladores têm convenção estilizada (thumbnail e descoberta); combina com avatares | Stylised vs Realistic Material Pipelines; Stylized Lighting Recipes; Art Budgets - Triangles Draw Calls Memory; Mesh Optimization for Mobile |

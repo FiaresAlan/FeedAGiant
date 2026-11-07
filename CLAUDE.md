@@ -29,5 +29,5 @@ Blender: `C:\Users\Administrador\Desktop\blender-5.4.0-alpha+main.50d477803fa8-w
 ## Fatos do projeto
 - Place ID / Universe ID: não publicado.
 - Dono dos assets: conta do usuário.
-- Engine de arte: [PENDENTE, decisão de estilo na Fase 1].
+- Estilo de arte: **cartoon pintado (stylised PBR)**, decidido em 07/11/2026 (ver `docs/GAME_BRIEF.md` §5).
 - GitHub: https://github.com/FiaresAlan/FeedAGiant (`main`).
