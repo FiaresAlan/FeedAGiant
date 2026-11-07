@@ -18,10 +18,12 @@ local revealRarity: TextLabel
 local busy = false
 local queue: { any } = {}
 
+-- Os IDs da v4 (9114653986/9114611543/9114646405) não são sons ("Asset type does not
+-- match"); usa a biblioteca de sons do Config, verificada no Studio. SFX finais: Fase 3.
 local SOUND_IDS = {
-	shake = "rbxassetid://9114653986",
-	pop = "rbxassetid://9114611543",
-	rare = "rbxassetid://9114646405",
+	shake = Config.Sounds.Whoosh,
+	pop = Config.Sounds.Coin,
+	rare = Config.Sounds.Win,
 }
 
 local function playSound(id: string, volume: number?)
