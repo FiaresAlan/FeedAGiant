@@ -16,3 +16,7 @@ Thumbs.db
 # Ferramentas locais
 node_modules/
 roblox.toml
+
+# Places de teste gerados pelo Rojo
+build/
+
