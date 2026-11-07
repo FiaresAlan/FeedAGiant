@@ -46,7 +46,8 @@ local function runFoodRain(def)
 		end
 		local food = pool[math.random(1, #pool)]
 		local a = math.random() * math.pi * 2
-		local r = math.random() * 80
+		-- fora do caldeirão central (raio ~29) para a comida não ficar presa no alto dele
+		local r = 40 + math.random() * 50
 		local p = Util.makePart({
 			Name = "Drop",
 			Anchored = false,

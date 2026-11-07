@@ -303,9 +303,10 @@ function DropService.spawn(forceRarity: string?)
 			food = pool[math.random(1, #pool)]
 		end
 	end
-	-- posição aleatória na ilha central, fora da loja
+	-- posição aleatória na praça: depois do caldeirão (raio ~29) e antes da loja/evento (r 98+).
+	-- Com o círculo de raio 14, a disputa fica entre r 36 e r 96 (World.lua).
 	local a = math.random() * math.pi * 2
-	local r = 35 + math.random() * 45
+	local r = 50 + math.random() * 32
 	local pos = Vector3.new(math.cos(a) * r, 2.5, math.sin(a) * r)
 	nextId += 1
 	local model, ring, label = buildDropModel(food, pos)

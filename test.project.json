@@ -26,18 +26,7 @@
     "Workspace": {
       "$className": "Workspace",
       "$ignoreUnknownInstances": true,
-      "$properties": { "FilteringEnabled": true },
-      "Baseplate": {
-        "$className": "Part",
-        "$properties": {
-          "Anchored": true,
-          "Size": [1200, 4, 1200],
-          "Position": [0, -2, 0],
-          "Color": [0.17, 0.62, 0.3],
-          "Material": "Grass",
-          "TopSurface": "Smooth"
-        }
-      }
+      "$properties": { "FilteringEnabled": true }
     },
     "Lighting": {
       "$className": "Lighting",

@@ -1,10 +1,13 @@
 --!strict
 -- MapService — constrói a ilha central, loja, pedestais e as 8 bases 100% por código.
+-- Fase 1: o cenário (ilha, praça, marco, caminhos, natureza) vem do World.lua; aqui ficam as
+-- peças de jogo das bases (piso, zona, slots, pedestal do gigante, placa).
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
+local World = require(script.Parent.Parent.World)
 
 local MapService = {}
 
@@ -23,114 +26,6 @@ MapService.Bases = {} :: { BaseInfo }
 MapService.ShopPad = nil :: Part?
 MapService.Center = CFrame.new(0, 0, 0)
 
-local function buildCenterIsland(root: Folder)
-	local island = Util.makePart({
-		Name = "CenterIsland",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2, 180, 180),
-		CFrame = CFrame.new(0, 1, 0) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(240, 220, 160),
-		Material = Enum.Material.Sand,
-		Parent = root,
-	})
-	island.Name = "CenterIsland"
-
-	-- Loja central
-	local shop = Util.makePart({
-		Name = "ShopPad",
-		Size = Vector3.new(24, 1, 24),
-		CFrame = CFrame.new(0, 2.5, 0),
-		Color = Color3.fromRGB(255, 120, 40),
-		Material = Enum.Material.Neon,
-		Parent = root,
-	})
-	MapService.ShopPad = shop
-	local shopSign = Util.makePart({
-		Name = "ShopSign",
-		Size = Vector3.new(26, 8, 2),
-		CFrame = CFrame.new(0, 10, -12),
-		Color = Color3.fromRGB(255, 255, 255),
-		Material = Enum.Material.SmoothPlastic,
-		Parent = root,
-	})
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.Parent = shopSign
-	local lbl = Instance.new("TextLabel")
-	lbl.Size = UDim2.fromScale(1, 1)
-	lbl.BackgroundTransparency = 1
-	lbl.Text = "LUNCHBOX SHOP"
-	lbl.TextScaled = true
-	lbl.Font = Enum.Font.FredokaOne
-	lbl.TextColor3 = Color3.fromRGB(255, 120, 40)
-	lbl.Parent = gui
-	Util.makeBillboard(
-		shop,
-		"LOJA — entre para abrir",
-		UDim2.fromOffset(300, 60),
-		Vector3.new(0, 6, 0),
-		Color3.fromRGB(255, 220, 120)
-	)
-
-	-- Pedestal do evento
-	local eventPad = Util.makePart({
-		Name = "EventPad",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1, 30, 30),
-		CFrame = CFrame.new(0, 2.5, 60) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(120, 60, 255),
-		Material = Enum.Material.Neon,
-		Parent = root,
-	})
-	eventPad.Name = "EventPad"
-
-	-- Leaderboards
-	for i, title in { "MAIORES GIGANTES", "MAIS REBIRTHS", "REIS DA ARENA" } do
-		local board = Util.makePart({
-			Name = "Leaderboard" .. i,
-			Size = Vector3.new(18, 24, 2),
-			CFrame = CFrame.new(({ -46, 0, 46 })[i], 14, -62),
-			Color = Color3.fromRGB(30, 30, 40),
-			Material = Enum.Material.SmoothPlastic,
-			Parent = root,
-		})
-		local sg = Instance.new("SurfaceGui")
-		sg.Face = Enum.NormalId.Front
-		sg.PixelsPerStud = 25
-		sg.Parent = board
-		local t = Instance.new("TextLabel")
-		t.Name = "Title"
-		t.Size = UDim2.fromScale(1, 0.12)
-		t.BackgroundTransparency = 1
-		t.Text = title
-		t.TextScaled = true
-		t.Font = Enum.Font.FredokaOne
-		t.TextColor3 = Color3.fromRGB(255, 220, 80)
-		t.Parent = sg
-		local list = Instance.new("TextLabel")
-		list.Name = "List"
-		list.Position = UDim2.fromScale(0, 0.14)
-		list.Size = UDim2.fromScale(1, 0.86)
-		list.BackgroundTransparency = 1
-		list.Text = "Carregando..."
-		list.TextScaled = true
-		list.TextXAlignment = Enum.TextXAlignment.Left
-		list.Font = Enum.Font.GothamBold
-		list.TextColor3 = Color3.new(1, 1, 1)
-		list.Parent = sg
-	end
-
-	-- Spawn
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.CFrame = CFrame.new(0, 2.5, -40)
-	spawn.Anchored = true
-	spawn.Neutral = true
-	spawn.Color = Color3.fromRGB(255, 255, 255)
-	spawn.Material = Enum.Material.Neon
-	spawn.Parent = root
-end
-
 local function buildBase(index: number, root: Folder): BaseInfo
 	local angle = (index - 1) / Config.MaxPlayers * math.pi * 2
 	local origin = CFrame.new(math.cos(angle) * Config.BaseRadius, 0, math.sin(angle) * Config.BaseRadius)
@@ -141,14 +36,16 @@ local function buildBase(index: number, root: Folder): BaseInfo
 	model.Parent = root
 
 	local size = Config.BaseSize
+	local theme = World.BaseThemes[(index - 1) % #World.BaseThemes + 1]
 	local floor = Util.makePart({
 		Name = "Floor",
 		Size = Vector3.new(size, 2, size),
 		CFrame = origin * CFrame.new(0, 1, 0),
-		Color = Color3.fromRGB(90, 90, 110),
-		Material = Enum.Material.Slate,
+		Color = Color3.fromHex(theme.light),
+		Material = Enum.Material.SmoothPlastic,
 		Parent = model,
 	})
+	floor.TopSurface = Enum.SurfaceType.Studs
 	local zone = Util.makePart({
 		Name = "Zone",
 		Size = Vector3.new(size, 20, size),
@@ -159,25 +56,16 @@ local function buildBase(index: number, root: Folder): BaseInfo
 		Parent = model,
 	})
 
-	-- Caminho até o centro
-	local dir = (Vector3.zero - origin.Position).Unit
-	local dist = origin.Position.Magnitude - size / 2 - 88
-	Util.makePart({
-		Name = "Path",
-		Size = Vector3.new(10, 1, dist),
-		CFrame = CFrame.lookAt(origin.Position + dir * (size / 2 + dist / 2), Vector3.zero) * CFrame.new(0, 1.5, 0),
-		Color = Color3.fromRGB(200, 180, 140),
-		Material = Enum.Material.Cobblestone,
-		Parent = model,
-	})
+	-- Caminho até a praça (World: cor clara com bordas, termina no degrau da praça)
+	World.buildPath(origin, model)
 
 	-- Pedestal do Gigante (fundo da base)
 	local giantAnchor = Util.makePart({
 		Name = "GiantAnchor",
 		Size = Vector3.new(16, 1, 16),
 		CFrame = origin * CFrame.new(0, 2.5, -size / 2 + 14),
-		Color = Color3.fromRGB(255, 220, 80),
-		Material = Enum.Material.Neon,
+		Color = Color3.fromHex(theme.color),
+		Material = Enum.Material.SmoothPlastic,
 		Parent = model,
 	})
 
@@ -207,7 +95,7 @@ local function buildBase(index: number, root: Folder): BaseInfo
 		Name = "Sign",
 		Size = Vector3.new(size, 6, 1),
 		CFrame = origin * CFrame.new(0, 10, -size / 2),
-		Color = Color3.fromRGB(40, 40, 50),
+		Color = Color3.fromHex(theme.color),
 		Parent = model,
 	})
 	local sg = Instance.new("SurfaceGui")
@@ -222,16 +110,7 @@ local function buildBase(index: number, root: Folder): BaseInfo
 	sign.TextColor3 = Color3.new(1, 1, 1)
 	sign.Parent = sg
 
-	-- Paredes laterais baixas (decorativas)
-	for _, side in { -1, 1 } do
-		Util.makePart({
-			Name = "Wall",
-			Size = Vector3.new(1, 4, size),
-			CFrame = origin * CFrame.new(side * size / 2, 4, 0),
-			Color = Color3.fromRGB(70, 70, 90),
-			Parent = model,
-		})
-	end
+	World.decorateBase(index, origin, model)
 
 	floor:SetAttribute("BaseIndex", index)
 	zone:SetAttribute("BaseIndex", index)
@@ -251,13 +130,20 @@ end
 function MapService.init()
 	local root = Instance.new("Folder")
 	root.Name = "Map"
-	root.Parent = Workspace
-	buildCenterIsland(root)
+	-- Chão primeiro e sem pcall: sem ele os jogadores cairiam no vazio.
+	World.buildGround(root)
+	MapService.ShopPad = World.buildHub(root)
+	local origins = {}
 	for i = 1, Config.MaxPlayers do
 		MapService.Bases[i] = buildBase(i, root)
+		table.insert(origins, MapService.Bases[i].origin)
 	end
-
-	-- Nuvens: agora são as nuvens dinâmicas do Roblox (LightingRecipes), não bolas de Part.
+	root.Parent = Workspace
+	-- Natureza depois (o Scatter usa raycast no chão já parentado). Falha aqui não quebra o jogo.
+	local ok, err = pcall(World.buildNature :: any, root, origins)
+	if not ok then
+		warn("[MapService] natureza não construída:", err)
+	end
 end
 
 function MapService.getBaseOf(player: Player): BaseInfo?
