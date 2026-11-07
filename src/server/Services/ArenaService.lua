@@ -25,7 +25,10 @@ function ArenaService.power(player: Player): number
 		return 0
 	end
 	local sp = GiantService.species(profile)
-	return sp.arenaPower * (1 + profile.level * A.LevelFactor) * (1 + profile.rebirths * A.RebirthFactor) * GiantService.moodMultiplier(profile)
+	return sp.arenaPower
+		* (1 + profile.level * A.LevelFactor)
+		* (1 + profile.rebirths * A.RebirthFactor)
+		* GiantService.moodMultiplier(profile)
 end
 
 local function canFight(p: Player): (boolean, string?)
@@ -61,7 +64,10 @@ local function stealFromLoser(winner: Player, loser: Player): { string }
 	for key, food in lp.plot do
 		local def = Config.FoodById[food.id]
 		if def then
-			table.insert(slots, { slot = tonumber(key) :: number, order = Config.Rarities[def.rarity].order, id = food.id })
+			table.insert(
+				slots,
+				{ slot = tonumber(key) :: number, order = Config.Rarities[def.rarity].order, id = food.id }
+			)
 		end
 	end
 	table.sort(slots, function(a, b)
@@ -89,7 +95,17 @@ local function runDuel(a: Player, b: Player, tournament: boolean): Player?
 	local rb = pb * (1 + (math.random() * 2 - 1) * A.LuckRange)
 	local winner, loser = if ra >= rb then a else b, if ra >= rb then b else a
 	local hpA, hpB = 100, 100
-	local pay = { kind = "Start", a = a.UserId, b = b.UserId, aName = a.DisplayName, bName = b.DisplayName, powerA = math.floor(pa), powerB = math.floor(pb), seconds = A.RoundSeconds, tournament = tournament }
+	local pay = {
+		kind = "Start",
+		a = a.UserId,
+		b = b.UserId,
+		aName = a.DisplayName,
+		bName = b.DisplayName,
+		powerA = math.floor(pa),
+		powerB = math.floor(pb),
+		seconds = A.RoundSeconds,
+		tournament = tournament,
+	}
 	Remotes.ArenaState:FireAllClients(pay)
 	local ticks = 8
 	for i = 1, ticks do
@@ -101,7 +117,14 @@ local function runDuel(a: Player, b: Player, tournament: boolean): Player?
 		local hitB = (winner == b and 10 + math.random(0, 8) or 4 + math.random(0, 6))
 		hpB = math.max(if i == ticks and winner == a then 0 else 1, hpB - hitA)
 		hpA = math.max(if i == ticks and winner == b then 0 else 1, hpA - hitB)
-		Remotes.ArenaState:FireAllClients({ kind = "Tick", a = a.UserId, b = b.UserId, hpA = hpA, hpB = hpB, attacker = if i % 2 == 0 then a.UserId else b.UserId })
+		Remotes.ArenaState:FireAllClients({
+			kind = "Tick",
+			a = a.UserId,
+			b = b.UserId,
+			hpA = hpA,
+			hpB = hpB,
+			attacker = if i % 2 == 0 then a.UserId else b.UserId,
+		})
 	end
 	if not a.Parent or not b.Parent then
 		busy[a], busy[b] = nil, nil
@@ -124,8 +147,22 @@ local function runDuel(a: Player, b: Player, tournament: boolean): Player?
 		PlotService.pushState(winner)
 		PlotService.pushState(loser)
 	end
-	Remotes.ArenaState:FireAllClients({ kind = "End", a = a.UserId, b = b.UserId, winner = winner.UserId, winnerName = winner.DisplayName, stolen = stolen, tournament = tournament })
-	Remotes.Notify:FireAllClients(Locale.msg("arena_won_broadcast", { a = winner.DisplayName, b = loser.DisplayName }, Color3.fromRGB(255, 200, 60)))
+	Remotes.ArenaState:FireAllClients({
+		kind = "End",
+		a = a.UserId,
+		b = b.UserId,
+		winner = winner.UserId,
+		winnerName = winner.DisplayName,
+		stolen = stolen,
+		tournament = tournament,
+	})
+	Remotes.Notify:FireAllClients(
+		Locale.msg(
+			"arena_won_broadcast",
+			{ a = winner.DisplayName, b = loser.DisplayName },
+			Color3.fromRGB(255, 200, 60)
+		)
+	)
 	busy[a], busy[b] = nil, nil
 	return winner
 end
@@ -145,17 +182,41 @@ local function requestDuel(challenger: Player, targetId: number)
 	end
 	local cd = cooldownLeft(challenger)
 	if cd > 0 then
-		return notify(challenger, Locale.fmt("arena_wait", Locale.of(challenger), { n = cd }), Color3.fromRGB(255, 120, 80))
+		return notify(
+			challenger,
+			Locale.fmt("arena_wait", Locale.of(challenger), { n = cd }),
+			Color3.fromRGB(255, 120, 80)
+		)
 	end
 	local tp = DataService.get(target)
 	if tp and tp.duelProtectionUntil > os.time() then
-		return notify(challenger, Locale.fmt("arena_protected", Locale.of(challenger), { p = target.DisplayName, n = tp.duelProtectionUntil - os.time() }), Color3.fromRGB(120, 200, 255))
+		return notify(
+			challenger,
+			Locale.fmt(
+				"arena_protected",
+				Locale.of(challenger),
+				{ p = target.DisplayName, n = tp.duelProtectionUntil - os.time() }
+			),
+			Color3.fromRGB(120, 200, 255)
+		)
 	end
 	if pending[target] then
-		return notify(challenger, Locale.fmt("arena_pending", Locale.of(challenger), { p = target.DisplayName }), Color3.fromRGB(255, 120, 80))
+		return notify(
+			challenger,
+			Locale.fmt("arena_pending", Locale.of(challenger), { p = target.DisplayName }),
+			Color3.fromRGB(255, 120, 80)
+		)
 	end
 	pending[target] = { challenger = challenger, at = os.time() }
-	Remotes.ArenaState:FireClient(target, { kind = "Challenge", from = challenger.UserId, fromName = challenger.DisplayName, power = math.floor(ArenaService.power(challenger)) })
+	Remotes.ArenaState:FireClient(
+		target,
+		{
+			kind = "Challenge",
+			from = challenger.UserId,
+			fromName = challenger.DisplayName,
+			power = math.floor(ArenaService.power(challenger)),
+		}
+	)
 	Remotes.ArenaState:FireClient(challenger, { kind = "Sent", to = target.UserId, toName = target.DisplayName })
 	task.delay(20, function()
 		local p = pending[target]
@@ -243,7 +304,13 @@ local function runTournament()
 			PlotService.pushState(champ)
 		end
 		Remotes.ArenaState:FireAllClients({ kind = "Champion", winner = champ.UserId, winnerName = champ.DisplayName })
-		Remotes.Notify:FireAllClients(Locale.msg("tourney_champ", { p = champ.DisplayName, n = A.TournamentPrizeCoins }, Color3.fromRGB(255, 255, 255)))
+		Remotes.Notify:FireAllClients(
+			Locale.msg(
+				"tourney_champ",
+				{ p = champ.DisplayName, n = A.TournamentPrizeCoins },
+				Color3.fromRGB(255, 255, 255)
+			)
+		)
 	end
 end
 

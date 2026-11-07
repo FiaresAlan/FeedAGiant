@@ -188,7 +188,10 @@ function PlotService.place(player: Player, invIndex: number)
 			return
 		end
 	end
-	Remotes.Notify:FireClient(player, { text = "Pátio cheio! Alimente seu Gigante para liberar espaço.", color = Color3.fromRGB(255, 90, 90) })
+	Remotes.Notify:FireClient(
+		player,
+		{ text = "Pátio cheio! Alimente seu Gigante para liberar espaço.", color = Color3.fromRGB(255, 90, 90) }
+	)
 end
 
 function PlotService.pickup(player: Player, slot: number)

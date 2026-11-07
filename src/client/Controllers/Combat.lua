@@ -104,7 +104,11 @@ local function startKO(seconds: number)
 	koColor.Enabled = true
 	koVignette.Visible = true
 	TweenService:Create(koBlur, TweenInfo.new(0.25), { Size = 28 }):Play()
-	TweenService:Create(koColor, TweenInfo.new(0.25), { Brightness = -0.45, Contrast = -0.2, Saturation = -0.8, TintColor = Color3.fromRGB(180, 120, 140) }):Play()
+	TweenService:Create(
+		koColor,
+		TweenInfo.new(0.25),
+		{ Brightness = -0.45, Contrast = -0.2, Saturation = -0.8, TintColor = Color3.fromRGB(180, 120, 140) }
+	):Play()
 	TweenService:Create(koVignette, TweenInfo.new(0.25), { BackgroundTransparency = 0.35 }):Play()
 	koLabel.Visible = true
 	koLabel.Text = "DESACORDADO"
@@ -118,13 +122,18 @@ local function startKO(seconds: number)
 			return
 		end
 		-- câmera balança como se estivesse tonto
-		camera.CFrame = camera.CFrame * CFrame.Angles(math.sin(t * 2.3) * 0.004, math.cos(t * 1.7) * 0.004, math.sin(t * 3.1) * 0.006)
+		camera.CFrame = camera.CFrame
+			* CFrame.Angles(math.sin(t * 2.3) * 0.004, math.cos(t * 1.7) * 0.004, math.sin(t * 3.1) * 0.006)
 		koBlur.Size = 22 + math.sin(t * 2.5) * 6
 		koLabel.TextTransparency = 0.2 + 0.2 * math.sin(t * 4)
 	end)
 	task.delay(math.max(0.5, seconds - 0.6), function()
 		TweenService:Create(koBlur, TweenInfo.new(0.6), { Size = 0 }):Play()
-		TweenService:Create(koColor, TweenInfo.new(0.6), { Brightness = 0, Contrast = 0, Saturation = 0, TintColor = Color3.new(1, 1, 1) }):Play()
+		TweenService:Create(
+			koColor,
+			TweenInfo.new(0.6),
+			{ Brightness = 0, Contrast = 0, Saturation = 0, TintColor = Color3.new(1, 1, 1) }
+		):Play()
 		TweenService:Create(koVignette, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
 		TweenService:Create(koLabel, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
 		task.delay(0.65, function()
@@ -173,7 +182,11 @@ local function buildBars(gui: ScreenGui)
 	koVignette.Visible = false
 	koVignette.ZIndex = 50
 	koVignette.Parent = gui
-	UI.gradient(koVignette, Color3.new(0, 0, 0), Color3.new(0, 0, 0), 0).Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 0.7), NumberSequenceKeypoint.new(1, 0) })
+	UI.gradient(koVignette, Color3.new(0, 0, 0), Color3.new(0, 0, 0), 0).Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 0.7),
+		NumberSequenceKeypoint.new(1, 0),
+	})
 	lowHpVignette = Instance.new("Frame")
 	lowHpVignette.Name = "DamageVignette"
 	lowHpVignette.BackgroundColor3 = UI.Colors.Red
@@ -183,7 +196,11 @@ local function buildBars(gui: ScreenGui)
 	lowHpVignette.Visible = false
 	lowHpVignette.ZIndex = 49
 	lowHpVignette.Parent = gui
-	UI.gradient(lowHpVignette, UI.Colors.Red, UI.Colors.Red, 0).Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(1, 0) })
+	UI.gradient(lowHpVignette, UI.Colors.Red, UI.Colors.Red, 0).Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 1),
+		NumberSequenceKeypoint.new(1, 0),
+	})
 
 	-- Painel do lutador
 	local box = UI.panel(gui, {
@@ -194,19 +211,109 @@ local function buildBars(gui: ScreenGui)
 		BackgroundTransparency = 0.05,
 	})
 	UI.icon(box, "glove", { Size = UDim2.fromOffset(44, 44), Position = UDim2.fromOffset(10, 14), ZIndex = 3 })
-	strengthLabel = UI.label(box, "FORÇA x1.00", { Size = UDim2.fromOffset(80, 16), Position = UDim2.fromOffset(-6, 62), TextScaled = false, TextSize = 12, Font = UI.FontBody, TextColor3 = UI.Colors.Accent, ZIndex = 3 })
-	UI.label(box, "HP", { Size = UDim2.fromOffset(34, 20), Position = UDim2.fromOffset(60, 14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Red, ZIndex = 3 })
+	strengthLabel = UI.label(
+		box,
+		"FORÇA x1.00",
+		{
+			Size = UDim2.fromOffset(80, 16),
+			Position = UDim2.fromOffset(-6, 62),
+			TextScaled = false,
+			TextSize = 12,
+			Font = UI.FontBody,
+			TextColor3 = UI.Colors.Accent,
+			ZIndex = 3,
+		}
+	)
+	UI.label(
+		box,
+		"HP",
+		{
+			Size = UDim2.fromOffset(34, 20),
+			Position = UDim2.fromOffset(60, 14),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Red,
+			ZIndex = 3,
+		}
+	)
 	local hpBg
-	hpBg, hpFill = UI.bar(box, UI.Colors.Red, { Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 14), ZIndex = 3 })
-	local hpText = UI.label(hpBg, "100 / 100", { Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 12, Font = UI.FontBody, ZIndex = 7 })
+	hpBg, hpFill = UI.bar(
+		box,
+		UI.Colors.Red,
+		{ Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 14), ZIndex = 3 }
+	)
+	local hpText = UI.label(
+		hpBg,
+		"100 / 100",
+		{ Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 12, Font = UI.FontBody, ZIndex = 7 }
+	)
 	hpText.Name = "HpText"
-	UI.label(box, "STA", { Size = UDim2.fromOffset(34, 20), Position = UDim2.fromOffset(60, 46), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Accent, ZIndex = 3 })
+	UI.label(
+		box,
+		"STA",
+		{
+			Size = UDim2.fromOffset(34, 20),
+			Position = UDim2.fromOffset(60, 46),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Accent,
+			ZIndex = 3,
+		}
+	)
 	local stBg
-	stBg, staminaFill = UI.bar(box, UI.Colors.Accent, { Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 46), ZIndex = 3 })
-	blockBadge = UI.label(box, "🛡 BLOQUEANDO", { Size = UDim2.fromOffset(180, 20), Position = UDim2.fromOffset(94, 70), TextColor3 = UI.Colors.Blue, TextScaled = false, TextSize = 13, Font = UI.FontBody, Visible = false, ZIndex = 3 })
-	comboLabel = UI.title(gui, "", { Size = UDim2.fromOffset(300, 60), Position = UDim2.new(0.5, 0, 0.3, 0), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 20 })
-	koLabel = UI.title(gui, "K.O.!", { Size = UDim2.fromOffset(520, 110), Position = UDim2.new(0.5, 0, 0.42, 0), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 60 })
-	local hint = UI.label(gui, "Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  zona segura no seu pátio", { Size = UDim2.fromOffset(460, 18), Position = UDim2.new(1, -12, 1, -126), AnchorPoint = Vector2.new(1, 1), TextScaled = false, TextSize = 12, Font = UI.FontBody, TextTransparency = 0.35, TextXAlignment = Enum.TextXAlignment.Right })
+	stBg, staminaFill = UI.bar(
+		box,
+		UI.Colors.Accent,
+		{ Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 46), ZIndex = 3 }
+	)
+	blockBadge = UI.label(
+		box,
+		"🛡 BLOQUEANDO",
+		{
+			Size = UDim2.fromOffset(180, 20),
+			Position = UDim2.fromOffset(94, 70),
+			TextColor3 = UI.Colors.Blue,
+			TextScaled = false,
+			TextSize = 13,
+			Font = UI.FontBody,
+			Visible = false,
+			ZIndex = 3,
+		}
+	)
+	comboLabel = UI.title(
+		gui,
+		"",
+		{
+			Size = UDim2.fromOffset(300, 60),
+			Position = UDim2.new(0.5, 0, 0.3, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Visible = false,
+			ZIndex = 20,
+		}
+	)
+	koLabel = UI.title(
+		gui,
+		"K.O.!",
+		{
+			Size = UDim2.fromOffset(520, 110),
+			Position = UDim2.new(0.5, 0, 0.42, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Visible = false,
+			ZIndex = 60,
+		}
+	)
+	local hint = UI.label(
+		gui,
+		"Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  zona segura no seu pátio",
+		{
+			Size = UDim2.fromOffset(460, 18),
+			Position = UDim2.new(1, -12, 1, -126),
+			AnchorPoint = Vector2.new(1, 1),
+			TextScaled = false,
+			TextSize = 12,
+			Font = UI.FontBody,
+			TextTransparency = 0.35,
+			TextXAlignment = Enum.TextXAlignment.Right,
+		}
+	)
 	hint.Visible = not UserInputService.TouchEnabled
 end
 
@@ -214,12 +321,32 @@ local function buildMobile(gui: ScreenGui)
 	if not UserInputService.TouchEnabled then
 		return
 	end
-	local pad = UI.frame(gui, { Name = "MobileCombat", Size = UDim2.fromOffset(190, 190), Position = UDim2.new(1, -16, 1, -134), AnchorPoint = Vector2.new(1, 1), BackgroundTransparency = 1 })
-	local punch = UI.button(pad, "👊", UI.Colors.Accent, { Size = UDim2.fromOffset(84, 84), Position = UDim2.fromOffset(100, 100) })
+	local pad = UI.frame(
+		gui,
+		{
+			Name = "MobileCombat",
+			Size = UDim2.fromOffset(190, 190),
+			Position = UDim2.new(1, -16, 1, -134),
+			AnchorPoint = Vector2.new(1, 1),
+			BackgroundTransparency = 1,
+		}
+	)
+	local punch = UI.button(
+		pad,
+		"👊",
+		UI.Colors.Accent,
+		{ Size = UDim2.fromOffset(84, 84), Position = UDim2.fromOffset(100, 100) }
+	)
 	UI.corner(punch, 42)
-	local heavy = UI.button(pad, "💥", UI.Colors.Red, { Size = UDim2.fromOffset(70, 70), Position = UDim2.fromOffset(10, 110) })
+	local heavy =
+		UI.button(pad, "💥", UI.Colors.Red, { Size = UDim2.fromOffset(70, 70), Position = UDim2.fromOffset(10, 110) })
 	UI.corner(heavy, 35)
-	local block = UI.button(pad, "🛡", UI.Colors.Blue, { Size = UDim2.fromOffset(70, 70), Position = UDim2.fromOffset(110, 10) })
+	local block = UI.button(
+		pad,
+		"🛡",
+		UI.Colors.Blue,
+		{ Size = UDim2.fromOffset(70, 70), Position = UDim2.fromOffset(110, 10) }
+	)
 	UI.corner(block, 35)
 	punch.MouseButton1Click:Connect(function()
 		Remotes.RequestPunch:FireServer(false)
@@ -307,7 +434,11 @@ function Combat.init(gui: ScreenGui)
 		elseif e.kind == "Hit" then
 			local vroot = rootOfUser(e.victim)
 			if vroot then
-				hitMarker(vroot.Position, if e.blocked then "BLOQUEADO" else (if e.heavy then "PESADO!" else "HIT"), if e.blocked then UI.Colors.Blue else (if e.heavy then UI.Colors.Red else UI.Colors.Accent))
+				hitMarker(
+					vroot.Position,
+					if e.blocked then "BLOQUEADO" else (if e.heavy then "PESADO!" else "HIT"),
+					if e.blocked then UI.Colors.Blue else (if e.heavy then UI.Colors.Red else UI.Colors.Accent)
+				)
 			end
 			sound(if e.blocked then "Block" elseif e.heavy then "Heavy" else "Punch")
 			if e.victim == player.UserId then

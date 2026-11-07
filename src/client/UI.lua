@@ -28,10 +28,25 @@ UI.Colors = {
 
 -- Sprite sheet 4x2 (assets/ui/icons_sheet.png, 1536x1024)
 UI.Icons = {
-	coin = { 0, 0 }, glove = { 1, 0 }, lunchbox = { 2, 0 }, backpack = { 3, 0 },
-	trophy = { 0, 1 }, shield = { 1, 1 }, crown = { 2, 1 }, gear = { 3, 1 },
+	coin = { 0, 0 },
+	glove = { 1, 0 },
+	lunchbox = { 2, 0 },
+	backpack = { 3, 0 },
+	trophy = { 0, 1 },
+	shield = { 1, 1 },
+	crown = { 2, 1 },
+	gear = { 3, 1 },
 }
-local ICON_FALLBACK = { coin = "🪙", glove = "🥊", lunchbox = "🍱", backpack = "🎒", trophy = "🏆", shield = "🛡️", crown = "👑", gear = "⚙️" }
+local ICON_FALLBACK = {
+	coin = "🪙",
+	glove = "🥊",
+	lunchbox = "🍱",
+	backpack = "🎒",
+	trophy = "🏆",
+	shield = "🛡️",
+	crown = "👑",
+	gear = "⚙️",
+}
 
 local function assetId(n: number): string
 	return "rbxassetid://" .. n
@@ -127,7 +142,9 @@ function UI.panel(parent: Instance, props: { [string]: any }): Frame
 		bar.Parent = f
 		UI.corner(bar, 3)
 		UI.gradient(bar, UI.Colors.Accent, UI.Colors.Accent2, 0)
-		for _, pos in { UDim2.new(0, 8, 0, 8), UDim2.new(1, -14, 0, 8), UDim2.new(0, 8, 1, -14), UDim2.new(1, -14, 1, -14) } do
+		for _, pos in
+			{ UDim2.new(0, 8, 0, 8), UDim2.new(1, -14, 0, 8), UDim2.new(0, 8, 1, -14), UDim2.new(1, -14, 1, -14) }
+		do
 			local r = Instance.new("Frame")
 			r.Size = UDim2.fromOffset(6, 6)
 			r.Position = pos
@@ -271,10 +288,26 @@ function UI.button(parent: Instance, text: string, color: Color3, props: { [stri
 end
 
 -- Botão redondo com ícone (menu lateral)
-function UI.iconButton(parent: Instance, iconName: string, caption: string, color: Color3, props: { [string]: any }?): TextButton
+function UI.iconButton(
+	parent: Instance,
+	iconName: string,
+	caption: string,
+	color: Color3,
+	props: { [string]: any }?
+): TextButton
 	local b = UI.button(parent, "", color, props)
 	UI.icon(b, iconName, { Size = UDim2.new(1, -8, 1, -22), Position = UDim2.fromOffset(4, 0), ZIndex = b.ZIndex + 1 })
-	UI.label(b, caption, { Size = UDim2.new(1, 0, 0, 18), Position = UDim2.new(0, 0, 1, -18), TextScaled = false, TextSize = 13, ZIndex = b.ZIndex + 1 })
+	UI.label(
+		b,
+		caption,
+		{
+			Size = UDim2.new(1, 0, 0, 18),
+			Position = UDim2.new(0, 0, 1, -18),
+			TextScaled = false,
+			TextSize = 13,
+			ZIndex = b.ZIndex + 1,
+		}
+	)
 	return b
 end
 
@@ -314,7 +347,9 @@ function UI.bar(parent: Instance, color: Color3, props: { [string]: any }?): (Fr
 	task.spawn(function()
 		while shine.Parent do
 			shine.Position = UDim2.new(0, -14, 0, 3)
-			TweenService:Create(shine, TweenInfo.new(1.6, Enum.EasingStyle.Linear), { Position = UDim2.new(1, 0, 0, 3) }):Play()
+			TweenService
+				:Create(shine, TweenInfo.new(1.6, Enum.EasingStyle.Linear), { Position = UDim2.new(1, 0, 0, 3) })
+				:Play()
 			task.wait(2.8)
 		end
 	end)
@@ -334,14 +369,19 @@ function UI.pop(inst: GuiObject)
 	inst.Visible = true
 	local goal = inst.Size
 	inst.Size = UDim2.new(goal.X.Scale * 0.8, goal.X.Offset * 0.8, goal.Y.Scale * 0.8, goal.Y.Offset * 0.8)
-	TweenService:Create(inst, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal }):Play()
+	TweenService:Create(inst, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal })
+		:Play()
 end
 
 function UI.pulse(inst: GuiObject, scale: number?, time: number?)
 	local goal = inst.Size
 	local k = scale or 1.12
 	local big = UI.scaleUDim(goal, k)
-	local t = TweenService:Create(inst, TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = big })
+	local t = TweenService:Create(
+		inst,
+		TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ Size = big }
+	)
 	t:Play()
 	t.Completed:Once(function()
 		TweenService:Create(inst, TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad), { Size = goal }):Play()
@@ -381,8 +421,23 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	UI.corner(header, 14)
 	UI.stroke(header, UI.Colors.Outline, 3)
 	UI.gradient(header, UI.Colors.Accent, UI.Colors.Accent2, 90)
-	UI.label(header, titleText, { Size = UDim2.new(1, -20, 1, -8), Position = UDim2.fromOffset(10, 4), ZIndex = 14, TextColor3 = UI.Colors.Outline, TextStrokeTransparency = 1 })
-	local close = UI.button(win, "✕", UI.Colors.Red, { Size = UDim2.fromOffset(44, 44), Position = UDim2.new(1, -30, 0, -16), ZIndex = 14 })
+	UI.label(
+		header,
+		titleText,
+		{
+			Size = UDim2.new(1, -20, 1, -8),
+			Position = UDim2.fromOffset(10, 4),
+			ZIndex = 14,
+			TextColor3 = UI.Colors.Outline,
+			TextStrokeTransparency = 1,
+		}
+	)
+	local close = UI.button(
+		win,
+		"✕",
+		UI.Colors.Red,
+		{ Size = UDim2.fromOffset(44, 44), Position = UDim2.new(1, -30, 0, -16), ZIndex = 14 }
+	)
 	local body = Instance.new("Frame")
 	body.BackgroundTransparency = 1
 	body.Size = UDim2.new(1, -40, 1, -70)
@@ -390,7 +445,11 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	body.ZIndex = 12
 	body.Parent = win
 	local function hide()
-		local t = TweenService:Create(win, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UI.scaleUDim(size, 0.85) })
+		local t = TweenService:Create(
+			win,
+			TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{ Size = UI.scaleUDim(size, 0.85) }
+		)
 		t:Play()
 		t.Completed:Once(function()
 			dim.Visible = false

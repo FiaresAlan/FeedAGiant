@@ -68,7 +68,13 @@ local function onPlayerAdded(player: Player)
 	if profile.totalBoxes == 0 and #profile.inventory == 0 and next(profile.plot) == nil then
 		PlotService.giveFood(player, "apple")
 		PlotService.giveFood(player, "bread")
-		Remotes.Notify:FireClient(player, { text = "Bem-vindo! Coloque comida no pátio e alimente seu Gigante.", color = Color3.fromRGB(255, 220, 80) })
+		Remotes.Notify:FireClient(
+			player,
+			{
+				text = "Bem-vindo! Coloque comida no pátio e alimente seu Gigante.",
+				color = Color3.fromRGB(255, 220, 80),
+			}
+		)
 	end
 end
 

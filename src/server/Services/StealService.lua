@@ -83,7 +83,13 @@ local function attachCarryVisual(thief: Player, def: Config.FoodDef): Model?
 	weld.Part1 = p
 	p.CFrame = head.CFrame * CFrame.new(0, 2.5, 0)
 	weld.Parent = p
-	Util.makeBillboard(p, "ROUBANDO: " .. def.name, UDim2.fromOffset(200, 40), Vector3.new(0, 2, 0), Color3.fromRGB(255, 80, 80))
+	Util.makeBillboard(
+		p,
+		"ROUBANDO: " .. def.name,
+		UDim2.fromOffset(200, 40),
+		Vector3.new(0, 2, 0),
+		Color3.fromRGB(255, 80, 80)
+	)
 	model.Parent = char
 	return model
 end
@@ -103,7 +109,10 @@ local function dropCarry(thief: Player, returnTo: boolean)
 			table.insert(profile.inventory, c.food)
 			DataService.markDirty(c.from)
 			PlotService.pushState(c.from)
-			Remotes.Notify:FireClient(c.from, { text = "Você recuperou sua comida!", color = Color3.fromRGB(80, 255, 120) })
+			Remotes.Notify:FireClient(
+				c.from,
+				{ text = "Você recuperou sua comida!", color = Color3.fromRGB(80, 255, 120) }
+			)
 		end
 	end
 end
@@ -122,7 +131,10 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 		return
 	end
 	if StealService.isShielded(owner) then
-		Remotes.Notify:FireClient(thief, { text = "Esta base está protegida por um escudo!", color = Color3.fromRGB(80, 200, 255) })
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = "Esta base está protegida por um escudo!", color = Color3.fromRGB(80, 200, 255) }
+		)
 		return
 	end
 	local foodId = foodModel:GetAttribute("FoodId")
@@ -184,8 +196,14 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	end
 	local visual = attachCarryVisual(thief, def)
 	carrying[thief] = { food = food, from = owner, model = visual :: Model }
-	Remotes.Notify:FireClient(thief, { text = "Pegou! Corra para sua base e toque no seu pátio.", color = Color3.fromRGB(80, 255, 120) })
-	Remotes.Notify:FireClient(owner, Locale.msg("stolen_owner", { p = thief.DisplayName, f = def.name }, Color3.fromRGB(255, 60, 60)))
+	Remotes.Notify:FireClient(
+		thief,
+		{ text = "Pegou! Corra para sua base e toque no seu pátio.", color = Color3.fromRGB(80, 255, 120) }
+	)
+	Remotes.Notify:FireClient(
+		owner,
+		Locale.msg("stolen_owner", { p = thief.DisplayName, f = def.name }, Color3.fromRGB(255, 60, 60))
+	)
 end
 
 local function tryDeposit(thief: Player)
@@ -206,7 +224,10 @@ local function tryDeposit(thief: Player)
 	DataService.markDirty(thief)
 	PlotService.pushState(thief)
 	local def = Config.FoodById[c.food.id]
-	Remotes.Notify:FireClient(thief, Locale.msg("steal_done", { f = (def and def.name or "comida") }, Color3.fromRGB(80, 255, 120)))
+	Remotes.Notify:FireClient(
+		thief,
+		Locale.msg("steal_done", { f = (def and def.name or "comida") }, Color3.fromRGB(80, 255, 120))
+	)
 end
 
 local function giveBat(player: Player)
@@ -246,7 +267,10 @@ local function giveBat(player: Player)
 		lastHit = os.clock()
 		if carrying[target] then
 			dropCarry(target, true)
-			Remotes.Notify:FireClient(target, { text = "Você foi atingido e derrubou a comida!", color = Color3.fromRGB(255, 90, 90) })
+			Remotes.Notify:FireClient(
+				target,
+				{ text = "Você foi atingido e derrubou a comida!", color = Color3.fromRGB(255, 90, 90) }
+			)
 		end
 		local root = hit.Parent:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then

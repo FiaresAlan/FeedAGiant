@@ -101,7 +101,11 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 	revealRarity.TextColor3 = rar.color
 	reveal.Size = UDim2.fromOffset(0, 0)
 	reveal.Visible = true
-	TweenService:Create(reveal, TweenInfo.new(0.45, Enum.EasingStyle.Elastic), { Size = UDim2.fromOffset(isBig and 300 or 240, isBig and 300 or 240) }):Play()
+	TweenService:Create(
+		reveal,
+		TweenInfo.new(0.45, Enum.EasingStyle.Elastic),
+		{ Size = UDim2.fromOffset(isBig and 300 or 240, isBig and 300 or 240) }
+	):Play()
 
 	task.wait(isBig and 2.2 or 1.4)
 	TweenService:Create(overlay, TweenInfo.new(0.25), { BackgroundTransparency = 1 }):Play()
@@ -139,9 +143,21 @@ function Hatch.init(gui: ScreenGui)
 	})
 	UI.corner(box, 20)
 	UI.stroke(box, Color3.new(0, 0, 0), 4)
-	local lid = UI.frame(box, { Size = UDim2.new(1, 16, 0, 36), Position = UDim2.fromOffset(-8, -10), BackgroundColor3 = Color3.fromRGB(40, 40, 60), ZIndex = 52 })
+	local lid = UI.frame(
+		box,
+		{
+			Size = UDim2.new(1, 16, 0, 36),
+			Position = UDim2.fromOffset(-8, -10),
+			BackgroundColor3 = Color3.fromRGB(40, 40, 60),
+			ZIndex = 52,
+		}
+	)
 	UI.corner(lid, 10)
-	UI.label(box, "?", { Size = UDim2.fromScale(1, 1), ZIndex = 53, TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.4 })
+	UI.label(
+		box,
+		"?",
+		{ Size = UDim2.fromScale(1, 1), ZIndex = 53, TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.4 }
+	)
 
 	reveal = UI.frame(overlay, {
 		Size = UDim2.fromOffset(240, 240),
@@ -152,8 +168,10 @@ function Hatch.init(gui: ScreenGui)
 	})
 	UI.corner(reveal, 28)
 	UI.stroke(reveal, Color3.new(1, 1, 1), 4)
-	revealName = UI.label(reveal, "", { Size = UDim2.new(1, -16, 0, 44), Position = UDim2.new(0, 8, 1, -96), ZIndex = 52 })
-	revealRarity = UI.label(reveal, "", { Size = UDim2.new(1, -16, 0, 32), Position = UDim2.new(0, 8, 1, -50), ZIndex = 52 })
+	revealName =
+		UI.label(reveal, "", { Size = UDim2.new(1, -16, 0, 44), Position = UDim2.new(0, 8, 1, -96), ZIndex = 52 })
+	revealRarity =
+		UI.label(reveal, "", { Size = UDim2.new(1, -16, 0, 32), Position = UDim2.new(0, 8, 1, -50), ZIndex = 52 })
 
 	Remotes.HatchResult.OnClientEvent:Connect(function(data)
 		if type(data) == "table" and type(data.foodId) == "string" then

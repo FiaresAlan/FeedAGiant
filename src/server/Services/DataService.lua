@@ -192,7 +192,10 @@ function DataService.markDirty(player: Player)
 	dirty[player] = true
 end
 
-function DataService.getLeaderboard(kind: "Level" | "Rebirth" | "Arena", n: number): { { userId: number, value: number } }
+function DataService.getLeaderboard(
+	kind: "Level" | "Rebirth" | "Arena",
+	n: number
+): { { userId: number, value: number } }
 	local ds = if kind == "Level" then leaderLevel elseif kind == "Arena" then leaderArena else leaderRebirth
 	if not ds then
 		return {}

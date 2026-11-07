@@ -75,7 +75,10 @@ local function buildDropModel(food: Config.FoodDef, pos: Vector3): (Model, Part,
 		CanCollide = false,
 		Parent = model,
 	})
-	body.Shape = if food.shape == "Ball" then Enum.PartType.Ball elseif food.shape == "Cylinder" then Enum.PartType.Cylinder else Enum.PartType.Block
+	body.Shape = if food.shape == "Ball"
+		then Enum.PartType.Ball
+		elseif food.shape == "Cylinder" then Enum.PartType.Cylinder
+		else Enum.PartType.Block
 	local light = Instance.new("PointLight")
 	light.Color = rar.color
 	light.Range = 12 + rar.order * 3
@@ -120,7 +123,13 @@ local function award(drop: Drop, winner: Player)
 	local rar = Config.Rarities[drop.food.rarity]
 	Remotes.Notify:FireClient(winner, Locale.msg("drop_defended", { f = drop.food.name }, rar.color))
 	if rar.order >= 3 then
-		Remotes.Notify:FireAllClients(Locale.msg("drop_won_broadcast", { p = winner.DisplayName, f = drop.food.name, r = drop.food.rarity }, rar.color))
+		Remotes.Notify:FireAllClients(
+			Locale.msg(
+				"drop_won_broadcast",
+				{ p = winner.DisplayName, f = drop.food.name, r = drop.food.rarity },
+				rar.color
+			)
+		)
 	end
 	Remotes.DropState:FireAllClients({ id = drop.id, removed = true })
 	-- efeito de coleta
@@ -150,7 +159,15 @@ local function broadcastState(drop: Drop)
 	local list = {}
 	for plr, prog in drop.progress do
 		if plr.Parent then
-			table.insert(list, { userId = plr.UserId, name = plr.DisplayName, progress = prog / drop.holdTime, inside = drop.inside[plr] == true })
+			table.insert(
+				list,
+				{
+					userId = plr.UserId,
+					name = plr.DisplayName,
+					progress = prog / drop.holdTime,
+					inside = drop.inside[plr] == true,
+				}
+			)
 		end
 	end
 	table.sort(list, function(a, b)
@@ -170,7 +187,13 @@ end
 local function runDrop(drop: Drop)
 	-- Aviso no chão antes de cair
 	drop.label.Text = string.format("%s (%s)\nCaindo em %ds!", drop.food.name, drop.food.rarity, D.WarnBeforeFall)
-	Remotes.Notify:FireAllClients(Locale.msg("drop_incoming", { f = drop.food.name, r = drop.food.rarity, n = drop.holdTime }, Config.Rarities[drop.food.rarity].color))
+	Remotes.Notify:FireAllClients(
+		Locale.msg(
+			"drop_incoming",
+			{ f = drop.food.name, r = drop.food.rarity, n = drop.holdTime },
+			Config.Rarities[drop.food.rarity].color
+		)
+	)
 	broadcastState(drop)
 	task.wait(D.WarnBeforeFall)
 	if drop.done then
@@ -217,7 +240,10 @@ local function runDrop(drop: Drop)
 				drop.inside[plr] = nil
 				if wasIn and drop.progress[plr] then
 					drop.progress[plr] = drop.progress[plr] * (1 - D.ProgressLossWhenOut)
-					Remotes.Notify:FireClient(plr, { text = "Saiu do círculo! Perdeu metade do progresso.", color = Color3.fromRGB(255, 120, 80) })
+					Remotes.Notify:FireClient(
+						plr,
+						{ text = "Saiu do círculo! Perdeu metade do progresso.", color = Color3.fromRGB(255, 120, 80) }
+					)
 				end
 			end
 		end
@@ -237,7 +263,13 @@ local function runDrop(drop: Drop)
 			end
 		end
 		if leader then
-			drop.label.Text = string.format("%s (%s)\n%s está defendendo: %d%%", drop.food.name, drop.food.rarity, leader.DisplayName, math.floor(lp / drop.holdTime * 100))
+			drop.label.Text = string.format(
+				"%s (%s)\n%s está defendendo: %d%%",
+				drop.food.name,
+				drop.food.rarity,
+				leader.DisplayName,
+				math.floor(lp / drop.holdTime * 100)
+			)
 		else
 			drop.label.Text = string.format("%s (%s)\nENTRE NO CÍRCULO E DEFENDA!", drop.food.name, drop.food.rarity)
 		end
@@ -312,7 +344,10 @@ function DropService.init()
 			if drop.progress[victim] and drop.progress[victim] > 0 then
 				drop.progress[victim] = 0
 				drop.inside[victim] = nil
-				Remotes.Notify:FireClient(victim, { text = "Nocauteado! Progresso da disputa zerado.", color = Color3.fromRGB(255, 80, 80) })
+				Remotes.Notify:FireClient(
+					victim,
+					{ text = "Nocauteado! Progresso da disputa zerado.", color = Color3.fromRGB(255, 80, 80) }
+				)
 			end
 		end
 	end

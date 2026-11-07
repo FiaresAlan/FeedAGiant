@@ -64,7 +64,13 @@ local function buildCenterIsland(root: Folder)
 	lbl.Font = Enum.Font.FredokaOne
 	lbl.TextColor3 = Color3.fromRGB(255, 120, 40)
 	lbl.Parent = gui
-	Util.makeBillboard(shop, "LOJA — entre para abrir", UDim2.fromOffset(300, 60), Vector3.new(0, 6, 0), Color3.fromRGB(255, 220, 120))
+	Util.makeBillboard(
+		shop,
+		"LOJA — entre para abrir",
+		UDim2.fromOffset(300, 60),
+		Vector3.new(0, 6, 0),
+		Color3.fromRGB(255, 220, 120)
+	)
 
 	-- Pedestal do evento
 	local eventPad = Util.makePart({

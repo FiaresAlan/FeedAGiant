@@ -47,7 +47,10 @@ local function grantProduct(player: Player, productId: number): boolean
 				ShopService.openBox(player, "rare", true, "Rare")
 			elseif key == "FreezeDecay7d" then
 				profile.freezeUntil = math.max(os.time(), profile.freezeUntil) + Config.Decay.FreezeProductSeconds
-				Remotes.Notify:FireClient(player, { text = "Encolhimento CONGELADO por 7 dias!", color = Color3.fromRGB(120, 220, 255) })
+				Remotes.Notify:FireClient(
+					player,
+					{ text = "Encolhimento CONGELADO por 7 dias!", color = Color3.fromRGB(120, 220, 255) }
+				)
 			elseif key == "RestoreLevels" then
 				local lost = profile.levelsLostToDecay
 				profile.level = math.min(Config.Giant.MaxLevel, profile.level + lost)
@@ -56,10 +59,16 @@ local function grantProduct(player: Player, productId: number): boolean
 				Remotes.Notify:FireClient(player, Locale.msg("restored", { n = lost }, Color3.fromRGB(255, 220, 80)))
 			elseif key == "StaminaRefill" then
 				CombatService.refillStamina(player, 60)
-				Remotes.Notify:FireClient(player, { text = "Stamina INFINITA por 60s!", color = Color3.fromRGB(255, 200, 60) })
+				Remotes.Notify:FireClient(
+					player,
+					{ text = "Stamina INFINITA por 60s!", color = Color3.fromRGB(255, 200, 60) }
+				)
 			elseif key == "ArenaRematch" then
 				profile.lastDuel = 0
-				Remotes.Notify:FireClient(player, { text = "Cooldown de duelo zerado!", color = Color3.fromRGB(255, 120, 120) })
+				Remotes.Notify:FireClient(
+					player,
+					{ text = "Cooldown de duelo zerado!", color = Color3.fromRGB(255, 120, 120) }
+				)
 			elseif key == "SpeciesReroll" then
 				local pool = {}
 				for _, sp in Config.Species do
@@ -74,12 +83,21 @@ local function grantProduct(player: Player, productId: number): boolean
 					Remotes.Notify:FireClient(player, Locale.msg("new_species", { s = pick.name }, pick.color))
 				else
 					profile.coins += 50000
-					Remotes.Notify:FireClient(player, { text = "Você já tem todas as espécies! +50.000 moedas.", color = Color3.fromRGB(255, 220, 80) })
+					Remotes.Notify:FireClient(
+						player,
+						{
+							text = "Você já tem todas as espécies! +50.000 moedas.",
+							color = Color3.fromRGB(255, 220, 80),
+						}
+					)
 				end
 			end
 			DataService.markDirty(player)
 			PlotService.pushState(player)
-			Remotes.Notify:FireClient(player, { text = "Compra recebida. Obrigado!", color = Color3.fromRGB(80, 255, 120) })
+			Remotes.Notify:FireClient(
+				player,
+				{ text = "Compra recebida. Obrigado!", color = Color3.fromRGB(80, 255, 120) }
+			)
 			return true
 		end
 	end
@@ -123,7 +141,10 @@ function MonetizationService.init()
 		if def and def.id ~= 0 then
 			MarketplaceService:PromptProductPurchase(player, def.id)
 		else
-			Remotes.Notify:FireClient(player, { text = "Produto ainda não configurado (ID 0 em Config.lua).", color = Color3.fromRGB(255, 200, 80) })
+			Remotes.Notify:FireClient(
+				player,
+				{ text = "Produto ainda não configurado (ID 0 em Config.lua).", color = Color3.fromRGB(255, 200, 80) }
+			)
 		end
 	end)
 	Remotes.RequestGamePass.OnServerEvent:Connect(function(player, key)
@@ -131,7 +152,10 @@ function MonetizationService.init()
 		if id and id ~= 0 then
 			MarketplaceService:PromptGamePassPurchase(player, id)
 		else
-			Remotes.Notify:FireClient(player, { text = "Game Pass ainda não configurado (ID 0 em Config.lua).", color = Color3.fromRGB(255, 200, 80) })
+			Remotes.Notify:FireClient(
+				player,
+				{ text = "Game Pass ainda não configurado (ID 0 em Config.lua).", color = Color3.fromRGB(255, 200, 80) }
+			)
 		end
 	end)
 end

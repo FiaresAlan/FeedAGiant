@@ -56,7 +56,13 @@ local function runFoodRain(def)
 			Parent = folder,
 		})
 		p.Shape = Enum.PartType.Ball
-		Util.makeBillboard(p, food.name, UDim2.fromOffset(120, 36), Vector3.new(0, 2, 0), Config.Rarities[food.rarity].color)
+		Util.makeBillboard(
+			p,
+			food.name,
+			UDim2.fromOffset(120, 36),
+			Vector3.new(0, 2, 0),
+			Config.Rarities[food.rarity].color
+		)
 		local taken = false
 		p.Touched:Connect(function(hit)
 			if taken then
@@ -67,7 +73,10 @@ local function runFoodRain(def)
 				taken = true
 				p:Destroy()
 				PlotService.giveFood(plr, food.id)
-				Remotes.Notify:FireClient(plr, Locale.msg("rain_caught", { f = food.name }, Color3.fromRGB(80, 200, 255)))
+				Remotes.Notify:FireClient(
+					plr,
+					Locale.msg("rain_caught", { f = food.name }, Color3.fromRGB(80, 200, 255))
+				)
 			end
 		end)
 		task.delay(25, function()
@@ -104,7 +113,13 @@ local function runHungryBoss(def)
 		Parent = boss,
 	})
 	boss.PrimaryPart = body
-	local label = Util.makeBillboard(head, "BOSS FAMINTO\nClique em mim com comida no inventário!", UDim2.fromOffset(320, 80), Vector3.new(0, 8, 0), Color3.fromRGB(255, 90, 90))
+	local label = Util.makeBillboard(
+		head,
+		"BOSS FAMINTO\nClique em mim com comida no inventário!",
+		UDim2.fromOffset(320, 80),
+		Vector3.new(0, 8, 0),
+		Color3.fromRGB(255, 90, 90)
+	)
 	boss.Parent = Workspace
 
 	local scores: { [Player]: number } = {}
@@ -114,7 +129,10 @@ local function runHungryBoss(def)
 	click.MouseClick:Connect(function(plr)
 		local profile = DataService.get(plr)
 		if not profile or #profile.inventory == 0 then
-			Remotes.Notify:FireClient(plr, { text = "Você precisa de comida no inventário!", color = Color3.fromRGB(255, 90, 90) })
+			Remotes.Notify:FireClient(
+				plr,
+				{ text = "Você precisa de comida no inventário!", color = Color3.fromRGB(255, 90, 90) }
+			)
 			return
 		end
 		local item = table.remove(profile.inventory, 1)
@@ -145,7 +163,9 @@ local function runHungryBoss(def)
 		local plr = ranking[i].plr
 		if plr.Parent then
 			ShopService.openBox(plr, "legendary", true, "Legendary")
-			Remotes.Notify:FireAllClients(Locale.msg("boss_rank", { p = plr.DisplayName, n = i }, Color3.fromRGB(255, 180, 20)))
+			Remotes.Notify:FireAllClients(
+				Locale.msg("boss_rank", { p = plr.DisplayName, n = i }, Color3.fromRGB(255, 180, 20))
+			)
 		end
 	end
 end

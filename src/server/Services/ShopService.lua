@@ -53,9 +53,18 @@ function ShopService.openBox(player: Player, boxId: string, free: boolean?, forc
 	local food = ShopService.rollFood(box, forceMinRarity)
 	PlotService.giveFood(player, food.id)
 	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
-	Remotes.HatchResult:FireClient(player, { foodId = food.id, rarity = food.rarity, name = food.name, color = food.color })
+	Remotes.HatchResult:FireClient(
+		player,
+		{ foodId = food.id, rarity = food.rarity, name = food.name, color = food.color }
+	)
 	if Config.Rarities[food.rarity].order >= 5 then
-		Remotes.Notify:FireAllClients(Locale.msg("found_food", { p = player.DisplayName, f = food.name, r = food.rarity }, Config.Rarities[food.rarity].color))
+		Remotes.Notify:FireAllClients(
+			Locale.msg(
+				"found_food",
+				{ p = player.DisplayName, f = food.name, r = food.rarity },
+				Config.Rarities[food.rarity].color
+			)
+		)
 	end
 	DataService.markDirty(player)
 	PlotService.pushState(player)
@@ -67,7 +76,10 @@ function ShopService.rebirth(player: Player)
 		return
 	end
 	if profile.level < Config.Rebirth.MinLevel then
-		Remotes.Notify:FireClient(player, Locale.msg("rebirth_req", { n = Config.Rebirth.MinLevel }, Color3.fromRGB(255, 90, 90)))
+		Remotes.Notify:FireClient(
+			player,
+			Locale.msg("rebirth_req", { n = Config.Rebirth.MinLevel }, Color3.fromRGB(255, 90, 90))
+		)
 		return
 	end
 	profile.rebirths += 1
@@ -77,7 +89,9 @@ function ShopService.rebirth(player: Player)
 	DataService.markDirty(player)
 	GiantService.refresh(player)
 	PlotService.pushState(player)
-	Remotes.Notify:FireAllClients(Locale.msg("rebirth_broadcast", { p = player.DisplayName, n = profile.rebirths }, Color3.fromRGB(255, 120, 255)))
+	Remotes.Notify:FireAllClients(
+		Locale.msg("rebirth_broadcast", { p = player.DisplayName, n = profile.rebirths }, Color3.fromRGB(255, 120, 255))
+	)
 end
 
 function ShopService.redeem(player: Player, code: string)
@@ -99,7 +113,10 @@ function ShopService.redeem(player: Player, code: string)
 	profile.coins += reward
 	DataService.markDirty(player)
 	PlotService.pushState(player)
-	Remotes.Notify:FireClient(player, Locale.msg("code_ok", { n = Util.formatNumber(reward) }, Color3.fromRGB(80, 255, 120)))
+	Remotes.Notify:FireClient(
+		player,
+		Locale.msg("code_ok", { n = Util.formatNumber(reward) }, Color3.fromRGB(80, 255, 120))
+	)
 end
 
 function ShopService.claimDaily(player: Player)
@@ -110,7 +127,10 @@ function ShopService.claimDaily(player: Player)
 	local now = os.time()
 	local elapsed = now - profile.lastDaily
 	if elapsed < 20 * 3600 then
-		Remotes.Notify:FireClient(player, { text = "Volte amanhã para a próxima recompensa!", color = Color3.fromRGB(255, 200, 80) })
+		Remotes.Notify:FireClient(
+			player,
+			{ text = "Volte amanhã para a próxima recompensa!", color = Color3.fromRGB(255, 200, 80) }
+		)
 		return
 	end
 	if elapsed > 48 * 3600 then
@@ -126,7 +146,10 @@ function ShopService.claimDaily(player: Player)
 	end
 	DataService.markDirty(player)
 	PlotService.pushState(player)
-	Remotes.Notify:FireClient(player, Locale.msg("daily_ok", { n = Util.formatNumber(reward) }, Color3.fromRGB(80, 255, 120)))
+	Remotes.Notify:FireClient(
+		player,
+		Locale.msg("daily_ok", { n = Util.formatNumber(reward) }, Color3.fromRGB(80, 255, 120))
+	)
 end
 
 function ShopService.buySpecies(player: Player, speciesId: string)
@@ -145,7 +168,14 @@ function ShopService.buySpecies(player: Player, speciesId: string)
 		return
 	end
 	if profile.coins < sp.price then
-		Remotes.Notify:FireClient(player, Locale.msg("need_coins", { n = Util.formatNumber(sp.price - profile.coins), s = sp.name }, Color3.fromRGB(255, 90, 90)))
+		Remotes.Notify:FireClient(
+			player,
+			Locale.msg(
+				"need_coins",
+				{ n = Util.formatNumber(sp.price - profile.coins), s = sp.name },
+				Color3.fromRGB(255, 90, 90)
+			)
+		)
 		return
 	end
 	profile.coins -= sp.price
@@ -153,7 +183,9 @@ function ShopService.buySpecies(player: Player, speciesId: string)
 	DataService.markDirty(player)
 	GiantService.setSpecies(player, speciesId)
 	PlotService.pushState(player)
-	Remotes.Notify:FireAllClients(Locale.msg("species_unlocked_broadcast", { p = player.DisplayName, s = sp.name, r = sp.rarityTag }, sp.color))
+	Remotes.Notify:FireAllClients(
+		Locale.msg("species_unlocked_broadcast", { p = player.DisplayName, s = sp.name, r = sp.rarityTag }, sp.color)
+	)
 end
 
 function ShopService.init()

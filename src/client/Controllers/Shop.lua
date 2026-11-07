@@ -37,7 +37,11 @@ local PRODUCT_INFO = {
 	{ key = "RestoreLevels", name = "Restaurar Níveis", desc = "Recupera TODOS os níveis perdidos por ausência." },
 	{ key = "StaminaRefill", name = "Stamina Infinita (60s)", desc = "Stamina cheia + 60s sem gastar stamina." },
 	{ key = "ArenaRematch", name = "Revanche", desc = "Zera o cooldown de duelo agora." },
-	{ key = "SpeciesReroll", name = "Espécie Surpresa", desc = "Desbloqueia uma espécie aleatória que você não tem." },
+	{
+		key = "SpeciesReroll",
+		name = "Espécie Surpresa",
+		desc = "Desbloqueia uma espécie aleatória que você não tem.",
+	},
 }
 
 local function oddsText(box: Config.LunchboxDef): string
@@ -71,9 +75,21 @@ local function buildBoxesTab(parent: Frame)
 	for i, box in Config.Lunchboxes do
 		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 110), LayoutOrder = i })
 		UI.stroke(card, box.color, 3)
-		local icon = UI.frame(card, { Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(12, 15), BackgroundColor3 = box.color })
+		local icon = UI.frame(
+			card,
+			{ Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(12, 15), BackgroundColor3 = box.color }
+		)
 		UI.label(icon, "?", { Size = UDim2.fromScale(1, 1), TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.3 })
-		UI.label(card, box.name, { Size = UDim2.new(1, -260, 0, 32), Position = UDim2.fromOffset(104, 10), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = box.color })
+		UI.label(
+			card,
+			box.name,
+			{
+				Size = UDim2.new(1, -260, 0, 32),
+				Position = UDim2.fromOffset(104, 10),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = box.color,
+			}
+		)
 		UI.label(card, oddsText(box), {
 			Size = UDim2.new(1, -260, 0, 50),
 			Position = UDim2.fromOffset(104, 46),
@@ -113,22 +129,66 @@ local function buildRobuxTab(parent: Frame)
 		order += 1
 		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 76), LayoutOrder = order })
 		UI.stroke(card, color, 2)
-		UI.label(card, name, { Size = UDim2.new(1, -200, 0, 30), Position = UDim2.fromOffset(12, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = color })
-		UI.label(card, desc, { Size = UDim2.new(1, -200, 0, 32), Position = UDim2.fromOffset(12, 38), TextXAlignment = Enum.TextXAlignment.Left, TextScaled = false, TextSize = 14, TextWrapped = true, TextTransparency = 0.2 })
-		local btn = UI.button(card, buttonText, color, { Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) })
+		UI.label(
+			card,
+			name,
+			{
+				Size = UDim2.new(1, -200, 0, 30),
+				Position = UDim2.fromOffset(12, 6),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = color,
+			}
+		)
+		UI.label(
+			card,
+			desc,
+			{
+				Size = UDim2.new(1, -200, 0, 32),
+				Position = UDim2.fromOffset(12, 38),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 14,
+				TextWrapped = true,
+				TextTransparency = 0.2,
+			}
+		)
+		local btn = UI.button(
+			card,
+			buttonText,
+			color,
+			{ Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) }
+		)
 		btn.MouseButton1Click:Connect(cb)
 		return btn
 	end
 
 	order += 1
-	UI.label(scroll, "GAME PASSES", { Size = UDim2.new(1, -10, 0, 24), LayoutOrder = order, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Accent })
+	UI.label(
+		scroll,
+		"GAME PASSES",
+		{
+			Size = UDim2.new(1, -10, 0, 24),
+			LayoutOrder = order,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Accent,
+		}
+	)
 	for _, p in PASS_INFO do
 		passButtons[p.key] = row(p.name, p.desc, UI.Colors.Accent, "COMPRAR", function()
 			Remotes.RequestGamePass:FireServer(p.key)
 		end)
 	end
 	order += 1
-	UI.label(scroll, "PRODUTOS", { Size = UDim2.new(1, -10, 0, 24), LayoutOrder = order, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Blue })
+	UI.label(
+		scroll,
+		"PRODUTOS",
+		{
+			Size = UDim2.new(1, -10, 0, 24),
+			LayoutOrder = order,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Blue,
+		}
+	)
 	for _, p in PRODUCT_INFO do
 		row(p.name, p.desc, UI.Colors.Blue, "ROBUX", function()
 			Remotes.RequestPurchase:FireServer(p.key)
@@ -149,17 +209,64 @@ local function buildSpeciesTab(parent: Frame)
 	layout.Padding = UDim.new(0, 8)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = scroll
-	UI.label(scroll, "Cada espécie muda forma, XP, moedas, fome e força na arena. Trocar é grátis depois de comprar.", { Size = UDim2.new(1, -10, 0, 30), LayoutOrder = 0, TextScaled = false, TextSize = 13, TextWrapped = true, TextTransparency = 0.2 })
+	UI.label(
+		scroll,
+		"Cada espécie muda forma, XP, moedas, fome e força na arena. Trocar é grátis depois de comprar.",
+		{
+			Size = UDim2.new(1, -10, 0, 30),
+			LayoutOrder = 0,
+			TextScaled = false,
+			TextSize = 13,
+			TextWrapped = true,
+			TextTransparency = 0.2,
+		}
+	)
 	for i, sp in Config.Species do
 		local card = UI.panel(scroll, { Size = UDim2.new(1, -10, 0, 84), LayoutOrder = i })
 		UI.stroke(card, sp.color, 2)
-		local icon = UI.frame(card, { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(10, 14), BackgroundColor3 = sp.skin })
+		local icon = UI.frame(
+			card,
+			{ Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(10, 14), BackgroundColor3 = sp.skin }
+		)
 		UI.corner(icon, 28)
 		UI.stroke(icon, sp.color, 3)
-		UI.label(card, sp.name .. "  [" .. sp.rarityTag .. "]", { Size = UDim2.new(1, -260, 0, 26), Position = UDim2.fromOffset(76, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = sp.color })
-		UI.label(card, sp.desc, { Size = UDim2.new(1, -260, 0, 30), Position = UDim2.fromOffset(76, 32), TextXAlignment = Enum.TextXAlignment.Left, TextScaled = false, TextSize = 13, TextWrapped = true, TextTransparency = 0.2 })
-		UI.label(card, string.format("XP x%.2f • $ x%.2f • Arena %d/%dHP", sp.xpMult, sp.coinMult, sp.arenaPower, sp.arenaHp), { Size = UDim2.new(1, -260, 0, 16), Position = UDim2.fromOffset(76, 62), TextXAlignment = Enum.TextXAlignment.Left, TextScaled = false, TextSize = 11, TextColor3 = UI.Colors.Accent })
-		local btn = UI.button(card, "", sp.color, { Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) })
+		UI.label(
+			card,
+			sp.name .. "  [" .. sp.rarityTag .. "]",
+			{
+				Size = UDim2.new(1, -260, 0, 26),
+				Position = UDim2.fromOffset(76, 6),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = sp.color,
+			}
+		)
+		UI.label(
+			card,
+			sp.desc,
+			{
+				Size = UDim2.new(1, -260, 0, 30),
+				Position = UDim2.fromOffset(76, 32),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 13,
+				TextWrapped = true,
+				TextTransparency = 0.2,
+			}
+		)
+		UI.label(
+			card,
+			string.format("XP x%.2f • $ x%.2f • Arena %d/%dHP", sp.xpMult, sp.coinMult, sp.arenaPower, sp.arenaHp),
+			{
+				Size = UDim2.new(1, -260, 0, 16),
+				Position = UDim2.fromOffset(76, 62),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 11,
+				TextColor3 = UI.Colors.Accent,
+			}
+		)
+		local btn =
+			UI.button(card, "", sp.color, { Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) })
 		btn.MouseButton1Click:Connect(function()
 			local s = State.current :: any
 			local owned = s.ownedSpecies and s.ownedSpecies[sp.id]
@@ -202,7 +309,11 @@ end
 local function buildCodes(gui: ScreenGui)
 	local body: Frame
 	codesWin, body = UI.window(gui, "CÓDIGOS", UDim2.fromOffset(380, 220))
-	UI.label(body, "Digite um código promocional:", { Size = UDim2.new(1, 0, 0, 28), TextXAlignment = Enum.TextXAlignment.Left })
+	UI.label(
+		body,
+		"Digite um código promocional:",
+		{ Size = UDim2.new(1, 0, 0, 28), TextXAlignment = Enum.TextXAlignment.Left }
+	)
 	local input = Instance.new("TextBox")
 	input.Size = UDim2.new(1, 0, 0, 48)
 	input.Position = UDim2.fromOffset(0, 36)
@@ -217,7 +328,12 @@ local function buildCodes(gui: ScreenGui)
 	input.Parent = body
 	UI.corner(input)
 	UI.stroke(input, UI.Colors.Accent, 2)
-	local redeem = UI.button(body, "RESGATAR", UI.Colors.Green, { Size = UDim2.new(1, 0, 0, 48), Position = UDim2.fromOffset(0, 96) })
+	local redeem = UI.button(
+		body,
+		"RESGATAR",
+		UI.Colors.Green,
+		{ Size = UDim2.new(1, 0, 0, 48), Position = UDim2.fromOffset(0, 96) }
+	)
 	redeem.MouseButton1Click:Connect(function()
 		local code = string.upper((string.gsub(input.Text, "%s", "")))
 		if #code > 0 then
@@ -259,7 +375,10 @@ function Shop.init(gui: ScreenGui)
 	win, body = UI.window(gui, "LUNCHBOX SHOP", UDim2.fromOffset(640, 540))
 
 	local tabs = UI.frame(body, { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1 })
-	local pages = UI.frame(body, { Size = UDim2.new(1, 0, 1, -52), Position = UDim2.fromOffset(0, 52), BackgroundTransparency = 1 })
+	local pages = UI.frame(
+		body,
+		{ Size = UDim2.new(1, 0, 1, -52), Position = UDim2.fromOffset(0, 52), BackgroundTransparency = 1 }
+	)
 	local boxesPage = UI.frame(pages, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 })
 	local speciesPage = UI.frame(pages, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false })
 	local robuxPage = UI.frame(pages, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false })
@@ -269,8 +388,14 @@ function Shop.init(gui: ScreenGui)
 
 	local inactive = Color3.fromRGB(90, 90, 110)
 	local tabBoxes = UI.button(tabs, "LUNCHBOXES", UI.Colors.Accent, { Size = UDim2.new(1 / 3, -4, 1, 0) })
-	local tabSpecies = UI.button(tabs, "ESPÉCIES", inactive, { Size = UDim2.new(1 / 3, -4, 1, 0), Position = UDim2.new(1 / 3, 2, 0, 0) })
-	local tabRobux = UI.button(tabs, "ROBUX", inactive, { Size = UDim2.new(1 / 3, -4, 1, 0), Position = UDim2.new(2 / 3, 4, 0, 0) })
+	local tabSpecies = UI.button(
+		tabs,
+		"ESPÉCIES",
+		inactive,
+		{ Size = UDim2.new(1 / 3, -4, 1, 0), Position = UDim2.new(1 / 3, 2, 0, 0) }
+	)
+	local tabRobux =
+		UI.button(tabs, "ROBUX", inactive, { Size = UDim2.new(1 / 3, -4, 1, 0), Position = UDim2.new(2 / 3, 4, 0, 0) })
 	local function show(page: Frame, btn: TextButton, color: Color3)
 		boxesPage.Visible = page == boxesPage
 		speciesPage.Visible = page == speciesPage

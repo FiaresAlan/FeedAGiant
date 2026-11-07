@@ -24,11 +24,29 @@ function GiantService.species(profile: DataService.Profile): Config.SpeciesDef
 end
 
 function GiantService.isDecayImmune(profile: DataService.Profile): boolean
-	return GiantService.species(profile).decayImmune or profile.passes.Guardian == true or profile.freezeUntil > os.time()
+	return GiantService.species(profile).decayImmune
+		or profile.passes.Guardian == true
+		or profile.freezeUntil > os.time()
 end
 
-local function mk(model: Model, anchor: Part, name: string, size: Vector3, offset: Vector3, color: Color3, shape: Enum.PartType?, material: Enum.Material?): Part
-	local p = Util.makePart({ Name = name, Size = size, Color = color, Material = material or Enum.Material.SmoothPlastic, CanCollide = false, Parent = model })
+local function mk(
+	model: Model,
+	anchor: Part,
+	name: string,
+	size: Vector3,
+	offset: Vector3,
+	color: Color3,
+	shape: Enum.PartType?,
+	material: Enum.Material?
+): Part
+	local p = Util.makePart({
+		Name = name,
+		Size = size,
+		Color = color,
+		Material = material or Enum.Material.SmoothPlastic,
+		CanCollide = false,
+		Parent = model,
+	})
 	if shape then
 		p.Shape = shape
 	end
@@ -67,16 +85,62 @@ local function buildGiantModel(player: Player, anchor: Part, sp: Config.SpeciesD
 		mk(model, anchor, "LeftLeg", Vector3.new(1, 2.4, 1), Vector3.new(-0.7, 1.2, 0), body)
 		mk(model, anchor, "RightLeg", Vector3.new(1, 2.4, 1), Vector3.new(0.7, 1.2, 0), body)
 	elseif shape == "Robot" then
-		torso = mk(model, anchor, "Torso", Vector3.new(2.6, 2.4, 1.4), Vector3.new(0, 3.6, 0), body, nil, Enum.Material.Slate)
+		torso = mk(
+			model,
+			anchor,
+			"Torso",
+			Vector3.new(2.6, 2.4, 1.4),
+			Vector3.new(0, 3.6, 0),
+			body,
+			nil,
+			Enum.Material.Slate
+		)
 		mk(model, anchor, "Head", Vector3.new(1.6, 1.4, 1.4), Vector3.new(0, 5.6, 0), skin, nil, Enum.Material.Slate)
-		mk(model, anchor, "LeftArm", Vector3.new(1.2, 2.6, 1.2), Vector3.new(-2, 3.4, 0), skin, nil, Enum.Material.Slate)
-		mk(model, anchor, "RightArm", Vector3.new(1.2, 2.6, 1.2), Vector3.new(2, 3.4, 0), skin, nil, Enum.Material.Slate)
-		mk(model, anchor, "LeftLeg", Vector3.new(1.1, 2.4, 1.1), Vector3.new(-0.7, 1.2, 0), body, nil, Enum.Material.Slate)
-		mk(model, anchor, "RightLeg", Vector3.new(1.1, 2.4, 1.1), Vector3.new(0.7, 1.2, 0), body, nil, Enum.Material.Slate)
+		mk(
+			model,
+			anchor,
+			"LeftArm",
+			Vector3.new(1.2, 2.6, 1.2),
+			Vector3.new(-2, 3.4, 0),
+			skin,
+			nil,
+			Enum.Material.Slate
+		)
+		mk(
+			model,
+			anchor,
+			"RightArm",
+			Vector3.new(1.2, 2.6, 1.2),
+			Vector3.new(2, 3.4, 0),
+			skin,
+			nil,
+			Enum.Material.Slate
+		)
+		mk(
+			model,
+			anchor,
+			"LeftLeg",
+			Vector3.new(1.1, 2.4, 1.1),
+			Vector3.new(-0.7, 1.2, 0),
+			body,
+			nil,
+			Enum.Material.Slate
+		)
+		mk(
+			model,
+			anchor,
+			"RightLeg",
+			Vector3.new(1.1, 2.4, 1.1),
+			Vector3.new(0.7, 1.2, 0),
+			body,
+			nil,
+			Enum.Material.Slate
+		)
 	elseif shape == "Slime" then
 		torso = mk(model, anchor, "Torso", Vector3.new(2.8, 2.2, 2.8), Vector3.new(0, 1.1, 0), body, Enum.PartType.Ball)
 		torso.Transparency = 0.25
-		local head = mk(model, anchor, "Head", Vector3.new(1.8, 1.6, 1.8), Vector3.new(0, 2.8, 0), skin, Enum.PartType.Ball)
+		local head =
+			mk(model, anchor, "Head", Vector3.new(1.8, 1.6, 1.8), Vector3.new(0, 2.8, 0), skin, Enum.PartType.Ball)
 		head.Transparency = 0.2
 	else
 		torso = mk(model, anchor, "Torso", Vector3.new(2, 2, 1), Vector3.new(0, 3.5, 0), body)
@@ -90,7 +154,14 @@ local function buildGiantModel(player: Player, anchor: Part, sp: Config.SpeciesD
 	local hc = head.CFrame
 	local hz = -head.Size.Z / 2
 	local function face(name: string, size: Vector3, off: Vector3, color: Color3): Part
-		local p = Util.makePart({ Name = name, Size = size, Color = color, Material = Enum.Material.Neon, CanCollide = false, Parent = model })
+		local p = Util.makePart({
+			Name = name,
+			Size = size,
+			Color = color,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Parent = model,
+		})
 		p.CFrame = hc * CFrame.new(off)
 		return p
 	end
@@ -102,7 +173,13 @@ local function buildGiantModel(player: Player, anchor: Part, sp: Config.SpeciesD
 	local teeth = face("Teeth", Vector3.new(0.6, 0.1, 0.1), Vector3.new(0, -0.22, hz - 0.02), Color3.new(1, 1, 1))
 	teeth.Transparency = 1
 	for i, x in { -0.45, 0.45 } do
-		local horn = Util.makePart({ Name = "Horn" .. i, Size = Vector3.new(0.3, 0.8, 0.3), Color = Color3.fromRGB(240, 230, 200), CanCollide = false, Parent = model })
+		local horn = Util.makePart({
+			Name = "Horn" .. i,
+			Size = Vector3.new(0.3, 0.8, 0.3),
+			Color = Color3.fromRGB(240, 230, 200),
+			CanCollide = false,
+			Parent = model,
+		})
 		horn.CFrame = hc * CFrame.new(x, head.Size.Y / 2 + 0.3, 0) * CFrame.Angles(0, 0, math.rad(-x * 40))
 		horn.Transparency = 1
 	end
@@ -153,7 +230,9 @@ local function applyStage(model: Model, stage: Config.StageDef, profile: DataSer
 		for sign, n in { [-1] = "BrowL", [1] = "BrowR" } do
 			local b = model:FindFirstChild(n) :: Part?
 			if b then
-				b.CFrame = head.CFrame * CFrame.new(sign * 0.3, 0.45, -head.Size.Z / 2) * CFrame.Angles(0, 0, math.rad(stage.browAngle * sign))
+				b.CFrame = head.CFrame
+					* CFrame.new(sign * 0.3, 0.45, -head.Size.Z / 2)
+					* CFrame.Angles(0, 0, math.rad(stage.browAngle * sign))
 			end
 		end
 	end
@@ -218,7 +297,15 @@ local function refreshVisual(player: Player, pulse: boolean)
 		local lbl = info and info:FindFirstChild("Info") :: TextLabel?
 		if lbl then
 			local tag = if profile.championUntil > os.time() then "  👑" else ""
-			lbl.Text = string.format("%s%s\n%s • %s\nLv. %d • %s", player.DisplayName, tag, sp.name, stage.name, profile.level, GiantService.mood(profile))
+			lbl.Text = string.format(
+				"%s%s\n%s • %s\nLv. %d • %s",
+				player.DisplayName,
+				tag,
+				sp.name,
+				stage.name,
+				profile.level,
+				GiantService.mood(profile)
+			)
 			lbl.TextColor3 = sp.color
 		end
 		if info then
@@ -228,7 +315,9 @@ local function refreshVisual(player: Player, pulse: boolean)
 	end
 	if lastStage[player] and lastStage[player] ~= stage.name and Config.stageForLevel(profile.level).minLevel > 1 then
 		Remotes.GiantEvolved:FireAllClients({ userId = player.UserId, stageName = stage.name, level = profile.level })
-		Remotes.Notify:FireAllClients(Locale.msg("evolved_broadcast", { p = player.DisplayName, s = stage.name }, stage.eyeColor))
+		Remotes.Notify:FireAllClients(
+			Locale.msg("evolved_broadcast", { p = player.DisplayName, s = stage.name }, stage.eyeColor)
+		)
 	end
 	lastStage[player] = stage.name
 end
@@ -294,7 +383,10 @@ function GiantService.applyDecay(player: Player, profile: DataService.Profile): 
 		if GiantService.OnReturnBonus then
 			GiantService.OnReturnBonus(player, away)
 		end
-		Remotes.Notify:FireClient(player, Locale.msg("welcome_back", { n = D.ReturnBonusCoins }, Color3.fromRGB(120, 255, 160)))
+		Remotes.Notify:FireClient(
+			player,
+			Locale.msg("welcome_back", { n = D.ReturnBonusCoins }, Color3.fromRGB(120, 255, 160))
+		)
 	end
 	if GiantService.isDecayImmune(profile) or away <= D.GraceSeconds then
 		return 0
@@ -309,7 +401,10 @@ function GiantService.applyDecay(player: Player, profile: DataService.Profile): 
 	profile.levelsLostToDecay += lost
 	profile.hunger = 10
 	DataService.markDirty(player)
-	Remotes.Notify:FireClient(player, Locale.msg("shrunk", { d = math.floor(days + 3), n = lost }, Color3.fromRGB(255, 90, 90)))
+	Remotes.Notify:FireClient(
+		player,
+		Locale.msg("shrunk", { d = math.floor(days + 3), n = lost }, Color3.fromRGB(255, 90, 90))
+	)
 	return lost
 end
 

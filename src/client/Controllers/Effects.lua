@@ -24,7 +24,8 @@ local function screenFlash(color: Color3, strength: number)
 end
 
 local function confetti(n: number)
-	local colors = { UI.Colors.Accent, UI.Colors.Green, UI.Colors.Blue, UI.Colors.Purple, UI.Colors.Red, Color3.new(1, 1, 1) }
+	local colors =
+		{ UI.Colors.Accent, UI.Colors.Green, UI.Colors.Blue, UI.Colors.Purple, UI.Colors.Red, Color3.new(1, 1, 1) }
 	for i = 1, n do
 		local p = Instance.new("Frame")
 		p.BackgroundColor3 = colors[(i % #colors) + 1]
@@ -36,7 +37,14 @@ local function confetti(n: number)
 		p.Parent = confettiHolder
 		UI.corner(p, 3)
 		local dur = 2.2 + math.random() * 1.6
-		TweenService:Create(p, TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.In), { Position = UDim2.new(p.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.1, 0), Rotation = p.Rotation + math.random(-540, 540) }):Play()
+		TweenService:Create(
+			p,
+			TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.In),
+			{
+				Position = UDim2.new(p.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.1, 0),
+				Rotation = p.Rotation + math.random(-540, 540),
+			}
+		):Play()
 		task.delay(dur, function()
 			p:Destroy()
 		end)
@@ -76,7 +84,11 @@ local function shockwave(model: Model, color: Color3)
 			r.Size = Vector3.new(2, 2, 2)
 			r.CFrame = CFrame.new(root.Position)
 			r.Parent = Workspace
-			TweenService:Create(r, TweenInfo.new(0.9, Enum.EasingStyle.Quad), { Size = Vector3.new(1, 1, 1) * (40 * s), Transparency = 1 }):Play()
+			TweenService:Create(
+				r,
+				TweenInfo.new(0.9, Enum.EasingStyle.Quad),
+				{ Size = Vector3.new(1, 1, 1) * (40 * s), Transparency = 1 }
+			):Play()
 			task.delay(1, function()
 				r:Destroy()
 			end)
@@ -92,7 +104,13 @@ local function shockwave(model: Model, color: Color3)
 	beam.Size = Vector3.new(3 * s, 400, 3 * s)
 	beam.CFrame = CFrame.new(root.Position + Vector3.new(0, 200, 0))
 	beam.Parent = Workspace
-	TweenService:Create(beam, TweenInfo.new(1.6, Enum.EasingStyle.Quad), { Size = Vector3.new(0.2, 400, 0.2), Transparency = 1 }):Play()
+	TweenService
+		:Create(
+			beam,
+			TweenInfo.new(1.6, Enum.EasingStyle.Quad),
+			{ Size = Vector3.new(0.2, 400, 0.2), Transparency = 1 }
+		)
+		:Play()
 	task.delay(1.7, function()
 		beam:Destroy()
 	end)
@@ -129,7 +147,13 @@ local function ring(model: Model, color: Color3)
 	r.CFrame = CFrame.new(base) * CFrame.Angles(0, 0, math.rad(90))
 	r.Parent = Workspace
 	local s = model:GetScale()
-	TweenService:Create(r, TweenInfo.new(1.2, Enum.EasingStyle.Quad), { Size = Vector3.new(0.5, 30 * s, 30 * s), Transparency = 1 }):Play()
+	TweenService
+		:Create(
+			r,
+			TweenInfo.new(1.2, Enum.EasingStyle.Quad),
+			{ Size = Vector3.new(0.5, 30 * s, 30 * s), Transparency = 1 }
+		)
+		:Play()
 	task.delay(1.3, function()
 		r:Destroy()
 	end)
@@ -149,7 +173,17 @@ function Effects.init(gui: ScreenGui)
 	confettiHolder.ClipsDescendants = true
 	confettiHolder.ZIndex = 45
 	confettiHolder.Parent = gui
-	banner = UI.title(gui, "", { Size = UDim2.fromOffset(700, 60), Position = UDim2.new(0.5, 0, 0.18, 0), AnchorPoint = Vector2.new(0.5, 0.5), TextColor3 = UI.Colors.Accent, Visible = false })
+	banner = UI.title(
+		gui,
+		"",
+		{
+			Size = UDim2.fromOffset(700, 60),
+			Position = UDim2.new(0.5, 0, 0.18, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			TextColor3 = UI.Colors.Accent,
+			Visible = false,
+		}
+	)
 	Remotes.GiantEvolved.OnClientEvent:Connect(function(e)
 		if type(e) ~= "table" then
 			return

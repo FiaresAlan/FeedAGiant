@@ -189,8 +189,14 @@ local function knockout(victim: Player, attacker: Player)
 		ap.knockouts += 1
 		DataService.markDirty(attacker)
 	end
-	Remotes.Notify:FireClient(victim, Locale.msg("ko_victim", { p = attacker.DisplayName }, Color3.fromRGB(255, 80, 80)))
-	Remotes.Notify:FireClient(attacker, Locale.msg("ko_attacker", { p = victim.DisplayName }, Color3.fromRGB(255, 200, 60)))
+	Remotes.Notify:FireClient(
+		victim,
+		Locale.msg("ko_victim", { p = attacker.DisplayName }, Color3.fromRGB(255, 80, 80))
+	)
+	Remotes.Notify:FireClient(
+		attacker,
+		Locale.msg("ko_attacker", { p = victim.DisplayName }, Color3.fromRGB(255, 200, 60))
+	)
 	Remotes.CombatEvent:FireAllClients({ kind = "KO", attacker = attacker.UserId, victim = victim.UserId })
 	if CombatService.OnKO then
 		CombatService.OnKO(attacker, victim)
@@ -273,7 +279,10 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	end
 	local victim: Player = best
 	if inOwnSafeZone(victim) then
-		Remotes.Notify:FireClient(attacker, Locale.msg("safe_zone", { p = victim.DisplayName }, Color3.fromRGB(120, 200, 255)))
+		Remotes.Notify:FireClient(
+			attacker,
+			Locale.msg("safe_zone", { p = victim.DisplayName }, Color3.fromRGB(120, 200, 255))
+		)
 		push(attacker)
 		return
 	end
@@ -317,7 +326,14 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	if profile then
 		profile.punchesLanded += 1
 	end
-	Remotes.CombatEvent:FireAllClients({ kind = "Hit", attacker = attacker.UserId, victim = victim.UserId, heavy = heavy, blocked = blocked, combo = f.combo })
+	Remotes.CombatEvent:FireAllClients({
+		kind = "Hit",
+		attacker = attacker.UserId,
+		victim = victim.UserId,
+		heavy = heavy,
+		blocked = blocked,
+		combo = f.combo,
+	})
 	if CombatService.OnHit then
 		CombatService.OnHit(attacker, victim, heavy)
 	end

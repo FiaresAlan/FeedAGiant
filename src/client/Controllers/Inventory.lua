@@ -45,13 +45,30 @@ local function makeList(parent: Frame, pos: UDim2): ScrollingFrame
 	return scroll
 end
 
-local function foodRow(parent: Instance, def: Config.FoodDef, order: number, actions: { { text: string, color: Color3, cb: () -> () } }): Frame
+local function foodRow(
+	parent: Instance,
+	def: Config.FoodDef,
+	order: number,
+	actions: { { text: string, color: Color3, cb: () -> () } }
+): Frame
 	local rar = Config.Rarities[def.rarity]
-	local row = UI.frame(parent, { Size = UDim2.new(1, 0, 0, 58), LayoutOrder = order, BackgroundColor3 = UI.Colors.Bg })
+	local row =
+		UI.frame(parent, { Size = UDim2.new(1, 0, 0, 58), LayoutOrder = order, BackgroundColor3 = UI.Colors.Bg })
 	UI.stroke(row, rar.color, 2)
-	local swatch = UI.frame(row, { Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(8, 9), BackgroundColor3 = def.color })
+	local swatch = UI.frame(
+		row,
+		{ Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(8, 9), BackgroundColor3 = def.color }
+	)
 	UI.corner(swatch, def.shape == "Ball" and 20 or 8)
-	UI.label(row, def.name, { Size = UDim2.new(1, -60 - #actions * 92, 0, 26), Position = UDim2.fromOffset(56, 4), TextXAlignment = Enum.TextXAlignment.Left })
+	UI.label(
+		row,
+		def.name,
+		{
+			Size = UDim2.new(1, -60 - #actions * 92, 0, 26),
+			Position = UDim2.fromOffset(56, 4),
+			TextXAlignment = Enum.TextXAlignment.Left,
+		}
+	)
 	UI.label(row, Locale.fmt("food_row", nil, { r = def.rarity, x = rar.xp, c = rar.cps }), {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 20),
 		Position = UDim2.fromOffset(56, 32),
@@ -61,7 +78,12 @@ local function foodRow(parent: Instance, def: Config.FoodDef, order: number, act
 		TextColor3 = rar.color,
 	})
 	for i, a in actions do
-		local b = UI.button(row, a.text, a.color, { Size = UDim2.fromOffset(84, 40), Position = UDim2.new(1, -(92 * i), 0.5, -20) })
+		local b = UI.button(
+			row,
+			a.text,
+			a.color,
+			{ Size = UDim2.fromOffset(84, 40), Position = UDim2.new(1, -(92 * i), 0.5, -20) }
+		)
 		b.MouseButton1Click:Connect(a.cb)
 	end
 	return row
@@ -82,17 +104,29 @@ local function refresh(s: State.PlayerState)
 		if def then
 			local idx = i
 			foodRow(invList, def, i, {
-				{ text = "COLOCAR", color = UI.Colors.Blue, cb = function()
-					Remotes.RequestPlace:FireServer(idx)
-				end },
-				{ text = "COMER", color = UI.Colors.Green, cb = function()
-					Remotes.RequestFeed:FireServer({ inv = idx })
-				end },
+				{
+					text = "COLOCAR",
+					color = UI.Colors.Blue,
+					cb = function()
+						Remotes.RequestPlace:FireServer(idx)
+					end,
+				},
+				{
+					text = "COMER",
+					color = UI.Colors.Green,
+					cb = function()
+						Remotes.RequestFeed:FireServer({ inv = idx })
+					end,
+				},
 			})
 		end
 	end
 	if #s.inventory == 0 then
-		UI.label(invList, "Vazio. Compre uma Lunchbox na Loja!", { Size = UDim2.new(1, 0, 0, 40), TextTransparency = 0.3 })
+		UI.label(
+			invList,
+			"Vazio. Compre uma Lunchbox na Loja!",
+			{ Size = UDim2.new(1, 0, 0, 40), TextTransparency = 0.3 }
+		)
 	end
 
 	local keys = {}
@@ -106,17 +140,29 @@ local function refresh(s: State.PlayerState)
 		if def then
 			local slotIdx = slot
 			foodRow(plotList, def, order, {
-				{ text = "RECOLHER", color = Color3.fromRGB(120, 120, 150), cb = function()
-					Remotes.RequestPickup:FireServer(slotIdx)
-				end },
-				{ text = "COMER", color = UI.Colors.Green, cb = function()
-					Remotes.RequestFeed:FireServer(slotIdx)
-				end },
+				{
+					text = "RECOLHER",
+					color = Color3.fromRGB(120, 120, 150),
+					cb = function()
+						Remotes.RequestPickup:FireServer(slotIdx)
+					end,
+				},
+				{
+					text = "COMER",
+					color = UI.Colors.Green,
+					cb = function()
+						Remotes.RequestFeed:FireServer(slotIdx)
+					end,
+				},
 			})
 		end
 	end
 	if #keys == 0 then
-		UI.label(plotList, "Nenhuma comida no pátio. Coloque para gerar moedas.", { Size = UDim2.new(1, 0, 0, 40), TextTransparency = 0.3 })
+		UI.label(
+			plotList,
+			"Nenhuma comida no pátio. Coloque para gerar moedas.",
+			{ Size = UDim2.new(1, 0, 0, 40), TextTransparency = 0.3 }
+		)
 	end
 end
 
@@ -131,7 +177,11 @@ function Inventory.init(gui: ScreenGui)
 	local body: Frame
 	win, body = UI.window(gui, "INVENTÁRIO & PÁTIO", UDim2.fromOffset(760, 500))
 	invTitle = UI.label(body, "MOCHILA", { Size = UDim2.new(0.5, -6, 0, 28), TextColor3 = UI.Colors.Blue })
-	plotTitle = UI.label(body, "PÁTIO", { Size = UDim2.new(0.5, -6, 0, 28), Position = UDim2.new(0.5, 6, 0, 0), TextColor3 = UI.Colors.Accent })
+	plotTitle = UI.label(
+		body,
+		"PÁTIO",
+		{ Size = UDim2.new(0.5, -6, 0, 28), Position = UDim2.new(0.5, 6, 0, 0), TextColor3 = UI.Colors.Accent }
+	)
 	invList = makeList(body, UDim2.fromOffset(0, 32))
 	plotList = makeList(body, UDim2.new(0.5, 6, 0, 32))
 	State.onChanged(refresh)
