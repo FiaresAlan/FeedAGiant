@@ -597,7 +597,7 @@ local function buildFeedButton(gui: ScreenGui)
 		chipBar.Size = UDim2.new(1, -16, 0, 5)
 		local window = GameRules.Feed.StreakWindow
 		local tw = TweenService:Create(chipBar, TweenInfo.new(window, Enum.EasingStyle.Linear), {
-			Size = UDim2.new(0, 0, 0, 5),
+			Size = UDim2.fromOffset(0, 5),
 		})
 		tw:Play()
 		task.delay(window, function()
