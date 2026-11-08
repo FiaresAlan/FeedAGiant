@@ -305,7 +305,7 @@ function Effects.init(gui: ScreenGui)
 	-- Fundo liso escuro (o painel 9-slice tem faixa dourada que escondia comidas douradas).
 	local rare = UI.frame(gui, {
 		Name = "RareBanner",
-		BackgroundColor3 = Color3.fromRGB(22, 26, 64),
+		BackgroundColor3 = UI.Colors.Panel,
 		Size = UDim2.fromOffset(640, 132),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 280),

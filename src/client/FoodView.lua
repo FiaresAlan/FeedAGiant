@@ -54,7 +54,7 @@ function FoodView.create(parent: GuiObject, foodId: string, opts: Options?): Vie
 	vf.BackgroundTransparency = 1
 	vf.Size = UDim2.fromScale(1, 1)
 	vf.ZIndex = o.zIndex or ((parent :: GuiObject).ZIndex + 1)
-	vf.Ambient = Color3.fromRGB(170, 170, 185)
+	vf.Ambient = Color3.fromRGB(205, 205, 215)
 	vf.LightColor = Color3.fromRGB(255, 244, 225)
 	vf.LightDirection = Vector3.new(-0.6, -1, -0.5)
 

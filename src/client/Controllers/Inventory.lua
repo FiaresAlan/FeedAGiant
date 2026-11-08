@@ -60,7 +60,7 @@ local function foodRow(
 	local thumb = UI.frame(row, {
 		Size = UDim2.fromOffset(48, 48),
 		Position = UDim2.fromOffset(6, 5),
-		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+		BackgroundColor3 = UI.Colors.Panel,
 	})
 	UI.corner(thumb, 10)
 	if not FoodView.create(thumb, def.id, { yaw = 30 }) then
@@ -76,7 +76,7 @@ local function foodRow(
 		Position = UDim2.fromOffset(56, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
-	UI.label(row, Locale.fmt("food_row", nil, { r = def.rarity, x = rar.xp, c = rar.cps }), {
+	UI.label(row, Locale.fmt("food_row", nil, { r = Locale.rarity(def.rarity), x = rar.xp, c = rar.cps }), {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 20),
 		Position = UDim2.fromOffset(56, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,

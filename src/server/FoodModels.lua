@@ -62,6 +62,11 @@ local function load(file: string): Model?
 			d.CanQuery = false
 			d.Massless = true
 			d.CastShadow = true
+			-- Pedido do usuário (08/11, "comidas com textura cinza"): a malha vinha com a cor padrão
+			-- (163,162,165), que MULTIPLICA a textura e deixava tudo acinzentado. Branco = cor original.
+			if d.TextureID ~= "" then
+				d.Color = Color3.new(1, 1, 1)
+			end
 			d.Parent = model
 		end
 	end

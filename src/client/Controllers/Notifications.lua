@@ -90,7 +90,7 @@ local function tickBanner()
 	elseif nextAt > 0 then
 		local left = nextAt - os.time()
 		banner.Visible = true
-		banner.BackgroundColor3 = Color3.fromRGB(16, 20, 54)
+		banner.BackgroundColor3 = UI.Colors.Panel
 		bannerLabel.Text = Locale.fmt("next_event", nil, { e = Locale.t(nextName) })
 		bannerTimer.Text = mmss(left)
 		-- Último minuto: o chip pisca na cor do evento (expectativa), menos com "Movimento reduzido".
@@ -155,7 +155,7 @@ function Notifications.init(parentGui: ScreenGui)
 		Size = UDim2.fromOffset(400, 60),
 		Position = UDim2.new(0.5, 0, 0, 8),
 		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+		BackgroundColor3 = UI.Colors.Panel,
 		Visible = false,
 	})
 	UI.autoScale(banner)

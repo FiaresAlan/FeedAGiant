@@ -66,7 +66,9 @@ def main(names):
     if names:
         files = [f for f in files if f.stem in names]
     for f in files:
-        if manifest.get(f.stem, {}).get("id"):
+        entry = manifest.get(f.stem, {})
+        # Reenvia quando o arquivo mudou (ex.: rebake de 08/11 do troll, hidra e fênix).
+        if entry.get("id") and entry.get("bytes") in (None, f.stat().st_size):
             print(f"{f.stem}: já enviado ({manifest[f.stem]['id']})")
             continue
         aid = send_model(f, key, uid)

@@ -25,14 +25,14 @@
     "bytes": 839756
   },
   "hydra": {
-    "id": "rbxassetid://120607062685991",
+    "id": "rbxassetid://92112012605058",
     "file": "hydra.glb",
-    "bytes": 887764
+    "bytes": 2308004
   },
   "phoenix": {
-    "id": "rbxassetid://88390329506943",
+    "id": "rbxassetid://117269470875373",
     "file": "phoenix.glb",
-    "bytes": 858676
+    "bytes": 2491772
   },
   "stone-golem": {
     "id": "rbxassetid://117386809116187",
@@ -40,9 +40,9 @@
     "bytes": 640800
   },
   "troll": {
-    "id": "rbxassetid://107171111505874",
+    "id": "rbxassetid://129154927989219",
     "file": "troll.glb",
-    "bytes": 1134336
+    "bytes": 2751732
   },
   "wyvern": {
     "id": "rbxassetid://103967817492078",

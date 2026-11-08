@@ -449,6 +449,35 @@ function UI.scaleUDim(u: UDim2, k: number): UDim2
 	return UDim2.new(u.X.Scale * k, u.X.Offset * k, u.Y.Scale * k, u.Y.Offset * k)
 end
 
+-- Janelas abertas, da mais antiga para a mais nova (ESC / botão B fecham a última).
+local openStack: { { win: Frame, hide: () -> () } } = {}
+local escBound = false
+local function bindEscape()
+	if escBound then
+		return
+	end
+	escBound = true
+	-- Bug do teste do usuário (08/11): em primeira pessoa o mouse ficava preso no centro com a loja
+	-- aberta. Um botão com Modal = true (o "X" de cada janela) libera o cursor enquanto estiver
+	-- visível; ESC (teclado) e B (controle) fecham a janela de cima.
+	UserInputService.InputBegan:Connect(function(input)
+		local key = input.KeyCode
+		if key ~= Enum.KeyCode.Escape and key ~= Enum.KeyCode.ButtonB and key ~= Enum.KeyCode.Backspace then
+			return
+		end
+		if key == Enum.KeyCode.Backspace and UserInputService:GetFocusedTextBox() then
+			return
+		end
+		for i = #openStack, 1, -1 do
+			local e = openStack[i]
+			if e.win.Visible then
+				e.hide()
+				return
+			end
+		end
+	end)
+end
+
 -- Janela modal com cabeçalho dourado, fechamento animado e fundo escurecido
 function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Frame)
 	local dim = Instance.new("Frame")
@@ -524,6 +553,9 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 		end)
 	end
 	close.Activated:Connect(hide)
+	close.Modal = true -- libera o mouse em primeira pessoa enquanto a janela está aberta
+	table.insert(openStack, { win = win, hide = hide })
+	bindEscape()
 	-- Fase 4 (celular primeiro): a janela é desenhada em pixels de 1080p e encolhe para caber na
 	-- área segura (antes, 760x500 passava da tela de 844x390). Um UIScale só, separado do pop.
 	local fit = Instance.new("UIScale")
@@ -547,6 +579,18 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	-- compat: código antigo faz win.Visible = false / UI.pop(win)
 	win:GetPropertyChangedSignal("Visible"):Connect(function()
 		dim.Visible = win.Visible
+		if win.Visible then
+			-- a janela aberta por último vai para o topo da pilha do ESC
+			for i, e in openStack do
+				if e.win == win then
+					table.insert(openStack, table.remove(openStack, i) :: any)
+					break
+				end
+			end
+			if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			end
+		end
 		-- Controle/teclado: foco no fechar ao abrir e a seleção fica presa dentro da janela.
 		if win.Visible and UserInputService.GamepadEnabled then
 			GuiService.SelectedObject = close

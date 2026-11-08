@@ -124,7 +124,7 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 	end
 	if FoodView.create(revealView, data.foodId, { spin = true, zIndex = 53 }) then
 		-- fundo escuro com borda da raridade: a comida 3D não some na própria cor (sorvete roxo)
-		reveal.BackgroundColor3 = Color3.fromRGB(22, 26, 64)
+		reveal.BackgroundColor3 = UI.Colors.Panel
 		revealStroke.Color = rar.color
 	else
 		revealStroke.Color = Color3.new(1, 1, 1)

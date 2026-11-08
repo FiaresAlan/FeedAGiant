@@ -346,7 +346,7 @@ local function buildBars(gui: ScreenGui)
 			TextSize = 20,
 			Font = UI.FontBody,
 			BackgroundTransparency = 0.45,
-			BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+			BackgroundColor3 = UI.Colors.Panel,
 			TextXAlignment = Enum.TextXAlignment.Right,
 		})
 	hint.Visible = false

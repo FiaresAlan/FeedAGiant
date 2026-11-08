@@ -231,29 +231,67 @@ end
 local STATUE_R = 166
 local STATUE_HEIGHT = 18
 
-local function plaque(pedestal: BasePart, sp: Config.SpeciesDef)
+-- Reforma de 08/11 (pedido do usuário): criaturas com a pintura REAL (não pedra), sólidas (um corpo
+-- invisível de colisão; a malha detalhada não colide), pedestal redondo em degraus com faixa na cor da
+-- espécie, placa de madeira na frente e um ProximityPrompt "ENCONTRAR <NOME>" que abre a confirmação
+-- de compra no cliente (Shop.confirmSpecies). Nada é comprado ao se aproximar.
+local function cyl(name: string, radius: number, height: number, cf: CFrame, color: Color3, mat: Enum.Material): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Shape = Enum.PartType.Cylinder
+	p.Size = Vector3.new(height, radius * 2, radius * 2)
+	p.CFrame = cf * CFrame.Angles(0, 0, math.rad(90))
+	p.Anchored = true
+	p.Color = color
+	p.Material = mat
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	return p
+end
+
+local function sign(model: Model, face: CFrame, sp: Config.SpeciesDef): Part
+	local board = Instance.new("Part")
+	board.Name = "Sign"
+	board.Size = Vector3.new(9, 3.2, 0.5)
+	board.CFrame = face * CFrame.new(0, 2.2, -8.6) * CFrame.Angles(math.rad(-18), 0, 0)
+	board.Anchored = true
+	board.Color = Color3.fromRGB(122, 74, 40)
+	board.Material = Enum.Material.Wood
+	board.Parent = model
+	for _, x in { -3.6, 3.6 } do
+		local post = Instance.new("Part")
+		post.Name = "SignPost"
+		post.Size = Vector3.new(0.5, 2.2, 0.5)
+		post.CFrame = face * CFrame.new(x, 1.1, -8.4)
+		post.Anchored = true
+		post.Color = Color3.fromRGB(90, 55, 30)
+		post.Material = Enum.Material.Wood
+		post.Parent = model
+	end
 	local sg = Instance.new("SurfaceGui")
-	sg.Face = Enum.NormalId.Front
-	sg.PixelsPerStud = 30
+	sg.Face = Enum.NormalId.Front -- a frente (-Z) olha para o centro da praça
+	sg.PixelsPerStud = 40
 	sg.LightInfluence = 0
-	sg.Parent = pedestal
+	sg.Parent = board
 	local title = Instance.new("TextLabel")
 	title.BackgroundTransparency = 1
-	title.Size = UDim2.fromScale(1, 0.5)
+	title.Size = UDim2.fromScale(1, 0.55)
 	title.Font = Enum.Font.FredokaOne
 	title.TextScaled = true
-	title.TextColor3 = Color3.fromRGB(255, 240, 200)
-	title.TextStrokeTransparency = 0.3
+	title.TextColor3 = Color3.fromRGB(255, 244, 214)
+	title.TextStrokeTransparency = 0.2
 	title.Text = Locale.upper(sp.name)
 	title.Parent = sg
 	local price = title:Clone()
-	price.Position = UDim2.fromScale(0, 0.5)
-	price.TextColor3 = if sp.robux then Color3.fromRGB(120, 255, 140) else Color3.fromRGB(255, 210, 60)
+	price.Position = UDim2.fromScale(0, 0.55)
+	price.Size = UDim2.fromScale(1, 0.45)
+	price.TextColor3 = if sp.robux then Color3.fromRGB(120, 255, 140) else Color3.fromRGB(255, 214, 70)
 	price.Text = if sp.robux
 		then "PASSE (ROBUX)"
 		elseif sp.price <= 0 then "INICIAL"
 		else Util.formatNumber(sp.price) .. " moedas"
 	price.Parent = sg
+	return board
 end
 
 local function statues(map: Instance, template: (string) -> Model?)
@@ -264,7 +302,7 @@ local function statues(map: Instance, template: (string) -> Model?)
 	local folder = Instance.new("Folder")
 	folder.Name = "GiantStatues"
 	-- 12 lugares: pares (±8°) no meio entre os caminhos das bases, menos o vão da estrada da arena
-	-- (22,5°). Caminhos a cada 45° a partir de 90°.
+	-- (22,5°). Caminhos a cada 45°.
 	local angles = {}
 	for k = 0, 7 do
 		local mid = 22.5 + k * 45
@@ -273,45 +311,39 @@ local function statues(map: Instance, template: (string) -> Model?)
 			table.insert(angles, mid + 8)
 		end
 	end
-	local list = Config.Species
-	for i, sp in list do
+	for i, sp in Config.Species do
 		local phi = angles[i]
 		if not phi then
 			break
 		end
 		local pos = polar(phi, STATUE_R, 0)
+		-- A estátua e a placa olham para o centro, onde os jogadores circulam.
 		local face = CFrame.lookAt(pos, Vector3.new(0, 0, 0))
-		-- Abre espaço: tira árvores/pedras da natureza que caíram no lugar da estátua.
 		local nature = map:FindFirstChild("Nature")
 		if nature then
 			for _, d in nature:GetChildren() do
 				local ok, pivot = pcall(function()
 					return (d :: any):GetPivot()
 				end)
-				if ok and (Vector3.new(pivot.Position.X, 0, pivot.Position.Z) - pos).Magnitude < 12 then
+				if ok and (Vector3.new(pivot.Position.X, 0, pivot.Position.Z) - pos).Magnitude < 13 then
 					d:Destroy()
 				end
 			end
 		end
 		local model = Instance.new("Model")
 		model.Name = "Statue_" .. sp.id
-		local gold = sp.robux
-		local pedestal = Instance.new("Part")
-		pedestal.Name = "Pedestal"
-		pedestal.Size = Vector3.new(12, 5, 12)
-		pedestal.CFrame = face * CFrame.new(0, 2.5, 0)
-		pedestal.Anchored = true
-		pedestal.Material = Enum.Material.Marble
-		pedestal.Color = Color3.fromRGB(225, 220, 210)
-		pedestal.Parent = model
-		local trim = pedestal:Clone()
-		trim.Name = "Trim"
-		trim.Size = Vector3.new(13, 1, 13)
-		trim.CFrame = face * CFrame.new(0, 5.2, 0)
-		trim.Color = if gold then Color3.fromRGB(245, 195, 60) else Color3.fromRGB(150, 145, 160)
-		trim.Material = if gold then Enum.Material.Foil else Enum.Material.Slate
-		trim.Parent = model
-		plaque(pedestal, sp)
+		local stone = Color3.fromRGB(196, 186, 170)
+		local stoneDark = Color3.fromRGB(150, 140, 128)
+		local band = if sp.robux then Color3.fromRGB(245, 195, 60) else sp.color
+		cyl("Base", 7.2, 1.2, face * CFrame.new(0, 0.6, 0), stoneDark, Enum.Material.Slate).Parent = model
+		cyl("Step", 6.4, 1.4, face * CFrame.new(0, 1.9, 0), stone, Enum.Material.Sandstone).Parent = model
+		local bandPart = cyl("Band", 6.0, 0.7, face * CFrame.new(0, 2.95, 0), band, Enum.Material.SmoothPlastic)
+		bandPart.Parent = model
+		local top = cyl("Top", 6.2, 0.8, face * CFrame.new(0, 3.7, 0), stone, Enum.Material.Sandstone)
+		top.Parent = model
+		local topY = 4.1
+		sign(model, face, sp)
+
 		local entry = CreatureModels.BySpecies[sp.id]
 		local t = entry and template(entry.file)
 		if t then
@@ -322,22 +354,51 @@ local function statues(map: Instance, template: (string) -> Model?)
 			local bottom = cf * CFrame.new(0, -size.Y / 2, 0)
 			local offset = s:GetPivot():ToObjectSpace(bottom)
 			local yaw = math.rad((entry :: any).yaw or 0)
-			s:PivotTo(face * CFrame.new(0, 5.7, 0) * CFrame.Angles(0, math.pi + yaw, 0) * offset:Inverse())
+			s:PivotTo(face * CFrame.new(0, topY, 0) * CFrame.Angles(0, math.pi + yaw, 0) * offset:Inverse())
 			for _, d in s:GetDescendants() do
-				if d:IsA("MeshPart") then
-					d.TextureID = "" -- estátua: pedra/ouro, sem a pintura da criatura
-				end
 				if d:IsA("BasePart") then
 					d.Anchored = true
-					d.CanCollide = false
+					d.CanCollide = false -- a colisão é o corpo invisível abaixo (barato e sem buracos)
 					d.CanQuery = false
 					d.CanTouch = false
-					d.Material = if gold then Enum.Material.Foil else Enum.Material.Marble
-					d.Color = if gold then Color3.fromRGB(245, 195, 60) else Color3.fromRGB(205, 200, 195)
+					if d:IsA("MeshPart") and d.TextureID ~= "" then
+						d.Color = Color3.new(1, 1, 1) -- cor original da pintura
+					end
 				end
 			end
 			s.Parent = model
+			-- Corpo sólido: cilindro do tamanho da pegada da criatura (jogador não atravessa).
+			local _, ext = s:GetBoundingBox()
+			local r = math.clamp(math.min(ext.X, ext.Z) * 0.42, 2.5, 6)
+			local body =
+				cyl("Collider", r, ext.Y, face * CFrame.new(0, topY + ext.Y / 2, 0), stone, Enum.Material.Plastic)
+			body.Transparency = 1
+			body.CanQuery = false
+			body.Parent = model
 		end
+		-- Ponto de interação discreto na frente + prompt (PC: E, controle: X, celular: toque).
+		local blip = Instance.new("Part")
+		blip.Name = "Blip"
+		blip.Shape = Enum.PartType.Cylinder
+		blip.Size = Vector3.new(0.15, 3, 3)
+		blip.CFrame = face * CFrame.new(0, 0.1, -10.5) * CFrame.Angles(0, 0, math.rad(90))
+		blip.Anchored = true
+		blip.CanCollide = false
+		blip.Material = Enum.Material.Neon
+		blip.Color = band
+		blip.Transparency = 0.35
+		blip.Parent = model
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "FindSpecies"
+		prompt.ActionText = "ENCONTRAR " .. Locale.upper(sp.name):gsub("^GIGANTE%s+", "")
+		prompt.ObjectText = if sp.robux then "Passe (Robux)" else Util.formatNumber(sp.price) .. " moedas"
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.HoldDuration = 0
+		prompt:SetAttribute("SpeciesId", sp.id)
+		prompt.Parent = blip
 		model.Parent = folder
 	end
 	folder.Parent = Workspace

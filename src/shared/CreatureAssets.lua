@@ -12,10 +12,10 @@ return {
 	["gen-human-baby"] = "rbxassetid://100526665323885",
 	["gen-slime"] = "rbxassetid://79884372873700",
 	["goblin"] = "rbxassetid://121162892456103",
-	["hydra"] = "rbxassetid://120607062685991",
-	["phoenix"] = "rbxassetid://88390329506943",
+	["hydra"] = "rbxassetid://92112012605058",
+	["phoenix"] = "rbxassetid://117269470875373",
 	["stone-golem"] = "rbxassetid://117386809116187",
-	["troll"] = "rbxassetid://107171111505874",
+	["troll"] = "rbxassetid://129154927989219",
 	["wyvern"] = "rbxassetid://103967817492078",
 	["zombie"] = "rbxassetid://72703131003646",
 } :: { [string]: string }

@@ -343,6 +343,129 @@ local function buildRobuxTab(parent: Frame)
 end
 
 local speciesCards: { [string]: TextButton } = {}
+
+-- Confirmação antes de qualquer compra de espécie (pedido do usuário: estátuas "ENCONTRAR X" mostram
+-- preço e atributos reais e só compram depois de confirmar; nunca ao se aproximar).
+local confirmWin: Frame
+local confirmTitle: TextLabel
+local confirmDesc: TextLabel
+local confirmStats: TextLabel
+local confirmBuy: TextButton
+local confirmSpecies: string? = nil
+
+local function speciesAction(sp: any): (string, Color3, () -> ())
+	local s = State.current :: any
+	local owned = s.ownedSpecies and s.ownedSpecies[sp.id]
+	if s.species == sp.id then
+		return "EQUIPADO ✓", UI.Colors.Green, function() end
+	elseif owned then
+		return "EQUIPAR", UI.Colors.Blue, function()
+			Remotes.RequestEquipSpecies:FireServer(sp.id)
+		end
+	elseif sp.robux and sp.passKey then
+		return "COMPRAR (ROBUX)",
+			Color3.fromRGB(40, 190, 90),
+			function()
+				Remotes.RequestGamePass:FireServer(sp.passKey)
+			end
+	elseif (s.speciesTokens or 0) > 0 then
+		return "USAR FICHA", UI.Colors.Accent, function()
+			Remotes.RequestBuySpecies:FireServer(sp.id, true)
+		end
+	end
+	local can = (s.coins or 0) >= sp.price
+	return "COMPRAR  $ " .. Util.formatNumber(sp.price),
+		if can then UI.Colors.Accent else Color3.fromRGB(90, 90, 100),
+		function()
+			if can then
+				Remotes.RequestBuySpecies:FireServer(sp.id, false)
+			end
+		end
+end
+
+local confirmAction: () -> () = function() end
+
+local function renderConfirm()
+	local id = confirmSpecies
+	local sp: any = if id then Config.SpeciesById[id] else nil
+	if not sp then
+		return
+	end
+	confirmTitle.Text = Locale.upper(sp.name) .. "  [" .. sp.rarityTag .. "]"
+	confirmTitle.TextColor3 = sp.color
+	confirmDesc.Text = sp.desc
+	confirmStats.Text = string.format(
+		"XP x%.2f  •  Moedas x%.2f  •  Força na arena %d  •  Vida %d HP",
+		sp.xpMult,
+		sp.coinMult,
+		sp.arenaPower,
+		sp.arenaHp
+	)
+	local text, color, action = speciesAction(sp)
+	confirmBuy.Text = text
+	confirmBuy.BackgroundColor3 = color
+	confirmAction = action
+end
+
+function Shop.confirmSpecies(id: string)
+	confirmSpecies = id
+	renderConfirm()
+	if not confirmWin.Visible then
+		UI.pop(confirmWin)
+	end
+end
+
+local function buildConfirm(gui: ScreenGui)
+	local body: Frame
+	confirmWin, body = UI.window(gui, "GIGANTE", UDim2.fromOffset(560, 330))
+	confirmTitle = UI.label(body, "", { Size = UDim2.new(1, 0, 0, 40) })
+	confirmDesc = UI.label(body, "", {
+		Size = UDim2.new(1, 0, 0, 56),
+		Position = UDim2.fromOffset(0, 46),
+		TextScaled = false,
+		TextSize = 22,
+		TextWrapped = true,
+	})
+	confirmStats = UI.label(body, "", {
+		Size = UDim2.new(1, 0, 0, 52),
+		Position = UDim2.fromOffset(0, 106),
+		TextScaled = false,
+		TextSize = 20,
+		TextWrapped = true,
+		TextColor3 = UI.Colors.Accent,
+	})
+	confirmBuy = UI.button(body, "", UI.Colors.Accent, {
+		Size = UDim2.new(0.62, -6, 0, 56),
+		Position = UDim2.new(0, 0, 1, -64),
+		TextScaled = false,
+		TextSize = 24,
+	})
+	local cancel = UI.button(body, "CANCELAR", Color3.fromRGB(96, 102, 118), {
+		Size = UDim2.new(0.38, -6, 0, 56),
+		Position = UDim2.new(0.62, 6, 1, -64),
+		TextScaled = false,
+		TextSize = 24,
+	})
+	confirmBuy.Activated:Connect(function()
+		confirmAction()
+		confirmWin.Visible = false
+	end)
+	cancel.Activated:Connect(function()
+		confirmWin.Visible = false
+	end)
+	State.onChanged(function()
+		if confirmWin.Visible then
+			renderConfirm()
+		end
+	end)
+	-- Estátuas da praça: ProximityPrompt com o atributo SpeciesId abre esta confirmação.
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt)
+		local sid = prompt:GetAttribute("SpeciesId")
+		if type(sid) == "string" then
+			Shop.confirmSpecies(sid)
+		end
+	end)
+end
 local function buildSpeciesTab(parent: Frame)
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.Size = UDim2.fromScale(1, 1)
@@ -408,15 +531,10 @@ local function buildSpeciesTab(parent: Frame)
 			UI.button(card, "", sp.color, { Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) })
 		btn.Activated:Connect(function()
 			local s = State.current :: any
-			local owned = s.ownedSpecies and s.ownedSpecies[sp.id]
-			if owned then
+			if s.ownedSpecies and s.ownedSpecies[sp.id] then
 				Remotes.RequestEquipSpecies:FireServer(sp.id)
-			elseif sp.robux and sp.passKey then
-				Remotes.RequestGamePass:FireServer(sp.passKey)
 			else
-				-- Com Ficha de Espécie, usa a ficha; senão compra com moedas.
-				local useToken = (s.speciesTokens or 0) > 0
-				Remotes.RequestBuySpecies:FireServer(sp.id, useToken)
+				Shop.confirmSpecies(sp.id) -- compra só depois de confirmar
 			end
 		end)
 		speciesCards[sp.id] = btn
@@ -547,6 +665,7 @@ function Shop.init(gui: ScreenGui)
 	robuxWin, rBody = UI.window(gui, "LOJA ROBUX", UDim2.fromOffset(700, 560))
 	buildRobuxTab(rBody)
 
+	buildConfirm(gui)
 	buildCodes(gui)
 	buildOddsWindow(gui)
 	State.onChanged(refresh)

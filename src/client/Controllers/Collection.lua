@@ -189,7 +189,7 @@ function Collection.init(gui: ScreenGui)
 		local view = UI.frame(card, {
 			Size = UDim2.new(1, -12, 0, 100),
 			Position = UDim2.fromOffset(6, 6),
-			BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+			BackgroundColor3 = UI.Colors.Panel,
 			ZIndex = 14,
 		})
 		UI.corner(view, 10)
