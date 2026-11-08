@@ -1,74 +1,232 @@
-# Handoff — Feed a Giant (para a próxima sessão / outra conta Claude)
+# Handoff — Feed a Giant ("Alimente um Gigante")
 
-**Data do handoff:** 07/11/2026 · **Repositório:** https://github.com/FiaresAlan/FeedAGiant (branch `main`)
-**Pasta local do projeto:** `C:\Users\Administrador\Pictures\FeedAGiant PRINCIPAL`
-**Idioma obrigatório:** comunicação, documentação e relatórios em **português brasileiro**.
+**Atualizado em:** 08/11/2026 (madrugada) · **Repositório:** https://github.com/FiaresAlan/FeedAGiant (branch `main`, último commit `292ce41` + o deste handoff)
+**Pasta local:** `C:\Users\Administrador\Pictures\FeedAGiant PRINCIPAL`
+**Idioma obrigatório:** português brasileiro em toda comunicação, documentação e relatório. O usuário é **leigo** em programação: explicar em linguagem simples.
 
-> Leia este arquivo inteiro primeiro. Depois leia `docs/DIAGNOSTICO_E_PLANO.md`, que é o diagnóstico completo e o plano aprovado.
+> **Leia a Parte A inteira antes de qualquer coisa.** A Parte B é o histórico detalhado das sessões anteriores: consulte quando precisar de um detalhe.
+> Depois leia `docs/GAME_BRIEF.md` (decisões aprovadas) e `docs/DIAGNOSTICO_E_PLANO.md` (as 5 fases; **não reformular**).
 
 ---
 
-## 1. Papel e procedimento
+# PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
-- Você é o **diretor técnico** do projeto. Carregue a skill `roblox-director` antes de qualquer trabalho Roblox. Se ela não aparecer, leia `C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\skill\SKILL.md`.
-- O procedimento é obrigatório: pesquisar no vault do Fwjelaa antes, nunca inventar APIs, IDs ou números, citar as notas, nota mínima 8,5/10 por revisão independente, registrar em `.fwjelaa/ledger.jsonl`.
-- **Não use o scaffold de projetos novos** (`new_game.py`). O projeto já existe.
+## A1. Papel e procedimento (obrigatório)
 
-## 2. Condições do usuário (aprovadas em 07/11/2026, valem para toda a execução)
+- Você é o **diretor técnico**. Carregue a skill `roblox-director` antes de qualquer trabalho Roblox. Se ela não estiver listada, leia `C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\skill\SKILL.md`.
+- Loop de toda tarefa:
+  1. pesquisar no vault do Fwjelaa antes (`python "<vault>\_tools\vault.py" "<tarefa>"`);
+  2. nunca inventar APIs, IDs ou números; conferir nomes com `studio-kit\tools\api_lookup.py`;
+  3. citar as notas usadas;
+  4. pré-voo de 3 a 6 linhas;
+  5. testar de verdade;
+  6. **revisão independente:**
+     - 1 revisor cego nas rodadas de correção;
+     - 3 revisores cegos para aprovar (agente `rubric-reviewer`), com a mediana por critério;
+     - **refaça a soma dos pesos você mesmo**: um revisor já errou a soma, usando 13 em vez de 12;
+  7. nota mínima **8,5**; no máximo 3 rodadas de correção;
+  8. registrar em `.fwjelaa/ledger.jsonl`.
+- **Não use o scaffold de projetos novos.** O projeto já existe.
 
-O usuário aprovou o plano e pediu para **manter as cinco fases como estão, sem reformular**, começando pela Fase 0.
+## A2. Regras e autorizações do usuário
 
-1. Preservar sempre o projeto original, com backup e versionamento (commit) **antes** de alterações importantes.
-2. Autonomia técnica total para pesquisar, programar, modelar e usar Blender, Roblox Studio, o assistente do Studio, MCPs, o Chrome e a internet.
-3. **Não consultar o usuário para decisões técnicas rotineiras.** Decidir de forma profissional e documentar a escolha.
-4. Para mudanças significativas de **economia, monetização, identidade visual ou experiência do jogador**: apresentar a justificativa **antes** de qualquer mudança irreversível.
-5. Trabalhar por entregas verificáveis. Cada sistema só está concluído depois de testado.
-6. Priorizar o desempenho em **celular**.
-7. **Não publicar o jogo, não gastar Robux e não fazer uploads comerciais** sem autorização explícita.
-8. Não sacrificar a qualidade por prazo. Usar as rubricas do Fwjelaa (`quality-score`) e o procedimento do `roblox-director`.
+Aprovadas em 07/11/2026 e ampliadas depois:
 
-O usuário é **leigo** em programação: explicar resultados em linguagem simples.
+1. **Commit antes** de toda alteração importante. Testar sempre numa **cópia** do place, nunca no place oficial.
+2. Autonomia técnica total, sem consultar o usuário em decisões técnicas rotineiras. Decida e documente.
+3. Para mudanças de **economia, monetização, identidade visual ou experiência**: justifique antes. O usuário já aprovou estas:
+   - estilo **cartoon pintado** (stylised PBR);
+   - clima **fim de tarde**;
+   - **5 espécies novas** com preços (tabela de decisões do GAME_BRIEF);
+   - seguir a Fase 2.
+4. **Nada de publicar o jogo nem gastar Robux.**
+5. **Uploads:**
+   - o usuário autorizou o envio dos modelos da Fase 2 ("pode seguir, tem total aprovação"; "pode fazer, você tem a key");
+   - ele também disse que você pode baixar arquivos CC0 e enviar imagens e modelos para o visual (itens A–C da §A6).
+   - O **classificador do modo automático do Claude Code** bloqueou o primeiro upload ("Public Data-Sharing Upload") e só liberou depois da autorização explícita do usuário no chat. **Não contorne bloqueios.** Se bloquear, peça ao usuário.
+6. Celular primeiro: orçamento por vista de **500 mil triângulos / 500 draw calls**.
+7. Relatórios honestos: o que não foi testado é dito como não testado.
 
-## 3. Situação das fases
+## A3. Situação das fases
 
-| Fase | Situação |
-|---|---|
-| Diagnóstico e plano | ✅ **Concluído** (`docs/DIAGNOSTICO_E_PLANO.md`) |
-| Fase 0 — Fundação segura | ✅ **Concluída** (nota 8,75 por painel de 3 revisores cegos; §3a) |
-| Fase 1 — Mundo bonito | 🟨 **Rascunho 7,9** (3 rodadas usadas; ver §2b). Estilo decidido: cartoon pintado |
-| Fase 2 — Criaturas de verdade | ⬜ Pendente |
-| Fase 3 — Efeitos e juice | ⬜ Pendente |
-| Fase 4 — Primeiro minuto e retenção | ⬜ Pendente |
-| Fase 5 — Pré-lançamento | ⬜ Pendente |
+| Fase | Situação | Nota |
+|---|---|---|
+| Diagnóstico e plano | ✅ | — |
+| **0 — Fundação segura** | ✅ **Concluída** | **8,75** (system, 3 revisores) |
+| **1 — Mundo bonito** | 🟨 Construída, abaixo da meta | **7,9** (world, 3 revisores; 4 painéis) |
+| **2 — Criaturas de verdade** | 🟧 **Em andamento** (modelos no jogo; faltam animações, comidas 3D e revisão) | não avaliada ainda |
+| 3 — Efeitos e juice | ⬜ | — |
+| 4 — Primeiro minuto e retenção | ⬜ | — |
+| 5 — Pré-lançamento | ⬜ | — |
 
-### Checklist da Fase 0
+## A4. O que existe hoje (resumo técnico)
 
-- [x] 0.1 `git init`, `.gitignore` e primeiro commit enviado ao GitHub
-- [ ] 0.2 `docs/GAME_BRIEF.md` (preencher a partir de `GAME_DESIGN.md` e do diagnóstico) + `selene.toml` (std roblox) + `stylua.toml`, para o verificador Luau funcionar
-- [ ] 0.3 Dados:
-  - `UpdateAsync` com trava de sessão (lease e token);
-  - carregamento que falha **nunca salva** (kick ou modo sem salvar);
-  - `BindToClose` espera os saves de verdade;
-  - `dirty` só é limpo quando o save deu certo;
-  - inventário com limite.
-- [ ] 0.4 Compras:
-  - `ProcessReceipt` idempotente (`PurchaseId` guardado no perfil, lista limitada);
-  - salvar antes de retornar `PurchaseGranted`;
-  - corrigir o bug da Lucky Box (anti-spam de 0,4 s em `openBox`);
-  - `RestoreLevels` não pode cobrar quando não há níveis perdidos.
-- [ ] 0.5 Itens aleatórios pagos:
-  - chance por comida, numa única tabela usada pelo sorteio e pela tela, incluindo o bônus de evento;
-  - `PolicyService.ArePaidRandomItemsRestricted` checado por jogador, no servidor;
-  - "Trocar Espécie" passa a deixar o jogador **escolher**.
-- [ ] 0.6 Anti-exploit:
-  - remover o bastão do v1 (`StealService.giveBat`);
-  - checagem de distância no servidor para os ClickDetectors;
-  - revalidar escudo e `uid` no fim do canal de roubo;
-  - checar altura no drop;
-  - `PromoCodes` para o servidor;
-  - validar argumentos em `ArenaService:256` e `CombatService:341/344`.
-- [ ] 0.7 Criar `leaderArena` (placar da Arena morto). Enviar ao cliente só o que mudou, em vez do estado inteiro a cada segundo. Guardar o resultado de `IsInGroup` em cache na entrada.
-- [ ] 0.8 Verificador Luau com **overall PASS**, teste com 2 a 3 jogadores no Studio, revisão independente (anti-exploit e dados), nota ≥ 8,5 na rubrica `system`, registro no ledger
+**Fase 0 (segurança):**
+- `DataService` usa o `PlayerData` do fwjelaa: trava de sessão, carga falha nunca salva, `BindToClose`.
+- `MonetizationService` usa `Receipts` (idempotente, salva antes de `PurchaseGranted`) e `Policy` (itens aleatórios pagos falham fechado).
+- `LunchboxOdds` é a tabela única de chances.
+- `Guard.lua`: limite de frequência (token bucket) em **todos** os `OnServerEvent`, índices inteiros e checagem de distância.
+- Depósito do roubo conferido no servidor (dentro da própria base + tempo mínimo de viagem).
+- Testes: 39 specs (`tests/`, rodar com `require(ServerScriptService.FwjelaaTests.Runner)()`) e teste ao vivo com 2 jogadores.
+- Detalhes em `docs/qa/FASE0_EVIDENCIAS.md`.
+
+**Fase 1 (mundo):**
+- O mundo é **gerado por código a cada início de servidor**, com semente fixa:
+  - `src/server/World.lua`, com o MapKit do fwjelaa vendorizado em `src/vendor/server/MapKit` (Build, Geo, Props, Scatter; licença com crédito ao fwjelaa);
+  - `MapService` monta as bases e chama o `World`.
+- **Contrato** (não quebrar): `Workspace.Map` precisa ter `ShopPad`, `EventPad` e `Leaderboard1..3` (com `SurfaceGui > List`).
+  - Os drops caem entre r 50 e 82 do centro (círculo de raio 14). A chuva de comida cai entre r 40 e 90.
+  - O caldeirão ocupa até r ≈ 32, e os mastros das bandeiras ficam em r 34.
+- Conteúdo:
+  - ilha (raio 470) com praia, água rasa e mar de peça;
+  - praça (r 138/120) com faixas-guia;
+  - **marco: Caldeirão do Banquete** sobre pedestal de pedra, com fogo Neon e PointLight, sopa, comidas gigantes, vapor e 4 bandeiras;
+  - 4 mesas de banquete, loja (norte), evento (sul), 3 placares de madeira;
+  - postes com lâmpada Neon;
+  - 8 caminhos de pedra até 8 bases com cor-tema (cerca branca, placa nos fundos com contorno no texto);
+  - 3 lagos; árvores, arbustos, flores, pedras e colinas espalhados.
+- **Luz:** `src/shared/LightingRecipes.lua`, receita **`GoldenAfternoon`**, aplicada pelo `Main.server.lua`. Base: vault "Stylized Lighting Recipes" §3.3, com ClockTime 16,8.
+- **Texturas** (08/11, pedido do usuário): materiais do Roblox. Ilha Grass, praia Sand, estrada Cobblestone, borda Slate, praça Pavement, bases WoodPlanks.
+- **Orçamento medido:** no máximo ~466 mil triângulos e ~43 draw calls por vista. A água de terreno custava ~290k triângulos e ~300 draws; foi removida.
+- Detalhes e fotos: `docs/qa/FASE1_MUNDO_EVIDENCIAS.md` e `docs/qa/shots/fase1/`.
+
+**Fase 2 (criaturas):** detalhes na Parte B §2-F2.
+- Pipeline: `tools/blender/prep_creature.py`, com `tools/blender/front_view.py` para prévias de frente.
+- **11 modelos enviados e no jogo.** IDs em `assets/optimized/assets.json` e `src/shared/CreatureAssets.lua`, este **gerado** por `tools/gen_creature_assets.py`:
+
+  | Modelo | ID | Triângulos | Usado por |
+  |---|---|---|---|
+  | dragon | rbxassetid://114192879428967 | 8.000 | espécie dragon (estágio ≥ 2) |
+  | baby-dragon | rbxassetid://101061619934373 | 8.000 | dragon no estágio Bebê |
+  | phoenix | rbxassetid://88390329506943 | 10.333 | phoenix |
+  | stone-golem | rbxassetid://117386809116187 | 8.000 | golem |
+  | goblin | rbxassetid://121162892456103 | 7.999 (rig + andar/correr) | goblin |
+  | zombie | rbxassetid://72703131003646 | 7.999 | zombie |
+  | troll | rbxassetid://107171111505874 | 8.000 (rig + andar/correr) | troll |
+  | wyvern | rbxassetid://103967817492078 | 8.000 | wyvern |
+  | hydra | rbxassetid://120607062685991 | 11.315 | hydra |
+  | crystal-dragon | rbxassetid://123375042698261 | 14.060 | **não usado ainda** (reserva/evento) |
+  | cauldron (do usuário) | rbxassetid://74001747238408 | 15.000 | marco da praça (`World.buildCauldron`) |
+
+- `src/shared/CreatureModels.lua` faz o mapa espécie → arquivo (`babyFile`, `yaw`).
+- O `GiantService` carrega o Model com `InsertService:LoadAsset` (cache em `ServerStorage.CreatureTemplates`), **esconde o corpo de blocos** (que continua dando a placa, a aura e as partículas) e coloca a malha sobre o pedestal. A escala por nível usa `ScaleTo`. **Sem ID, nada muda.**
+- Testado nas 8 espécies: troca em ~0,5 s, nenhum bloco visível, sem erros. A hidra no nível 40 fica com 90 studs.
+- Espécies sem modelo, que seguem de blocos: human, gator, eagle, slime.
+- **Espécies novas no `Config.Species`:**
+
+  | Espécie | Preço (moedas) | Raridade |
+  |---|---|---|
+  | goblin | 8.000 | Incomum |
+  | zombie | 25.000 | Raro |
+  | troll | 75.000 | Épico |
+  | wyvern | 220.000 | Lendário |
+  | hydra | 600.000 | Mítico |
+
+  Atributos no GAME_BRIEF. A loja lista as espécies automaticamente.
+
+## A5. Fatos importantes do ambiente
+
+- **Place oficial:** "Alimente um Gigante", **placeId 115578986093768** (publicado). O usuário o mantém aberto no Studio e sincroniza com **`rojo serve`**: apareceu o aviso "Project 'FeedAGiant' is serving at localhost". **Nunca escreva nesse place pelo MCP.** Inspeção só de leitura, quando o usuário pedir.
+  - Ele ainda guarda o `Baseplate` antigo (1200 × 4, topo em y = 2), que enterrava o mundo novo. **Corrigido em código** (`MapService.init` move o `Workspace.Baseplate` para `ServerStorage.LegacyMap`). O usuário ainda precisa confirmar que, depois da sincronização do Rojo, ficou certo no place oficial.
+  - Atualize "Fatos do projeto" no `CLAUDE.md` (hoje diz "Place ID: não publicado").
+- **Chave da Open Cloud:** `ROBLOX_API_KEY` (variável de usuário). **Nunca imprima nem grave a chave.** Ela tem escopos muito amplos (places, DataStores, Game Passes, `manage-and-spend-robux`...). **Recomende ao usuário criar uma chave só com `asset read/write`.**
+- **Modelos brutos:** `assets/Personagens (goblin, dragao)/`, com golem, zumbi e wyvern extraídos em `_extraido/`. São 550 MB, ficam fora do Git e **só existem nesta máquina**.
+  - Fonte do caldeirão: `assets/Caldeirão FeedAGiant sem cor.glb` (769k triângulos, ignorado). A versão leve (`.obj` de 20k + `Geometry01_diff.png`) está no Git.
+  - Golem, zumbi e wyvern são CC0 da Grab3D, feitos com ajuda de IA.
+- Ferramentas:
+  - Blender: `C:\Users\Administrador\Desktop\blender-5.4.0-alpha+main.50d477803fa8-windows.amd64-release\blender.exe` (sempre `-b --factory-startup`).
+  - Rojo 7.7.1.
+  - Verificador: `python "C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\tools\luau_check.py" --project .`. Meta: **overall PASS**; hoje está PASS com 47 arquivos.
+- Ruído conhecido no console: `rbxassetid://203785492` e `81504106` vêm do plugin "Ecos Tools", não do jogo. O aviso "Tecnologia de migração de iluminação" ao dar Play é do Studio (o projeto não usa mais `Technology`).
+
+## A6. PRÓXIMOS PASSOS (em ordem)
+
+O usuário pediu (08/11): "te permito seguir a fase". Antes disso ele quis o conserto do chão (feito) e perguntou o que mais você planeja para o visual, que "ainda está bem fraco". A lista abaixo foi apresentada a ele. **A última pergunta, "visual primeiro (A–C) ou seguir a Fase 2", ficou sem resposta.** Pergunte no início da sessão, ou siga a ordem abaixo se ele disser para seguir.
+
+**Visual (Fase 1, para sair de 7,9). Os revisores pedem principalmente W4 (clima), W3 (coesão) e W5 (densidade):**
+- **A. Céu de entardecer** (o bloqueador do W4 nos 3 revisores: "o céu de cima continua azul de meio-dia"):
+  - kit make-map: `cd "<pack make-map>" && python kit/tools/run.py sky <nome> --from polyhaven:<hdri>_puresky --azimuth <graus>`;
+  - gera 6 faces de **512²** (1024² não renderiza, medido pelo kit);
+  - precisa de upload de 6 imagens; o usuário autorizou;
+  - depois, adicionar `Sky` com os IDs em `LightingRecipes.GoldenAfternoon.sky`.
+- **B. Texturas pintadas próprias** (MaterialVariant) para grama, estrada e praça:
+  - `run.py material <nome> --from ambientcg:<ID> --tint "#hex"`;
+  - aplicar via `MaterialService`;
+  - hoje são os materiais padrão do Roblox, meio realistas.
+- **C. Árvores, arbustos e pedras low-poly CC0** (Poly Pizza / Quaternius / Kenney) no lugar das primitivas de bolas:
+  - passar pelo `prep_creature.py`, com altura e triângulos adequados;
+  - subir como Model;
+  - trocar no `World.buildNature`.
+  - Manter o orçamento de 500k triângulos por vista.
+- **D. Relevo:** colinas e vales com terreno. Cuidado com custo e com o contrato de alturas.
+- **E. Grama 3D do terreno (`Terrain.Decoration`):** não é scriptável e custa 180 a 310k triângulos por vista. Só com cautela e se o usuário quiser; ele liga no Studio.
+- Depois de cada passo: fotos com avatar e UI escondida, orçamento por vista, gates (rotas, props flutuando) e novo painel de 3 revisores.
+
+**Fase 2 (continuação):**
+1. **Painel de qualidade dos modelos** (rubrica `model`, 3 revisores cegos) com as prévias em `assets/optimized/previews/` e capturas no jogo.
+2. **Animações** (skill `fwjelaa:make-anim`): idle, comer, comemorar e ficar bravo.
+   - Troll e goblin já têm rig com andar e correr.
+   - Os outros são estáticos: avaliar rig simples (Blender) ou "animação" procedural (bob, escala e rotação por código), que é mais barato.
+   - Fazer o gigante tocar uma animação ao ser alimentado.
+3. **Comidas 3D** (maçã, pizza, sushi...) no lugar das bolas e cubos: um lote de props (skill `fwjelaa-blender-modeling`, ou CC0), enviado como Model e trocado em `PlotService` / `DropService` / `Hatch`.
+4. **Troll:** pequenas falhas na superfície por causa da decimação forte de malha "sopa de triângulos". O vault recomenda retopologia para malhas que deformam.
+5. **Modelos para human, gator, eagle e slime**, que hoje são de blocos.
+6. **Conferir o `yaw`** de cada espécie no jogo. O dragão com 0° ficou bom; confira hidra, wyvern e golem.
+
+**Outras pendências do usuário:**
+- Lucky Box comprada por conta com restrição a itens aleatórios pagos (`PromptProductPurchase` direto pelo cliente): o recibo não pode ser recusado. Proposta: entregar uma comida Rare fixa. **Falta a decisão do usuário.**
+- Fase 4: suavizar o encolhimento e o pay-to-win da arena (economia: precisa de decisão).
+
+## A7. Armadilhas medidas (economizam horas)
+
+**Studio:**
+- Tem **limite de ~10 janelas**, e a RAM acaba com muitas cópias de teste (chegou a 2,9 GB livres de 32).
+  - **Feche cada cópia ao terminar:** Arquivo → Fechar local → **Não salvar**.
+  - `Stop-Process` em processos do Studio é **bloqueado** pelo classificador. `CloseMainWindow` funciona, mas abre o diálogo "Salvar alterações?".
+- Abrir um `.rbxl` (`Invoke-Item`) pode carregar dentro de uma janela vazia existente.
+- **Teste com 2 jogadores:** seletor de modo no topo à esquerda → "Servidor e clientes", contador de jogadores → 2, Play. O MCP lista servidor e clientes como instâncias separadas (o id do servidor descobre-se testando `datamodel_type: Server`). Os jogadores de teste têm **UserId negativo**.
+- `require` pelo `execute_luau` usa um **cache de módulos separado** do jogo. Para ler ou mudar o estado real, **injete um `Script`** no `ServerScriptService` da cópia e devolva o resultado por atributo.
+- Chamadas MCP demoram segundos. Testes que dependem de tempo (anti-teletransporte, por exemplo) devem rodar **dentro de um único script** no servidor.
+- **Fotos:**
+  - trave a câmera do cliente com `RunService:BindToRenderStep` (o Assistente do Studio reseta o `CameraType`);
+  - esconda `ScreenGui` e `BillboardGui` só no cliente;
+  - traga a janela para a frente com PowerShell user32 `ShowWindow` + `SetForegroundWindow`;
+  - capture com `computer-use` (zoom na região do viewport).
+- O aviso "Tecnologia de migração de iluminação" aparece a cada Play: botão "Continuar".
+- Sob pouca memória, a qualidade automática encurta a distância de desenho e some coisa de longe. Para medir orçamento, fixe a qualidade (`settings().Rendering.QualityLevel = Enum.QualityLevel.Level05` / `Level10`) e devolva para `Automatic` no fim.
+
+**Código:**
+- Python `write_text` no Windows grava CRLF: rode `luau_check.py --fix-format`.
+- Heredocs grandes no Bash com Luau dentro às vezes não parseiam: escreva o `.py` com a ferramenta Write.
+- Hook do fwjelaa: os avisos `findfirstchild-chain` em `GiantService` (piscar dos olhos) são falsos positivos antigos, de nível "info".
+
+**Blender:**
+- Malha "sopa de triângulos" (troll: 15.831 ilhas) só reduz **sem solda** (`--merge 0`).
+- Com o modificador de **armadura** antes do Decimate, a redução trava em ~32k: o pipeline remove a armadura, decima e recoloca.
+- Exportar com mais de 4 influências por vértice gera aviso: o pipeline limita a 4 e normaliza.
+- Penas e escamas soltas (fênix, hidra, dragão de cristal) não descem de 10 a 14k: é o piso possível.
+
+**Visual:**
+- Os revisores penalizam "dia padrão", campos vazios, primitivas sem textura e letreiros flutuantes nas fotos.
+- Fotos com o avatar no quadro ajudam o critério de escala (W6).
+
+## A8. Como verificar rápido que está tudo bem (comandos)
+
+```
+cd "C:\Users\Administrador\Pictures\FeedAGiant PRINCIPAL"
+python "C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\tools\luau_check.py" --project .
+rojo build test.project.json -o <scratchpad>\FeedAGiant-testN.rbxl   (abrir a cópia no Studio; nunca o place oficial)
+python -I tools/gen_creature_assets.py      (regenera CreatureAssets.lua a partir de assets/optimized/assets.json)
+python -I tools/upload_models.py [nome]      (envia .glb novos de assets/optimized; pula os que já têm ID)
+blender -b --factory-startup -P tools/blender/prep_creature.py -- <entrada> <saida.glb> <preview.png> --tris 8000 --height 6 [--merge 0] [--yaw 0] [--tex 1024]
+```
+
+---
+
+# PARTE B — HISTÓRICO DETALHADO (sessões de 07–08/11/2026)
+
+> As seções abaixo foram escritas durante as sessões, em ordem não cronológica. Em caso de conflito, **vale a Parte A**.
+> As seções numeradas antigas 4 a 10 descrevem o estado **do recebimento do projeto** e estão obsoletas, mantidas só como registro.
 
 ## 2a. Atualização de 07/11/2026 (madrugada): fim de tarde aplicado; Fase 2 iniciada
 
@@ -257,7 +415,7 @@ Depois disso: compilar o place de teste, conferir cada criatura no Studio (escal
 3. Play test: entrar, comprar caixa, alimentar, depois testar `MemoryStoreFailNext` e `SimulateLoadFailure`, e por fim 2 jogadores (roubo, soco no ladrão).
 4. Revisão independente (rubrica `system`) e registro no ledger.
 
-## 4. Próxima tarefa exata (original)
+## 4. Próxima tarefa exata (original — OBSOLETA)
 
 **Fase 0, item 0.2.** Criar `docs/GAME_BRIEF.md`, `selene.toml` e `stylua.toml`, rodar o verificador e confirmar que restam só erros reais de código, não de configuração. Comando:
 
@@ -267,7 +425,7 @@ python "C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\tools\luau_
 
 Depois, seguir para **0.3 (DataService)**, que é o problema mais grave do jogo. Antes de mexer em dados, rodar o loop de alto risco: ler `## Common mistakes` e `## Checklist` de *Session Locking and Profile Libraries* e *DataStore Fundamentals* no vault, e usar a skill `fwjelaa-datastore-safety`. Fazer um commit antes de cada item.
 
-## 5. Arquivos modificados ou criados até agora
+## 5. Arquivos modificados ou criados até agora (no recebimento — OBSOLETO)
 
 | Arquivo | O quê |
 |---|---|
@@ -336,7 +494,7 @@ Verificado em 07/11/2026 nesta máquina.
 - **Rojo:** `default.project.json` mapeia `src/` para o DataModel. `FeedAGiant.rbxl` é o place compilado.
 - **Git:** usuário `Alan Fiares`, remoto `origin` = `https://github.com/FiaresAlan/FeedAGiant.git`.
 
-## 10. Estado do Git no momento do handoff
+## 10. Estado do Git no momento do primeiro handoff (OBSOLETO)
 
 - O repositório foi iniciado neste handoff, com branch `main` e primeiro commit contendo o projeto como recebido mais os documentos.
 - Enviado para `origin/main`.
