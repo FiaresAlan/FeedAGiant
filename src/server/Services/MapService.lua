@@ -151,7 +151,8 @@ end
 -- Versão do mapa gerado. AUMENTE este número sempre que mudar a geometria em World.lua/MapService:
 -- um mapa "assado" (salvo no place pelo MapService.bake) com versão diferente é descartado ao rodar e
 -- o jogo gera de novo (o place salvo não muda; é só re-assar para atualizar a visão no modo edição).
-local MAP_VERSION = 1
+-- v2 (08/11/2026): arena física (World.buildArena) + estrada da praça até ela.
+local MAP_VERSION = 2
 
 -- Places antigos (ex.: o place oficial) ainda têm o Baseplate de 1200x4 com topo em y=2, acima do chão
 -- novo (topo em 0): árvores, estrada e bases ficavam "enterradas". Move para o ServerStorage (não apaga).
@@ -173,6 +174,11 @@ local function buildMap(): Folder
 	-- Chão primeiro e sem pcall: sem ele os jogadores cairiam no vazio.
 	World.buildGround(root)
 	MapService.ShopPad = World.buildHub(root)
+	-- Fase 3: arena física das lutas (falha aqui não impede o jogo; a ArenaService avisa)
+	local okArena, errArena = pcall(World.buildArena :: any, root)
+	if not okArena then
+		warn("[MapService] arena não construída:", errArena)
+	end
 	local origins = {}
 	for i = 1, Config.MaxPlayers do
 		MapService.Bases[i] = buildBase(i, root)

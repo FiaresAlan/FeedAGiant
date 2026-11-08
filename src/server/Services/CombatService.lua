@@ -35,6 +35,11 @@ local C = Config.Combat
 -- callbacks que outros serviços registram (DropService, ArenaService)
 CombatService.OnHit = nil :: ((attacker: Player, victim: Player, heavy: boolean) -> ())?
 CombatService.OnKO = nil :: ((attacker: Player, victim: Player) -> ())?
+-- Fase 3 (arena real): quem pode acertar quem. nil = todos. ArenaService usa para isolar a luta
+-- (lutadores só acertam o adversário; ninguém de fora acerta quem está lutando).
+CombatService.HitFilter = nil :: ((attacker: Player, victim: Player) -> boolean)?
+-- Fase 3: true = a zona segura do próprio pátio não vale (luta da arena acontece longe das bases).
+CombatService.IgnoreSafeZone = nil :: ((victim: Player) -> boolean)?
 
 local function getFighter(player: Player): Fighter
 	local f = fighters[player]
@@ -120,6 +125,34 @@ local function push(player: Player)
 		ko = f.koUntil > os.clock(),
 		koUntil = f.koUntil,
 	})
+end
+
+-- Fase 3 (arena real): começa a luta com vida e stamina cheias, sem KO nem combo.
+function CombatService.resetFighter(player: Player)
+	local f = getFighter(player)
+	f.hp = CombatService.maxHp(player)
+	f.stamina = CombatService.maxStamina(player)
+	f.koUntil = 0
+	f.combo = 0
+	f.blocking = false
+	f.lastHitBy = nil
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.PlatformStand = false
+		hum.Sit = false
+	end
+	push(player)
+end
+
+-- Vida atual em 0..1 (para as barras da arena).
+function CombatService.hpFraction(player: Player): number
+	local f = getFighter(player)
+	local maxHp = CombatService.maxHp(player)
+	if f.koUntil > os.clock() then
+		return 0
+	end
+	return math.clamp(math.min(f.hp, maxHp) / math.max(maxHp, 1), 0, 1)
 end
 
 function CombatService.refillStamina(player: Player, infiniteSeconds: number?)
@@ -258,8 +291,12 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	-- Encontra a melhor vítima no cone à frente
 	local best: Player? = nil
 	local bestDot = 0.45
+	local filter = CombatService.HitFilter
 	for _, other in Players:GetPlayers() do
 		if other == attacker then
+			continue
+		end
+		if filter and not filter(attacker, other) then
 			continue
 		end
 		local oroot = rootOf(other)
@@ -282,7 +319,8 @@ local function tryPunch(attacker: Player, heavy: boolean)
 		return
 	end
 	local victim: Player = best
-	if inOwnSafeZone(victim) then
+	local ignoreSafe = CombatService.IgnoreSafeZone
+	if inOwnSafeZone(victim) and not (ignoreSafe and ignoreSafe(victim)) then
 		Remotes.Notify:FireClient(
 			attacker,
 			Locale.msg("safe_zone", { p = victim.DisplayName }, Color3.fromRGB(120, 200, 255))

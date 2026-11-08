@@ -688,6 +688,10 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 		-- Caminho: segmento base→praça, com 6 studs livres de cada lado
 		table.insert(exclude, { a = p, b = Vector2.zero, radius = PATH_W / 2 + 6 })
 	end
+	-- Fase 3: arena e a estrada até ela
+	for _, e in World.arenaExclusions() do
+		table.insert(exclude, e)
+	end
 	-- Lagos (água estilizada de peça: barata e no estilo; a água de terreno fica só no mar)
 	for i, pond in { { 67.5, 235, 30 }, { 202.5, 240, 34 }, { 292.5, 230, 26 } } do
 		local c = polar(pond[1], pond[2], 0)
@@ -867,6 +871,376 @@ function World.decorateBase(index: number, origin: CFrame, model: Model)
 		end
 	end
 	return theme
+end
+
+---------------------------------------------------------------------------
+-- Fase 3: ARENA (Giant Clash) — coliseu físico para as lutas de boxe de verdade.
+-- Referência do usuário (08/11/2026): coliseu redondo de pedra lilás, arquibancadas de madeira em
+-- degraus, 8 braseiros, bandeiras vermelhas/azuis com coroa, portão com arco e coroa, camarote real,
+-- chão de areia com anéis e uma coroa pintada no centro. Só peças (estilo do mapa), ~260 peças.
+-- Lugar: vão entre as bases a φ 22,5° (bases a cada 45° começando em 90°; lagos em 67,5/202,5/292,5).
+---------------------------------------------------------------------------
+World.Arena = {
+	phi = 22.5,
+	r = 235,
+	floorR = 24, -- área de luta (sair dela = derrota por ringue)
+	floorTop = 0.6,
+	outerR = 38,
+	gateHalfDeg = 12,
+}
+World.Arena.center = polar(World.Arena.phi, World.Arena.r, 0)
+
+local ARENA_COLORS = {
+	stone = "#A89EB8",
+	stoneDark = "#857B99",
+	wood = "#A85F2E",
+	woodDark = "#7A4320",
+	sand = "#E9B577",
+	sandRing = "#C97843",
+	emblem = "#B85A30",
+	gold = "#F5C33B",
+	red = "#C93A3A",
+	blue = "#2F5BC4",
+	bronze = "#B87333",
+}
+
+-- Quadro local da arena: -Z aponta para o centro da ilha (portão), +Z para o camarote.
+local function arenaFrame(): CFrame
+	local c = World.Arena.center
+	return CFrame.lookAt(c, Vector3.new(0, 0, 0))
+end
+
+-- Ponto no anel (ângulo θ em graus a partir do portão, sentido horário), já orientado para o centro.
+local function ringCf(thetaDeg: number, r: number, y: number): CFrame
+	local t = math.rad(thetaDeg)
+	local p = Vector3.new(math.sin(t) * r, y, -math.cos(t) * r)
+	return CFrame.lookAt(p, Vector3.new(0, y, 0))
+end
+
+local function arenaPart(parent: Instance, base: CFrame, props: { [string]: any }, class: string?): BasePart
+	local local_cf = props.CFrame :: CFrame
+	props.CFrame = base * local_cf
+	if type(props.Color) == "string" then
+		props.Color = hex(props.Color)
+	end
+	local p = Build.part(props, class)
+	p.Parent = parent
+	return p
+end
+
+-- Coroa 3D de peças (barra + 3 pontas em losango + 3 bolinhas). `cf` = centro da barra, olhando +Z.
+local function crown3d(parent: Instance, cf: CFrame, s: number)
+	local gold = Enum.Material.Foil
+	local function piece(size: Vector3, off: CFrame, shape: Enum.PartType?)
+		local p = Build.part({
+			Name = "Crown",
+			Size = size * s,
+			CFrame = cf * off,
+			Color = hex(ARENA_COLORS.gold),
+			Material = gold,
+			CanCollide = false,
+		})
+		if shape then
+			p.Shape = shape
+		end
+		p.Parent = parent
+	end
+	piece(Vector3.new(4.4, 1.1, 0.8), CFrame.new())
+	for i, x in { -1.6, 0, 1.6 } do
+		local h = if i == 2 then 1.5 else 1.2
+		piece(Vector3.new(h, h, 0.7), CFrame.new(x * s, (0.55 + h * 0.55) * s, 0) * CFrame.Angles(0, 0, math.rad(45)))
+		piece(Vector3.new(0.7, 0.7, 0.7), CFrame.new(x * s, (1.1 + h * 1.15) * s, 0), Enum.PartType.Ball)
+	end
+end
+
+function World.buildArena(root: Instance): Model
+	local A = World.Arena
+	local K = ARENA_COLORS
+	local model = Instance.new("Model")
+	model.Name = "Arena"
+	local base = arenaFrame()
+
+	-- Chão de luta: areia com dois anéis e a coroa pintada (vista de cima)
+	local function floorDisc(name: string, radius: number, top: number, color: string, material: Enum.Material?)
+		for i = 0, 2 do
+			arenaPart(model, base, {
+				Name = if i == 0 then name else name .. "_Fill" .. i,
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.6, radius * 2, radius * 2),
+				CFrame = CFrame.new(0, top - 0.3, 0)
+					* CFrame.Angles(0, math.rad(i * 5), 0)
+					* CFrame.Angles(0, 0, math.rad(90)),
+				Color = color,
+				Material = material or Enum.Material.SmoothPlastic,
+				CastShadow = false,
+			})
+		end
+	end
+	floorDisc("ArenaFloor", A.floorR + 1.5, A.floorTop, K.sand, Enum.Material.Sand)
+	floorDisc("ArenaRingOuter", 19, A.floorTop + 0.02, K.sandRing)
+	floorDisc("ArenaRingInner", 17.6, A.floorTop + 0.04, K.sand, Enum.Material.Sand)
+	floorDisc("ArenaCenter", 8, A.floorTop + 0.06, K.sandRing)
+	floorDisc("ArenaCenterIn", 7.2, A.floorTop + 0.08, K.sand, Enum.Material.Sand)
+	-- coroa pintada (peças finas no chão)
+	local emblem = A.floorTop + 0.1
+	arenaPart(model, base, {
+		Name = "Emblem",
+		Size = Vector3.new(7, 0.06, 1.4),
+		CFrame = CFrame.new(0, emblem, 1.4),
+		Color = K.emblem,
+		CanCollide = false,
+	})
+	for _, x in { -2.6, 0, 2.6 } do
+		arenaPart(model, base, {
+			Name = "Emblem",
+			Size = Vector3.new(1.9, 0.06, 1.9),
+			CFrame = CFrame.new(x, emblem, if x == 0 then -0.6 else -0.1) * CFrame.Angles(0, math.rad(45), 0),
+			Color = K.emblem,
+			CanCollide = false,
+		})
+	end
+
+	-- Muro baixo da área de luta (com abertura no portão)
+	local inner = 25.5
+	local N = 24
+	for i = 0, N - 1 do
+		local th = (i + 0.5) * 360 / N
+		if math.abs(((th + 180) % 360) - 180) > A.gateHalfDeg then
+			arenaPart(model, base, {
+				Name = "InnerWall",
+				Size = Vector3.new(2 * math.pi * inner / N + 0.4, 3, 1.4),
+				CFrame = ringCf(th, inner, 1.5),
+				Color = K.stoneDark,
+				Material = Enum.Material.Slate,
+			})
+		end
+	end
+
+	-- Arquibancadas: 3 degraus (base de pedra + banco de madeira), fora do portão e do camarote
+	for tier = 1, 3 do
+		local r = 26.5 + tier * 2.8
+		local top = 1.6 + tier * 1.8
+		local n = 18 + tier * 4
+		for i = 0, n - 1 do
+			local th = (i + 0.5) * 360 / n
+			local fromGate = math.abs(((th + 180) % 360) - 180)
+			local fromBox = math.abs(((th % 360) - 180))
+			if fromGate > A.gateHalfDeg + 4 and fromBox > 14 then
+				local w = 2 * math.pi * r / n + 0.3
+				arenaPart(model, base, {
+					Name = "StandStone",
+					Size = Vector3.new(w, top - 0.6, 2.8),
+					CFrame = ringCf(th, r, (top - 0.6) / 2),
+					Color = K.stone,
+					Material = Enum.Material.Slate,
+				})
+				arenaPart(model, base, {
+					Name = "StandBench",
+					Size = Vector3.new(w, 0.6, 2.4),
+					CFrame = ringCf(th, r + 0.1, top - 0.3),
+					Color = if i % 2 == 0 then K.wood else K.woodDark,
+					Material = Enum.Material.WoodPlanks,
+				})
+			end
+		end
+	end
+
+	-- Muro externo
+	local outer = A.outerR
+	local No = 28
+	for i = 0, No - 1 do
+		local th = (i + 0.5) * 360 / No
+		if math.abs(((th + 180) % 360) - 180) > A.gateHalfDeg then
+			arenaPart(model, base, {
+				Name = "OuterWall",
+				Size = Vector3.new(2 * math.pi * outer / No + 0.4, 9, 2),
+				CFrame = ringCf(th, outer, 4.5),
+				Color = if i % 2 == 0 then K.stone else K.stoneDark,
+				Material = Enum.Material.Slate,
+			})
+		end
+	end
+
+	-- 8 pilares com braseiros (fogo + luz quente)
+	for i = 0, 7 do
+		local th = i * 45 + 22.5
+		local pillarCf = ringCf(th, outer + 0.5, 5.5)
+		arenaPart(model, base, {
+			Name = "Pillar",
+			Size = Vector3.new(3.4, 11, 3.4),
+			CFrame = pillarCf,
+			Color = K.stone,
+			Material = Enum.Material.Slate,
+		})
+		arenaPart(model, base, {
+			Name = "PillarCap",
+			Size = Vector3.new(4, 0.8, 4),
+			CFrame = ringCf(th, outer + 0.5, 11.4),
+			Color = K.stoneDark,
+			Material = Enum.Material.Slate,
+		})
+		local bowl = arenaPart(model, base, {
+			Name = "Brazier",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.4, 3.2, 3.2),
+			CFrame = ringCf(th, outer + 0.5, 12.5) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = K.bronze,
+			Material = Enum.Material.Metal,
+		})
+		local fire = Instance.new("Fire")
+		fire.Size = 4
+		fire.Heat = 7
+		fire.Color = Color3.fromRGB(255, 140, 40)
+		fire.SecondaryColor = Color3.fromRGB(255, 220, 90)
+		fire.Parent = bowl
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 160, 70)
+		light.Range = 14
+		light.Brightness = 1.4
+		light.Shadows = false
+		light.Parent = bowl
+	end
+
+	-- Bandeiras vermelhas e azuis com coroa (atrás das arquibancadas)
+	for i = 0, 5 do
+		local th = 45 + i * 54
+		if math.abs(((th % 360) - 180)) > 14 then
+			local cf = ringCf(th, outer + 3, 0)
+			arenaPart(model, base, {
+				Name = "BannerPole",
+				Size = Vector3.new(0.5, 18, 0.5),
+				CFrame = cf * CFrame.new(0, 9, 0),
+				Color = K.woodDark,
+				Material = Enum.Material.Wood,
+			})
+			arenaPart(model, base, {
+				Name = "BannerTop",
+				Size = Vector3.new(4, 0.5, 0.5),
+				CFrame = cf * CFrame.new(0, 17.6, 0),
+				Color = K.gold,
+				Material = Enum.Material.Foil,
+			})
+			arenaPart(model, base, {
+				Name = "Banner",
+				Size = Vector3.new(3.4, 6.5, 0.2),
+				CFrame = cf * CFrame.new(0, 14, -0.4),
+				Color = if i % 2 == 0 then K.red else K.blue,
+				Material = Enum.Material.Fabric,
+			})
+			crown3d(model, base * cf * CFrame.new(0, 14, -0.6) * CFrame.Angles(0, math.pi, 0), 0.45)
+		end
+	end
+
+	-- Portão: dois pilares, arco de madeira com coroa dourada e rampa de pedra
+	local gateR = outer + 0.5
+	for _, sgn in { -1, 1 } do
+		arenaPart(model, base, {
+			Name = "GatePillar",
+			Size = Vector3.new(3.6, 12, 3.6),
+			CFrame = ringCf(sgn * (A.gateHalfDeg + 1), gateR, 6),
+			Color = K.stone,
+			Material = Enum.Material.Slate,
+		})
+		-- bandeiras azuis penduradas no portão
+		arenaPart(model, base, {
+			Name = "GateBanner",
+			Size = Vector3.new(2.6, 6, 0.2),
+			CFrame = ringCf(sgn * (A.gateHalfDeg + 1), gateR + 1.95, 5.5),
+			Color = K.blue,
+			Material = Enum.Material.Fabric,
+			CanCollide = false,
+		})
+	end
+	local gateW = 2 * gateR * math.sin(math.rad(A.gateHalfDeg + 1)) + 3.6
+	arenaPart(model, base, {
+		Name = "GateArch",
+		Size = Vector3.new(gateW, 1.8, 2.8),
+		CFrame = CFrame.new(0, 12.4, -gateR),
+		Color = K.wood,
+		Material = Enum.Material.WoodPlanks,
+	})
+	crown3d(model, base * CFrame.new(0, 14.2, -gateR - 0.4) * CFrame.Angles(0, math.pi, 0), 1.1)
+	arenaPart(model, base, {
+		Name = "GateRamp",
+		Size = Vector3.new(gateW - 4, 0.6, 12),
+		CFrame = CFrame.new(0, 0.3, -gateR - 5),
+		Color = K.stone,
+		Material = Enum.Material.Cobblestone,
+	})
+
+	-- Camarote real (fundo): plataforma, painel azul com moldura dourada e coroa
+	arenaPart(model, base, {
+		Name = "RoyalBox",
+		Size = Vector3.new(12, 8, 6),
+		CFrame = CFrame.new(0, 4, outer - 1),
+		Color = K.stone,
+		Material = Enum.Material.Slate,
+	})
+	arenaPart(model, base, {
+		Name = "RoyalTrim",
+		Size = Vector3.new(11, 7.6, 0.5),
+		CFrame = CFrame.new(0, 12.6, outer + 1.4),
+		Color = K.gold,
+		Material = Enum.Material.Foil,
+	})
+	arenaPart(model, base, {
+		Name = "RoyalPanel",
+		Size = Vector3.new(10, 6.6, 0.6),
+		CFrame = CFrame.new(0, 12.6, outer + 1.1),
+		Color = K.blue,
+		Material = Enum.Material.Fabric,
+	})
+	crown3d(model, base * CFrame.new(0, 12.8, outer + 0.7), 1.2)
+	crown3d(model, base * CFrame.new(0, 17.4, outer + 1.2), 0.9)
+
+	-- Estrada de pedra da praça até a rampa do portão
+	local from = PLAZA_OUTER_R
+	local to = A.r - gateR - 10
+	local len = to - from
+	local dir = polar(A.phi, 1, 0)
+	local mid = dir * (from + len / 2)
+	local road = Build.part({
+		Name = "ArenaRoad",
+		Size = Vector3.new(PATH_W, 0.4, len),
+		CFrame = CFrame.lookAt(mid + Vector3.new(0, 0.2, 0), Vector3.new(0, 0.2, 0)),
+		Color = hex(World.Palette.path),
+		Material = Enum.Material.Cobblestone,
+		CastShadow = false,
+	})
+	road.Parent = model
+
+	-- Pontos de largada dos lutadores (frente a frente, perpendicular ao portão)
+	local spawns: { [string]: number } = { SpawnA = -10, SpawnB = 10 }
+	for name, x in spawns do
+		local sp = Build.part({
+			Name = name,
+			Size = Vector3.new(4, 0.1, 4),
+			CFrame = base * CFrame.new(x, A.floorTop + 0.12, 0),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+		})
+		sp.Parent = model
+	end
+
+	model:SetAttribute("FloorRadius", A.floorR)
+	model:SetAttribute("FloorTop", A.floorTop)
+	model.Parent = root
+	return model
+end
+
+-- Área que a natureza deve evitar (arena + estrada até a praça).
+function World.arenaExclusions(): { any }
+	local c = World.Arena.center
+	local dir = polar(World.Arena.phi, 1, 0)
+	return {
+		{ center = Vector2.new(c.X, c.Z), radius = World.Arena.outerR + 12 },
+		{
+			a = Vector2.new(dir.X, dir.Z) * PLAZA_OUTER_R,
+			b = Vector2.new(c.X, c.Z),
+			radius = PATH_W / 2 + 6,
+		},
+	}
 end
 
 return World

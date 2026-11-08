@@ -139,6 +139,11 @@ local function dropCarry(thief: Player, returnTo: boolean)
 	end
 end
 
+-- Fase 3: quem entra numa luta da arena devolve a comida roubada ao dono (sem teleporte com item).
+function StealService.dropCarried(player: Player)
+	dropCarry(player, true)
+end
+
 local function tryStartSteal(thief: Player, foodModel: Model)
 	if carrying[thief] or channeling[thief] then
 		return

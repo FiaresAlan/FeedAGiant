@@ -1,6 +1,7 @@
 --!strict
--- ArenaService — Giant Clash: duelos 1v1 encenados entre Gigantes + campeonato automático a cada 15 min.
+-- ArenaService — Giant Clash: duelos 1v1 de BOXE DE VERDADE no coliseu (Fase 3) + campeonato a cada 15 min.
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
@@ -10,6 +11,10 @@ local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
 local ShopService = require(script.Parent.ShopService)
 local Guard = require(script.Parent.Parent.Guard)
+local World = require(script.Parent.Parent.World)
+local MapService = require(script.Parent.MapService)
+local CombatService = require(script.Parent.CombatService)
+local StealService = require(script.Parent.StealService)
 
 local A = Config.Arena
 local ArenaService = {}
@@ -92,16 +97,143 @@ local function stealFromLoser(winner: Player, loser: Player): { string }
 	return names
 end
 
--- Luta encenada: servidor decide o vencedor por poder + sorte, manda ticks para os clientes animarem.
--- Os ticks são neutros (mesmo dano para os dois) e só o último revela o vencedor: assim
--- ninguém descobre que vai perder e sai do jogo para escapar da derrota.
+---------------------------------------------------------------------------
+-- Fase 3: LUTA DE VERDADE na arena física (pedido do usuário: "mecânica de luta nas arenas").
+-- Antes: luta encenada (servidor sorteava o vencedor e mandava ticks). Agora os dois lutadores
+-- são levados ao coliseu (World.buildArena) e lutam com o boxe do CombatService (socos validados no
+-- servidor). Vence quem: nocautear o outro, empurrá-lo para fora do ringue, ou tiver mais vida no
+-- fim do tempo. Quem sai do jogo perde. Ninguém de fora acerta os lutadores (HitFilter).
+---------------------------------------------------------------------------
+local FIGHT_SECONDS = 60
+local COUNTDOWN = 3
+local fighting: { [Player]: Player } = {} -- lutador -> adversário
+
+local function arenaSpots(): (CFrame?, CFrame?)
+	local map = Workspace:FindFirstChild("Map")
+	local arena = map and map:FindFirstChild("Arena")
+	local sa = arena and arena:FindFirstChild("SpawnA")
+	local sb = arena and arena:FindFirstChild("SpawnB")
+	if sa and sb and sa:IsA("BasePart") and sb:IsA("BasePart") then
+		return sa.CFrame, sb.CFrame
+	end
+	return nil, nil
+end
+
+local function humanoidOf(p: Player): Humanoid?
+	local char = p.Character
+	return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local function sendTo(p: Player, at: CFrame, face: Vector3)
+	local char = p.Character
+	if char then
+		local pos = at.Position + Vector3.new(0, 3, 0)
+		char:PivotTo(CFrame.lookAt(pos, Vector3.new(face.X, pos.Y, face.Z)))
+	end
+end
+
+local function sendHome(p: Player)
+	local base = MapService.getBaseOf(p)
+	local char = p.Character
+	if base and char and p.Parent then
+		char:PivotTo(base.origin * CFrame.new(0, 6, 20))
+	end
+end
+
+-- Fora do ringue: longe do centro da arena (no plano) ou caiu abaixo do chão.
+local function ringedOut(p: Player): boolean
+	local char = p.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return true
+	end
+	local c = World.Arena.center
+	local flat = Vector3.new(root.Position.X - c.X, 0, root.Position.Z - c.Z).Magnitude
+	return flat > World.Arena.floorR + 1 or root.Position.Y < World.Arena.floorTop - 4
+end
+
+local function setFrozen(p: Player, frozen: boolean)
+	local hum = humanoidOf(p)
+	if hum then
+		hum.WalkSpeed = if frozen then 0 else 20
+		hum.JumpPower = if frozen then 0 else 50
+	end
+end
+
+-- Resultado da luta: vencedor, perdedor e o motivo ("ko" | "ring" | "time" | "left").
+local function fight(a: Player, b: Player): (Player?, Player?, string)
+	local spotA, spotB = arenaSpots()
+	if not spotA or not spotB then
+		return nil, nil, "noarena"
+	end
+	StealService.dropCarried(a)
+	StealService.dropCarried(b)
+	fighting[a], fighting[b] = b, a
+	CombatService.resetFighter(a)
+	CombatService.resetFighter(b)
+	sendTo(a, spotA, spotB.Position)
+	sendTo(b, spotB, spotA.Position)
+	setFrozen(a, true)
+	setFrozen(b, true)
+	task.wait(COUNTDOWN)
+	setFrozen(a, false)
+	setFrozen(b, false)
+
+	local t0 = os.clock()
+	local lastTick = 0
+	local winner, loser, reason = nil, nil, "time"
+	while true do
+		task.wait(0.2)
+		if not a.Parent or not b.Parent then
+			winner = if a.Parent then a elseif b.Parent then b else nil
+			loser = if winner == a then b else a
+			reason = "left"
+			break
+		end
+		local koA, koB = CombatService.isKO(a), CombatService.isKO(b)
+		local outA, outB = ringedOut(a), ringedOut(b)
+		if koA or koB then
+			winner, loser, reason = if koB then a else b, if koB then b else a, "ko"
+			break
+		elseif outA or outB then
+			-- se os dois saíram juntos, perde quem tem menos vida
+			if outA and outB then
+				local aBetter = CombatService.hpFraction(a) >= CombatService.hpFraction(b)
+				winner, loser = if aBetter then a else b, if aBetter then b else a
+			else
+				winner, loser = if outB then a else b, if outB then b else a
+			end
+			reason = "ring"
+			break
+		end
+		local now = os.clock()
+		if now - lastTick >= 0.5 then
+			lastTick = now
+			Remotes.ArenaState:FireAllClients({
+				kind = "Tick",
+				a = a.UserId,
+				b = b.UserId,
+				hpA = math.floor(CombatService.hpFraction(a) * 100),
+				hpB = math.floor(CombatService.hpFraction(b) * 100),
+				left = math.max(0, math.ceil(FIGHT_SECONDS - (now - t0))),
+			})
+		end
+		if now - t0 >= FIGHT_SECONDS then
+			local fa, fb = CombatService.hpFraction(a), CombatService.hpFraction(b)
+			local aWins = if fa == fb then math.random() < 0.5 else fa > fb
+			winner, loser, reason = if aWins then a else b, if aWins then b else a, "time"
+			break
+		end
+	end
+	fighting[a], fighting[b] = nil, nil
+	setFrozen(a, false)
+	setFrozen(b, false)
+	return winner, loser, reason
+end
+
 local function duelBody(a: Player, b: Player, tournament: boolean): Player?
 	local pa, pb = ArenaService.power(a), ArenaService.power(b)
-	local ra = pa * (1 + (math.random() * 2 - 1) * A.LuckRange)
-	local rb = pb * (1 + (math.random() * 2 - 1) * A.LuckRange)
-	local winner, loser = if ra >= rb then a else b, if ra >= rb then b else a
-	local hpA, hpB = 100, 100
-	local pay = {
+	Remotes.ArenaState:FireAllClients({
 		kind = "Start",
 		a = a.UserId,
 		b = b.UserId,
@@ -109,30 +241,24 @@ local function duelBody(a: Player, b: Player, tournament: boolean): Player?
 		bName = b.DisplayName,
 		powerA = math.floor(pa),
 		powerB = math.floor(pb),
-		seconds = A.RoundSeconds,
+		seconds = FIGHT_SECONDS,
+		countdown = COUNTDOWN,
+		real = true,
 		tournament = tournament,
-	}
-	Remotes.ArenaState:FireAllClients(pay)
-	local ticks = 8
-	for i = 1, ticks do
-		task.wait(A.RoundSeconds / ticks)
-		if not a.Parent or not b.Parent then
-			break
-		end
-		local hitA = 6 + math.random(0, 8)
-		local hitB = 6 + math.random(0, 8)
-		hpB = math.max(if i == ticks and winner == a then 0 else 1, hpB - hitA)
-		hpA = math.max(if i == ticks and winner == b then 0 else 1, hpA - hitB)
-		Remotes.ArenaState:FireAllClients({
-			kind = "Tick",
-			a = a.UserId,
-			b = b.UserId,
-			hpA = hpA,
-			hpB = hpB,
-			attacker = if i % 2 == 0 then a.UserId else b.UserId,
-		})
+	})
+	local winnerOrNil, loserOrNil, reason = fight(a, b)
+	if reason == "noarena" then
+		notify(a, "A arena não está disponível agora.", Color3.fromRGB(255, 120, 80))
+		notify(b, "A arena não está disponível agora.", Color3.fromRGB(255, 120, 80))
+		Remotes.ArenaState:FireAllClients({ kind = "End", a = a.UserId, b = b.UserId, winner = 0, aborted = true })
+		return nil
 	end
-	if not a.Parent or not b.Parent then
+	-- Volta para casa depois de alguns segundos (vencedor comemora na arena)
+	task.delay(3, function()
+		sendHome(a)
+		sendHome(b)
+	end)
+	if reason == "left" or not winnerOrNil or not loserOrNil then
 		-- Quem saiu desistiu: quem ficou leva a vitória (sem roubo nem moedas).
 		local stayed = if a.Parent then a elseif b.Parent then b else nil
 		local sp = stayed and DataService.get(stayed)
@@ -151,6 +277,8 @@ local function duelBody(a: Player, b: Player, tournament: boolean): Player?
 		})
 		return stayed
 	end
+	local winner: Player = winnerOrNil
+	local loser: Player = loserOrNil
 	local wp, lp = DataService.get(winner), DataService.get(loser)
 	local stolen = {}
 	if wp and lp then
@@ -175,6 +303,7 @@ local function duelBody(a: Player, b: Player, tournament: boolean): Player?
 		winnerName = winner.DisplayName,
 		stolen = stolen,
 		tournament = tournament,
+		reason = reason, -- "ko" | "ring" | "time"
 	})
 	Remotes.Notify:FireAllClients(
 		Locale.msg(
@@ -372,6 +501,18 @@ function ArenaService.init()
 		end
 		answerDuel(player, challengerId, accept)
 	end)
+	-- Isola a luta: lutadores só acertam o adversário; ninguém de fora acerta quem luta.
+	local previousFilter = CombatService.HitFilter
+	CombatService.HitFilter = function(attacker: Player, victim: Player): boolean
+		local oa, ov = fighting[attacker], fighting[victim]
+		if oa or ov then
+			return oa == victim
+		end
+		return if previousFilter then previousFilter(attacker, victim) else true
+	end
+	CombatService.IgnoreSafeZone = function(victim: Player): boolean
+		return (fighting :: { [Player]: any })[victim] ~= nil
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		pending[player] = nil
 		busy[player] = nil
