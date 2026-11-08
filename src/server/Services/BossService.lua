@@ -303,9 +303,11 @@ local function finish(f: Fight, won: boolean)
 		local uid, coins, xp, bonus, share = rw.uid, rw.coins, rw.xp, rw.bonus, rw.share
 		local box: string? = nil
 		local p = Players:GetPlayerByUserId(uid)
-		if p then
-			local profile: any = DataService.get(p)
-			if profile then
+		-- Online mas sem perfil carregado (saindo/entrando agora): vai para a fila como quem saiu,
+		-- em vez de perder o prêmio (revisão cega do painel pós-testes).
+		local profile: any = if p then DataService.get(p) else nil
+		if p and profile then
+			do
 				if won then
 					if winsToday(profile) < B.WinsPerDay then
 						if profile.bossDay ~= today() then
