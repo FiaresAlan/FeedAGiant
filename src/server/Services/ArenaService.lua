@@ -107,6 +107,11 @@ end
 local FIGHT_SECONDS = 60
 local COUNTDOWN = 3
 local fighting: { [Player]: Player } = {} -- lutador -> adversário
+local frozen: { [Player]: boolean } = {} -- na contagem (sem andar, pular nem socar)
+-- Revisão independente (Fase 3): UMA luta por vez no coliseu (duelos e campeonato).
+local arenaInUse = false
+-- Quem saiu no meio da luta (o castigo já foi aplicado ao sair, ver onReleasing).
+local leftMidFight: { [Player]: boolean } = {}
 
 local function arenaSpots(): (CFrame?, CFrame?)
 	local map = Workspace:FindFirstChild("Map")
@@ -133,10 +138,51 @@ local function sendTo(p: Player, at: CFrame, face: Vector3)
 end
 
 local function sendHome(p: Player)
+	if fighting[p] or busy[p] then
+		return -- já está em outra luta (campeonato): não tirar do ringue
+	end
 	local base = MapService.getBaseOf(p)
 	local char = p.Character
 	if base and char and p.Parent then
 		char:PivotTo(base.origin * CFrame.new(0, 6, 20))
+	end
+end
+
+-- Espera o personagem existir (quem aceitou morto/renascendo), até `timeout` segundos.
+local function waitCharacter(p: Player, timeout: number): boolean
+	local t0 = os.clock()
+	while os.clock() - t0 < timeout do
+		local char = p.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if root and hum and hum.Health > 0 then
+			return true
+		end
+		if not p.Parent then
+			return false
+		end
+		task.wait(0.2)
+	end
+	return false
+end
+
+-- Quem não está lutando e entra no ringue durante uma luta é levado para a rampa do portão
+-- (o filtro de golpes não impede empurrões de corpo).
+local function clearIntruders(a: Player, b: Player)
+	local c = World.Arena.center
+	local gateOut = CFrame.lookAt(c, Vector3.new(0, 0, 0)) * CFrame.new(0, 3, -(World.Arena.outerR + 8))
+	for _, p in Players:GetPlayers() do
+		if p ~= a and p ~= b then
+			local char = p.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if root and root:IsA("BasePart") then
+				local flat = Vector3.new(root.Position.X - c.X, 0, root.Position.Z - c.Z).Magnitude
+				if flat < World.Arena.floorR + 2 and root.Position.Y < World.Arena.floorTop + 12 then
+					(char :: Model):PivotTo(gateOut)
+					notify(p, "Luta em andamento! Assista das arquibancadas.", Color3.fromRGB(255, 200, 80))
+				end
+			end
+		end
 	end
 end
 
@@ -149,14 +195,32 @@ local function ringedOut(p: Player): boolean
 	end
 	local c = World.Arena.center
 	local flat = Vector3.new(root.Position.X - c.X, 0, root.Position.Z - c.Z).Magnitude
-	return flat > World.Arena.floorR + 1 or root.Position.Y < World.Arena.floorTop - 4
+	return flat > World.Arena.floorR + 1
+		or root.Position.Y < World.Arena.floorTop - 4
+		or root.Position.Y > World.Arena.floorTop + 40 -- voar acima do ringue também conta como fora
 end
 
-local function setFrozen(p: Player, frozen: boolean)
+-- Congela/solta guardando os valores originais (UseJumpPower ligado para JumpPower valer).
+local saved: { [Player]: { walk: number, jump: number, useJP: boolean } } = {}
+local function setFrozen(p: Player, on: boolean)
 	local hum = humanoidOf(p)
-	if hum then
-		hum.WalkSpeed = if frozen then 0 else 20
-		hum.JumpPower = if frozen then 0 else 50
+	if on then
+		frozen[p] = true
+		if hum and not saved[p] then
+			saved[p] = { walk = hum.WalkSpeed, jump = hum.JumpPower, useJP = hum.UseJumpPower }
+			hum.UseJumpPower = true
+			hum.WalkSpeed = 0
+			hum.JumpPower = 0
+		end
+	else
+		frozen[p] = nil
+		local s = saved[p]
+		saved[p] = nil
+		if hum and s then
+			hum.WalkSpeed = s.walk
+			hum.JumpPower = s.jump
+			hum.UseJumpPower = s.useJP
+		end
 	end
 end
 
@@ -165,6 +229,14 @@ local function fight(a: Player, b: Player): (Player?, Player?, string)
 	local spotA, spotB = arenaSpots()
 	if not spotA or not spotB then
 		return nil, nil, "noarena"
+	end
+	-- Quem aceitou morto/renascendo: espera o personagem (até 6 s), senão perde por desistência.
+	local readyA, readyB = waitCharacter(a, 6), waitCharacter(b, 6)
+	if not readyA or not readyB then
+		if not readyA and not readyB then
+			return nil, nil, "left"
+		end
+		return if readyA then a else b, if readyA then b else a, "noshow"
 	end
 	StealService.dropCarried(a)
 	StealService.dropCarried(b)
@@ -175,6 +247,7 @@ local function fight(a: Player, b: Player): (Player?, Player?, string)
 	sendTo(b, spotB, spotA.Position)
 	setFrozen(a, true)
 	setFrozen(b, true)
+	clearIntruders(a, b)
 	task.wait(COUNTDOWN)
 	setFrozen(a, false)
 	setFrozen(b, false)
@@ -209,6 +282,7 @@ local function fight(a: Player, b: Player): (Player?, Player?, string)
 		local now = os.clock()
 		if now - lastTick >= 0.5 then
 			lastTick = now
+			clearIntruders(a, b)
 			Remotes.ArenaState:FireAllClients({
 				kind = "Tick",
 				a = a.UserId,
@@ -258,15 +332,23 @@ local function duelBody(a: Player, b: Player, tournament: boolean): Player?
 		sendHome(a)
 		sendHome(b)
 	end)
-	if reason == "left" or not winnerOrNil or not loserOrNil then
-		-- Quem saiu desistiu: quem ficou leva a vitória (sem roubo nem moedas).
-		local stayed = if a.Parent then a elseif b.Parent then b else nil
+	if reason == "left" or reason == "noshow" or not winnerOrNil or not loserOrNil then
+		-- Desistência: quem ficou leva a vitória. Quem SAIU do jogo já levou a derrota e o castigo
+		-- no momento da saída (onReleasing); quem não apareceu (morto/renascendo) só leva a derrota.
+		local stayed = winnerOrNil or (if a.Parent then a elseif b.Parent then b else nil)
 		local sp = stayed and DataService.get(stayed)
 		if stayed and sp then
 			sp.arenaWins += 1
 			sp.arenaStreak += 1
 			DataService.markDirty(stayed)
 			PlotService.pushState(stayed)
+		end
+		local quitter = if reason == "noshow" then loserOrNil else nil
+		local qp = quitter and DataService.get(quitter)
+		if quitter and qp then
+			qp.arenaLosses += 1
+			qp.arenaStreak = 0
+			DataService.markDirty(quitter)
 		end
 		Remotes.ArenaState:FireAllClients({
 			kind = "End",
@@ -315,11 +397,29 @@ local function duelBody(a: Player, b: Player, tournament: boolean): Player?
 	return winner
 end
 
--- Envolve a luta: `busy` é limpo SEMPRE, mesmo se algo der erro no meio.
+-- Envolve a luta: trava a arena (uma luta por vez) e limpa TUDO no fim, mesmo com erro no meio
+-- (revisão independente: `fighting` e o congelamento ficavam presos depois de um erro).
+local currentTournament = false
 local function runDuel(a: Player, b: Player, tournament: boolean): Player?
 	busy[a], busy[b] = true, true
+	local waited = 0
+	while arenaInUse and waited < 90 do
+		task.wait(0.5)
+		waited += 0.5
+	end
+	if arenaInUse or not a.Parent or not b.Parent then
+		busy[a], busy[b] = nil, nil
+		return nil
+	end
+	arenaInUse = true
+	currentTournament = tournament
 	local ok, result = pcall(duelBody, a, b, tournament)
+	arenaInUse = false
+	fighting[a], fighting[b] = nil, nil
+	setFrozen(a, false)
+	setFrozen(b, false)
 	busy[a], busy[b] = nil, nil
+	leftMidFight[a], leftMidFight[b] = nil, nil
 	if not ok then
 		warn("[ArenaService] duelo:", result)
 		Remotes.ArenaState:FireAllClients({ kind = "End", a = a.UserId, b = b.UserId, winner = 0, aborted = true })
@@ -348,6 +448,9 @@ local function requestDuel(challenger: Player, targetId: number)
 			Locale.fmt("arena_wait", Locale.of(challenger), { n = cd }),
 			Color3.fromRGB(255, 120, 80)
 		)
+	end
+	if arenaInUse then
+		return notify(challenger, "A arena está ocupada. Tente quando a luta acabar.", Color3.fromRGB(255, 120, 80))
 	end
 	local tp = DataService.get(target)
 	if tp and tp.duelProtectionUntil > os.time() then
@@ -513,6 +616,51 @@ function ArenaService.init()
 	CombatService.IgnoreSafeZone = function(victim: Player): boolean
 		return (fighting :: { [Player]: any })[victim] ~= nil
 	end
+	-- Na luta: sem soco durante a contagem e sem recuperar vida (senão quem só bloqueia ganha
+	-- no tempo: revisão independente, regen de ~16 HP/s > dano de quem ataca um bloqueio).
+	CombatService.CanPunch = function(attacker: Player): boolean
+		return not frozen[attacker]
+	end
+	CombatService.NoRegen = function(player: Player): boolean
+		return (fighting :: { [Player]: any })[player] ~= nil
+	end
+	-- Sair do jogo no meio da luta = derrota com o mesmo castigo (aplicado ANTES do save final).
+	DataService.onReleasing(function(player: Player, data: DataService.Profile)
+		local opponent = fighting[player]
+		if not opponent then
+			return
+		end
+		leftMidFight[player] = true
+		data.arenaLosses += 1
+		data.arenaStreak = 0
+		if currentTournament or not opponent.Parent then
+			return
+		end
+		local wp = DataService.get(opponent)
+		if not wp then
+			return
+		end
+		local coins = math.min(A.WinCoinsCap, math.floor(data.coins * A.WinCoinsPct))
+		data.coins -= coins
+		wp.coins += coins
+		local slots = {}
+		for key, food in data.plot do
+			local def = Config.FoodById[food.id]
+			if def then
+				table.insert(slots, { key = key, order = Config.Rarities[def.rarity].order, id = food.id })
+			end
+		end
+		table.sort(slots, function(x, y)
+			return x.order > y.order
+		end)
+		local n = if wp.passes.ArenaVIP then A.WinStealFoodCount + 1 else A.WinStealFoodCount
+		for i = 1, math.min(n, #slots) do
+			data.plot[slots[i].key] = nil
+			PlotService.giveFood(opponent, slots[i].id, true)
+		end
+		DataService.markDirty(opponent)
+		notify(opponent, player.DisplayName .. " fugiu da luta! A vitória é sua.", Color3.fromRGB(255, 220, 80))
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		pending[player] = nil
 		busy[player] = nil

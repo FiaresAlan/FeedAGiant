@@ -27,6 +27,7 @@ export type Fighter = {
 	koUntil: number,
 	infiniteStaminaUntil: number,
 	lastHitBy: Player?,
+	lastHitAt: number, -- os.clock() do último golpe recebido (regen de vida)
 }
 
 local fighters: { [Player]: Fighter } = {}
@@ -40,6 +41,10 @@ CombatService.OnKO = nil :: ((attacker: Player, victim: Player) -> ())?
 CombatService.HitFilter = nil :: ((attacker: Player, victim: Player) -> boolean)?
 -- Fase 3: true = a zona segura do próprio pátio não vale (luta da arena acontece longe das bases).
 CombatService.IgnoreSafeZone = nil :: ((victim: Player) -> boolean)?
+-- Fase 3 (revisão): false = este jogador não pode socar agora (contagem da arena).
+CombatService.CanPunch = nil :: ((attacker: Player) -> boolean)?
+-- Fase 3 (revisão): true = sem recuperar vida (durante a luta da arena).
+CombatService.NoRegen = nil :: ((player: Player) -> boolean)?
 
 local function getFighter(player: Player): Fighter
 	local f = fighters[player]
@@ -55,6 +60,7 @@ local function getFighter(player: Player): Fighter
 			koUntil = 0,
 			infiniteStaminaUntil = 0,
 			lastHitBy = nil,
+			lastHitAt = 0,
 		}
 		fighters[player] = f
 	end
@@ -307,6 +313,10 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	if f.koUntil > now then
 		return
 	end
+	local canPunch = CombatService.CanPunch
+	if canPunch and not canPunch(attacker) then
+		return
+	end
 	local cd = if heavy then C.HeavyCooldown else C.PunchCooldown
 	local last = if heavy then f.lastHeavy else f.lastPunch
 	if now - last < cd then
@@ -409,6 +419,7 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	end
 	vf.hp = math.max(0, vf.hp - dmg)
 	vf.lastHitBy = attacker
+	vf.lastHitAt = now
 
 	local vroot = rootOf(victim)
 	if vroot then
@@ -515,7 +526,15 @@ function CombatService.init()
 					changed = true
 				end
 				local maxHp = CombatService.maxHp(player)
-				if f.hp < maxHp and now - f.comboAt > 3 and f.koUntil <= now then
+				-- Fora da arena: recupera vida 3 s depois do último golpe RECEBIDO (antes contava o
+				-- último soco dado, e quem só apanhava regenerava). Na luta da arena: sem regen.
+				local noRegen = CombatService.NoRegen
+				if
+					f.hp < maxHp
+					and now - f.lastHitAt > 3
+					and f.koUntil <= now
+					and not (noRegen and noRegen(player))
+				then
 					f.hp = math.min(maxHp, f.hp + math.max(4, maxHp * 0.03))
 					changed = true
 				end

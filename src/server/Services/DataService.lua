@@ -160,6 +160,15 @@ function DataService.markDirty(player: Player)
 	end
 end
 
+-- Roda `fn(player, data)` quando o jogador sai, ANTES do save final (o snapshot é tirado logo
+-- depois). Mudanças em `data` feitas sem yield entram no save. Usado pela arena: sair no meio
+-- da luta conta como derrota (revisão independente da Fase 3).
+function DataService.onReleasing(fn: (Player, Profile) -> ())
+	PlayerData.Releasing:Connect(function(player: Player, p: PlayerData.Profile)
+		fn(player, p.Data :: any)
+	end)
+end
+
 function DataService.saveNow(player: Player): boolean
 	return PlayerData.SaveNowAsync(player)
 end

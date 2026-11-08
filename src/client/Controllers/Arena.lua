@@ -20,6 +20,10 @@ local fight: Frame
 local timerLabel: TextLabel
 local countdownLabel: TextLabel
 local realFight = false
+-- Luta mostrada agora (revisão: Tick/End de outra luta e o "esconder" atrasado atrapalhavam a
+-- luta seguinte do campeonato).
+local fightSerial = 0
+local curA, curB = 0, 0
 local nameA: TextLabel
 local nameB: TextLabel
 local hpA: Frame
@@ -286,6 +290,8 @@ function Arena.init(gui: ScreenGui)
 			nameB.Text = string.format("(⚡%d)  %s", e.powerB, e.bName)
 			hpA.Size = UDim2.fromScale(1, 1)
 			hpB.Size = UDim2.fromScale(1, 1)
+			fightSerial += 1
+			curA, curB = e.a, e.b
 			realFight = e.real == true
 			timerLabel.Text = if realFight then tostring(e.seconds or "") else ""
 			sfx("Bell", if involved then 1 else 0.5)
@@ -312,6 +318,9 @@ function Arena.init(gui: ScreenGui)
 				UI.sfx("VO_Fight", if involved then 1 else 0.6)
 			end
 		elseif e.kind == "Tick" then
+			if e.a ~= curA or e.b ~= curB then
+				return
+			end
 			TweenService:Create(hpA, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpA / 100, 0, 1), 1) })
 				:Play()
 			TweenService:Create(hpB, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpB / 100, 0, 1), 1) })
@@ -327,6 +336,20 @@ function Arena.init(gui: ScreenGui)
 				end
 			end
 		elseif e.kind == "End" then
+			if e.a ~= curA or e.b ~= curB then
+				return
+			end
+			local serial = fightSerial
+			if e.aborted and (e.winner == 0 or e.winner == nil) then
+				fightTitle.Text = Locale.t("Luta cancelada.")
+				timerLabel.Text = ""
+				task.delay(3, function()
+					if fightSerial == serial then
+						fight.Visible = false
+					end
+				end)
+				return
+			end
 			if e.winner == player.UserId then
 				fightTitle.Text = Locale.fmt("fight_won", nil, {
 					x = if e.stolen and #e.stolen > 0
@@ -352,7 +375,9 @@ function Arena.init(gui: ScreenGui)
 				fightTitle.Text ..= "  " .. why
 			end
 			task.delay(4, function()
-				fight.Visible = false
+				if fightSerial == serial then
+					fight.Visible = false
+				end
 			end)
 		elseif e.kind == "Tournament" then
 			sfx("Bell", 1)
