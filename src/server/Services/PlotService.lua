@@ -14,6 +14,7 @@ local Guard = require(script.Parent.Parent.Guard)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 
 -- Maior índice de vaga possível (VIP tem mais vagas); o dono é conferido depois.
 local MAX_SLOT_INDEX = math.max(Config.PlotSlots, Config.PlotSlotsVIP)
@@ -348,25 +349,18 @@ end
 --   * 4.4 crítica: chance pequena (x3 com Picante) de x2,5 de crescimento.
 local streaks: { [Player]: { n: number, at: number } } = {}
 local function doFeed(player: Player, profile: DataService.Profile, def: Config.FoodDef, from: Vector3?)
-	local F = GameRules.Feed
 	local now = os.clock()
 	local trait = GameRules.traitOf(def.id)
-	local st = streaks[player]
-	if not st or now - st.at > F.StreakWindow then
-		st = { n = 0, at = now }
-		streaks[player] = st :: any
-	end
-	assert(st, "sequência")
-	st.n += 1 + (if trait then trait.streakBonus else 0)
-	st.at = now
-	local streakMult = GameRules.streakMult(st.n)
-	local critChance = F.CritChance * (if trait then trait.critMult else 1)
-	local crit = math.random() < critChance
-	local xp = Config.Rarities[def.rarity].xp * streakMult * (if trait then trait.xpMult else 1)
-	if crit then
-		xp *= F.CritMult
-	end
-	xp = math.floor(xp)
+	local prev = streaks[player]
+	local n = GameLogic.nextStreak(
+		if prev then prev.n else 0,
+		if prev then prev.at else nil,
+		now,
+		if trait then trait.streakBonus else 0
+	)
+	local st = { n = n, at = now }
+	streaks[player] = st
+	local xp, crit, streakMult = GameLogic.feedXp(def.id, def.rarity, st.n, math.random())
 	if trait and trait.fillHunger then
 		profile.hunger = 100
 	end

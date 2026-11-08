@@ -1,0 +1,224 @@
+--!strict
+-- GameLogic — regras PURAS dos sistemas de 08/11/2026 (sem Players, DataStore, rede nem modelos).
+-- Os serviços chamam estas funções, e tests/GameLogic.spec.luau testa exatamente o mesmo código
+-- (S6 da rubrica: "teste automatizado sem publicar"). Nada aqui guarda estado.
+local Config = require(game.ReplicatedStorage.Shared.Config)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+
+local GameLogic = {}
+
+---------------------------------------------------------------------------
+-- 4.1 Sequência de alimentação
+---------------------------------------------------------------------------
+-- Próximo estado da sequência. `prevAt` nil = primeira alimentação.
+function GameLogic.nextStreak(prevN: number, prevAt: number?, now: number, streakBonus: number): number
+	local n = if prevAt == nil or now - prevAt > GameRules.Feed.StreakWindow then 0 else prevN
+	return n + 1 + streakBonus
+end
+
+-- XP final de uma alimentação (servidor decide). rand ∈ [0,1).
+function GameLogic.feedXp(foodId: string, rarity: string, streak: number, rand: number): (number, boolean, number)
+	local F = GameRules.Feed
+	local trait = GameRules.traitOf(foodId)
+	local mult = GameRules.streakMult(streak)
+	local crit = rand < F.CritChance * (if trait then trait.critMult else 1)
+	local xp = Config.Rarities[rarity].xp * mult * (if trait then trait.xpMult else 1)
+	if crit then
+		xp *= F.CritMult
+	end
+	return math.floor(xp), crit, mult
+end
+
+---------------------------------------------------------------------------
+-- Sistema 1: coleção (transferência de crescimento)
+---------------------------------------------------------------------------
+function GameLogic.totalXp(level: number, xp: number): number
+	local total = xp
+	for l = 1, level - 1 do
+		total += Config.xpNeeded(l)
+	end
+	return total
+end
+
+function GameLogic.fromTotalXp(total: number): (number, number)
+	local level = 1
+	while level < Config.Giant.MaxLevel and total >= Config.xpNeeded(level) do
+		total -= Config.xpNeeded(level)
+		level += 1
+	end
+	return level, math.floor(total)
+end
+
+-- Nível/XP que uma espécie NOVA herda do gigante ativo (fração configurável, 30%).
+function GameLogic.inherit(level: number, xp: number): (number, number)
+	return GameLogic.fromTotalXp(math.floor(GameLogic.totalXp(level, xp) * GameRules.Roster.TransferFraction))
+end
+
+---------------------------------------------------------------------------
+-- Sistema 2: exposição e renda offline
+---------------------------------------------------------------------------
+function GameLogic.displayRate(levels: { number }): number
+	local R = GameRules.Roster
+	local total = 0
+	for i, lv in levels do
+		if i > R.DisplaySlots then
+			break
+		end
+		total += R.DisplayBase + R.DisplayPerLevel * lv
+	end
+	return total
+end
+
+-- Moedas pagas ao voltar (metade da taxa, teto de 8 h, mínimo para valer a mensagem).
+function GameLogic.offlineGain(lastSettled: number, now: number, rate: number): number
+	local R = GameRules.Roster
+	if lastSettled <= 0 or now <= lastSettled or rate <= 0 then
+		return 0
+	end
+	local away = math.min(now - lastSettled, R.OfflineCapSeconds)
+	if away < R.OfflineMinSeconds then
+		return 0
+	end
+	return math.floor(away * rate * R.OfflineRate)
+end
+
+---------------------------------------------------------------------------
+-- Sistema 3: batalha por turnos
+---------------------------------------------------------------------------
+export type Fx = { stun: boolean, weak: number, guard: boolean }
+
+-- Sorteio de um golpe. randHit/randDmg/randFx ∈ [0,1). Muda attFx/defFx (efeitos).
+function GameLogic.rollMove(
+	power: number,
+	move: GameRules.MoveDef,
+	attFx: Fx,
+	defFx: Fx,
+	randHit: number,
+	randDmg: number,
+	randFx: number
+): (boolean, number, string?)
+	local TB = GameRules.TurnBattle
+	local acc = move.accuracy
+	if defFx.guard then
+		acc *= TB.GuardAccuracy
+		defFx.guard = false
+	end
+	local hit = randHit < acc
+	local dmg = 0
+	local effect: string? = nil
+	if hit then
+		dmg = power * move.power * TB.DamageScale * (0.9 + randDmg * 0.2)
+		if defFx.weak > 0 then
+			dmg *= TB.WeakenMult
+			defFx.weak -= 1
+		end
+		dmg = math.max(1, math.floor(dmg))
+		if move.effect and move.effect ~= "guard" and randFx < (move.effectChance or 1) then
+			effect = move.effect
+			if effect == "stun" then
+				defFx.stun = true
+			elseif effect == "weaken" then
+				defFx.weak = TB.WeakenTurns
+			end
+		end
+	end
+	if move.effect == "guard" then
+		attFx.guard = true
+		effect = "guard"
+	end
+	return hit, dmg, effect
+end
+
+-- Quem venceu e se ganha prêmio (AFK — nenhuma escolha — nunca ganha).
+function GameLogic.battleOutcome(meHp: number, meMax: number, foeHp: number, foeMax: number, acted: number): boolean
+	local won = foeHp <= 0 or (meHp > 0 and meHp / meMax > foeHp / foeMax)
+	return won and acted > 0
+end
+
+---------------------------------------------------------------------------
+-- Sistema 4: recompensas do Dragão (por UserId)
+---------------------------------------------------------------------------
+export type BossReward = { uid: number, coins: number, xp: number, bonus: number, share: number }
+
+function GameLogic.bossRewards(
+	damage: { [number]: number },
+	hits: { [number]: number },
+	levels: { [number]: number },
+	won: boolean
+): { BossReward }
+	local BI = GameRules.BossIsland
+	local total = 0
+	for _, d in damage do
+		total += d
+	end
+	local valid: { number } = {}
+	for uid, d in damage do
+		if d >= total * BI.MinShare or (hits[uid] or 0) >= BI.MinHits then
+			table.insert(valid, uid)
+		end
+	end
+	table.sort(valid)
+	local pool = BI.BonusPoolPerPlayer * #valid
+	local out: { BossReward } = {}
+	for _, uid in valid do
+		local level = levels[uid] or 1
+		local share = if total > 0 then (damage[uid] or 0) / total else 0
+		local k = if won then 1 else BI.FailFraction
+		table.insert(out, {
+			uid = uid,
+			coins = math.floor((BI.JoinCoinsBase + BI.JoinCoinsPerLevel * level) * k),
+			xp = math.floor((BI.JoinXpBase + BI.JoinXpPerLevel * level) * k),
+			bonus = if won then math.floor(pool * share) else 0,
+			share = share,
+		})
+	end
+	return out
+end
+
+---------------------------------------------------------------------------
+-- Recompensas pendentes: o que pagar agora (idempotente por id)
+---------------------------------------------------------------------------
+export type PendingEntry = { id: string, coins: number, xp: number, box: string? }
+
+-- Devolve (entradas a pagar, nova lista de ids pagos). Ids já pagos e repetidos são ignorados.
+function GameLogic.pendingToPay(claimed: { string }, entries: { any }, keep: number): ({ PendingEntry }, { string })
+	local newClaimed = table.clone(claimed)
+	local pay: { PendingEntry } = {}
+	for _, e in entries do
+		if type(e) == "table" and type(e.id) == "string" and not table.find(newClaimed, e.id) then
+			table.insert(pay, {
+				id = e.id,
+				coins = math.max(0, math.floor(tonumber(e.coins) or 0)),
+				xp = math.max(0, math.floor(tonumber(e.xp) or 0)),
+				box = if type(e.box) == "string" then e.box else nil,
+			})
+			table.insert(newClaimed, e.id)
+			while #newClaimed > keep do
+				table.remove(newClaimed, 1)
+			end
+		end
+	end
+	return pay, newClaimed
+end
+
+---------------------------------------------------------------------------
+-- 4.5 Carne Gigante
+---------------------------------------------------------------------------
+function GameLogic.meatPortions(players: number): number
+	local M = GameRules.Meat
+	return math.min(M.PortionsMax, M.PortionsBase + M.PortionsPerPlayer * math.max(players, 0))
+end
+
+-- Motivo da recusa (nil = pode cortar).
+function GameLogic.meatRefusal(portionsLeft: number, cutsByPlayer: number, carrying: boolean): string?
+	if portionsLeft <= 0 then
+		return "gone"
+	elseif cutsByPlayer >= GameRules.Meat.PerPlayer then
+		return "limit"
+	elseif carrying then
+		return "carrying"
+	end
+	return nil
+end
+
+return GameLogic

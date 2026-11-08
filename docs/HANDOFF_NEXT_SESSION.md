@@ -63,7 +63,7 @@ câmera do jogador.
 - O botão "GOLPE FORTE" e o remote `RequestGiantSpecial` não são mais usados (o remote ficou na lista só por compatibilidade).
 
 ### PRÓXIMA TAREFA PRIORITÁRIA
-1. ~~Teste com 2 jogadores~~ FEITO (evidências §9); painel final 7,5. Próximo: specs automáticas em `tests/` (batalha AFK/turno duplo, limite de 2 cortes, divisão do bônus, resgate idempotente) e medir a ilha no emulador de celular.
+1. ~~Teste com 2 jogadores~~ FEITO (evidências §9); painel final 7,5. Specs FEITAS: `tests/GameLogic.spec.luau` (33 testes do `src/server/GameLogic.lua`, 72/72 passando; evidências §10). Próximo: medir a ilha e a animação no emulador de celular e um novo painel de 3 revisores.
 2. **Testes automáticos** dos sistemas novos em `tests/` (sequência, transferência 30%, renda offline com teto, pendências idempotentes).
 3. Fotos das 12 espécies comendo/comemorando (contact sheet) para a rubrica de animação; avaliar separar cabeça/corpo do dragão e do
    humano no Blender (requer novo upload: pedir autorização).

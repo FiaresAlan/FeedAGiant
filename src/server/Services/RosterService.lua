@@ -27,6 +27,7 @@ local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
 local Guard = require(script.Parent.Parent.Guard)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 
 local RosterService = {}
 local R = GameRules.Roster
@@ -44,13 +45,13 @@ local built: { [Player]: Folder } = {}
 
 -- Moedas por segundo da exposição (online).
 function RosterService.rate(profile: DataService.Profile): number
-	local total = 0
+	local levels = {}
 	for _, id in profile.display do
 		if id ~= profile.species and profile.ownedSpecies[id] then
-			total += R.DisplayBase + R.DisplayPerLevel * GiantService.levelOf(profile, id)
+			table.insert(levels, GiantService.levelOf(profile, id))
 		end
 	end
-	return total
+	return GameLogic.displayRate(levels)
 end
 
 -- Paga o tempo desde a última liquidação (online). Frações ficam para a próxima.
@@ -177,8 +178,8 @@ function RosterService.onJoin(player: Player)
 	local rate = RosterService.rate(profile)
 	if last > 0 and now > last and rate > 0 then
 		local away = math.min(now - last, R.OfflineCapSeconds)
-		if away >= R.OfflineMinSeconds then
-			local gain = math.floor(away * rate * R.OfflineRate)
+		do
+			local gain = GameLogic.offlineGain(last, now, rate)
 			if gain > 0 then
 				profile.coins += gain
 				Remotes.Notify:FireClient(

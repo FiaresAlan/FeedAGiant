@@ -86,3 +86,13 @@ Cópia `FeedAGiant-s1.rbxl`, modo do Studio "Servidor e clientes" com Player1 (U
   (resgate idempotente já medido na seção 6).
 
 **Ainda não testado:** reentrada real do Player2 em outro servidor (o Studio não reconecta clientes de teste), celular e controle.
+
+## 10. Testes automáticos dos sistemas novos
+As regras puras saíram dos serviços para `src/server/GameLogic.lua` (sequência, XP da alimentação/crítica, transferência de 30%,
+taxa e renda offline, sorteio dos golpes, resultado da batalha com regra anti-AFK, recompensas do Dragão por UserId, pendências
+idempotentes, porções e recusas da carne). Os serviços chamam essas funções; `tests/GameLogic.spec.luau` testa o mesmo código.
+33 testes novos, com os números medidos em jogo como valor esperado (14 XP da maçã, jacaré nível 7, 8.370 e 22.320 de renda
+offline, 308/123/bônus do Dragão com 2 jogadores, pendência de 1.200 paga uma vez).
+Resultado no Studio: **`[FwjelaaTests] 72 passed, 0 failed, 8 spec modules`** (39 antigos + 33 novos).
+Depois da refatoração, reteste no jogo: alimentação (crítica de 35 XP), compra de espécie com herança e uma batalha inteira
+(vitória, 84 moedas) sem erro no console. Verificador: PASS (77 arquivos).

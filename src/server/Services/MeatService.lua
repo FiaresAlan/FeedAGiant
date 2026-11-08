@@ -21,6 +21,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DropService = require(script.Parent.DropService)
 local Guard = require(script.Parent.Parent.Guard)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 
 local MeatService = {}
 local M = GameRules.Meat
@@ -172,20 +173,21 @@ local function finish(f: Feast)
 end
 
 local function tryCut(player: Player, f: Feast)
-	if f.over or f.portions <= 0 then
+	if f.over or not Guard.withinReach(player, f.core, M.Reach) then
 		return
 	end
-	if not Guard.withinReach(player, f.core, M.Reach) then
-		return
-	end
+	-- Regra pura (testada em tests/GameLogic.spec): acabou / limite por jogador / já carregando.
 	local done = f.cuts[player.UserId] or 0
-	if done >= M.PerPlayer then
+	local carrying = DropService.isCarrying(player) or player:GetAttribute("CarryingSteal") ~= nil
+	local refusal = GameLogic.meatRefusal(f.portions, done, carrying)
+	if refusal == "limit" then
 		Remotes.Notify:FireClient(player, Locale.msg("meat_limit", { n = M.PerPlayer }, Color3.fromRGB(255, 170, 60)))
 		return
-	end
-	-- Teste com 2 jogadores (08/11/2026): quem já carregava algo era recusado em silêncio.
-	if DropService.isCarrying(player) or player:GetAttribute("CarryingSteal") then
+	elseif refusal == "carrying" then
+		-- Teste com 2 jogadores (08/11/2026): antes, era recusado em silêncio.
 		Remotes.Notify:FireClient(player, Locale.msg("meat_carrying", nil, Color3.fromRGB(255, 170, 60)))
+		return
+	elseif refusal then
 		return
 	end
 	local root = Guard.rootOf(player)
@@ -216,7 +218,7 @@ function MeatService.run()
 	Remotes.MeatState:FireAllClients({ kind = "Warn", pos = pos, left = M.WarnSeconds })
 	task.wait(M.WarnSeconds)
 	local n = #Players:GetPlayers()
-	local portions = math.min(M.PortionsMax, M.PortionsBase + M.PortionsPerPlayer * n)
+	local portions = GameLogic.meatPortions(n)
 	local model, core = buildMeat(pos + Vector3.new(0, 160, 0))
 	model.Parent = Workspace
 	-- queda de 2,5 s (acelerando) e impacto

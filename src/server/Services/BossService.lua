@@ -37,6 +37,7 @@ local CombatService = require(script.Parent.CombatService)
 local World = require(script.Parent.Parent.World)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 local ProgressService = require(script.Parent.ProgressService)
 
 local BossService = {}
@@ -297,25 +298,9 @@ local function finish(f: Fight, won: boolean)
 		return
 	end
 	f.over = true
-	local BI = GameRules.BossIsland
-	local total = 0
-	for _, d in f.damage do
-		total += d
-	end
-	local valid: { number } = {}
-	for uid, d in f.damage do
-		if d >= total * BI.MinShare or (f.hits[uid] or 0) >= BI.MinHits then
-			table.insert(valid, uid)
-		end
-	end
-	local pool = BI.BonusPoolPerPlayer * #valid
-	for _, uid in valid do
-		local level = f.levels[uid] or 1
-		local share = if total > 0 then (f.damage[uid] or 0) / total else 0
-		local k = if won then 1 else BI.FailFraction
-		local coins = math.floor((BI.JoinCoinsBase + BI.JoinCoinsPerLevel * level) * k)
-		local xp = math.floor((BI.JoinXpBase + BI.JoinXpPerLevel * level) * k)
-		local bonus = if won then math.floor(pool * share) else 0
+	local rewards = GameLogic.bossRewards(f.damage, f.hits, f.levels, won)
+	for _, rw in rewards do
+		local uid, coins, xp, bonus, share = rw.uid, rw.coins, rw.xp, rw.bonus, rw.share
 		local box: string? = nil
 		local p = Players:GetPlayerByUserId(uid)
 		if p then
@@ -369,7 +354,7 @@ local function finish(f: Fight, won: boolean)
 		end
 	end
 	if won then
-		Remotes.Notify:FireAllClients(Locale.msg("boss_down", { n = #valid }, Color3.fromRGB(255, 200, 60)))
+		Remotes.Notify:FireAllClients(Locale.msg("boss_down", { n = #rewards }, Color3.fromRGB(255, 200, 60)))
 		Remotes.Fireworks:FireAllClients({ pos = f.center, big = true })
 		TweenService:Create(f.hitbox, TweenInfo.new(1), { Transparency = 1 }):Play()
 	else

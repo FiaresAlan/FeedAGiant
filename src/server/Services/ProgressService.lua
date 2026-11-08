@@ -30,6 +30,7 @@ local PlotService = require(script.Parent.PlotService)
 local ShopService = require(script.Parent.ShopService)
 local Guard = require(script.Parent.Parent.Guard)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 
 local ProgressService = {}
 
@@ -259,32 +260,22 @@ function ProgressService.claimPending(player: Player)
 		return
 	end
 	local paid: { [string]: boolean } = {}
-	local claimed = profile.bossClaimed
-	for _, e in list do
-		if type(e) == "table" and type(e.id) == "string" and not table.find(claimed, e.id) then
-			local coins = math.max(0, math.floor(tonumber(e.coins) or 0))
-			local xp = math.max(0, math.floor(tonumber(e.xp) or 0))
-			profile.coins += coins
-			table.insert(claimed, e.id)
-			while #claimed > GameRules.BossIsland.PendingKeep do
-				table.remove(claimed, 1)
-			end
-			paid[e.id] = true
-			if xp > 0 then
-				GiantService.addXp(player, xp, nil, nil)
-			end
-			if type(e.box) == "string" and Config.LunchboxById[e.box] then
-				ShopService.openBox(
-					player,
-					e.box,
-					{ free = true, force = true, minRarity = Config.Boss.RewardMinRarity }
-				)
-			end
-			Remotes.Notify:FireClient(
-				player,
-				Locale.msg("boss_pending", { n = Util.formatNumber(coins) }, Color3.fromRGB(255, 215, 80))
-			)
+	local toPay, newClaimed = GameLogic.pendingToPay(profile.bossClaimed, list, GameRules.BossIsland.PendingKeep)
+	profile.bossClaimed = newClaimed
+	local claimed = newClaimed
+	for _, e in toPay do
+		profile.coins += e.coins
+		paid[e.id] = true
+		if e.xp > 0 then
+			GiantService.addXp(player, e.xp, nil, nil)
 		end
+		if e.box and Config.LunchboxById[e.box] then
+			ShopService.openBox(player, e.box, { free = true, force = true, minRarity = Config.Boss.RewardMinRarity })
+		end
+		Remotes.Notify:FireClient(
+			player,
+			Locale.msg("boss_pending", { n = Util.formatNumber(e.coins) }, Color3.fromRGB(255, 215, 80))
+		)
 	end
 	DataService.markDirty(player)
 	-- salva agora (moedas + ids juntos) e só depois limpa a fila. Se o save falhar, a fila fica:

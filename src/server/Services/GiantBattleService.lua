@@ -31,6 +31,7 @@ local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 local DataService = require(script.Parent.DataService)
 local GiantService = require(script.Parent.GiantService)
 local PlotService = require(script.Parent.PlotService)
@@ -204,25 +205,13 @@ type Fx = { stun: boolean, weak: number, guard: boolean }
 
 -- Resolve um golpe. Devolve (acertou, dano, efeito aplicado).
 local function resolve(att: Side, def: Side, move: GameRules.MoveDef, attFx: Fx, defFx: Fx): (boolean, number, string?)
-	local TB = GameRules.TurnBattle
-	local acc = move.accuracy
-	if defFx.guard then
-		acc *= TB.GuardAccuracy
-		defFx.guard = false
-	end
 	local dir = (def.home.Position - att.home.Position).Unit
 	local base = att.model:GetPivot()
 	animate(att, base + dir * G.LungeDistance, 0.18, Enum.EasingStyle.Back)
-	local hit = math.random() < acc
-	local dmg = 0
-	local effect: string? = nil
+	-- sorteio no GameLogic (o mesmo código testado em tests/GameLogic.spec)
+	local hit, dmg, effect =
+		GameLogic.rollMove(att.power, move, attFx, defFx, math.random(), math.random(), math.random())
 	if hit then
-		dmg = att.power * move.power * TB.DamageScale * (0.9 + math.random() * 0.2)
-		if defFx.weak > 0 then
-			dmg *= TB.WeakenMult
-			defFx.weak -= 1
-		end
-		dmg = math.max(1, math.floor(dmg))
 		setHp(def, def.hp - dmg)
 		flash(def, Color3.fromRGB(255, 60, 60))
 		Remotes.CombatEvent:FireAllClients({ kind = "Impact", pos = def.home.Position })
@@ -231,14 +220,6 @@ local function resolve(att: Side, def: Side, move: GameRules.MoveDef, attFx: Fx,
 			animate(def, dbase * CFrame.Angles(math.rad(-10), 0, 0) + dir * 1.5, 0.1)
 			animate(def, dbase, 0.2)
 		end)
-		if move.effect and move.effect ~= "guard" and math.random() < (move.effectChance or 1) then
-			effect = move.effect
-			if effect == "stun" then
-				defFx.stun = true
-			elseif effect == "weaken" then
-				defFx.weak = TB.WeakenTurns
-			end
-		end
 	else
 		-- ERROU: o alvo desvia de lado
 		local dbase = def.model:GetPivot()
@@ -247,10 +228,6 @@ local function resolve(att: Side, def: Side, move: GameRules.MoveDef, attFx: Fx,
 			animate(def, dbase + side * 3, 0.12)
 			animate(def, dbase, 0.2)
 		end)
-	end
-	if move.effect == "guard" then
-		attFx.guard = true -- esquiva: o próximo golpe do adversário erra mais (mesmo se este errar)
-		effect = "guard"
 	end
 	animate(att, base, 0.25)
 	return hit, dmg, effect
@@ -437,12 +414,9 @@ local function run(player: Player, speciesId: string)
 		end
 	end
 	state.over = true
-	local won = foe.hp <= 0 or (me.hp > 0 and me.hp / me.maxHp > foe.hp / foe.maxHp)
-	if not player.Parent then
-		won = false
-	end
 	-- Sem escolher nenhum golpe (AFK, o servidor jogou sozinho) não há prêmio: anti-fazenda.
-	if (state.acted or 0) == 0 then
+	local won = GameLogic.battleOutcome(me.hp, me.maxHp, foe.hp, foe.maxHp, state.acted or 0)
+	if not player.Parent then
 		won = false
 	end
 	finish(player, me, foe, won, if rounds >= TB.MaxRounds and me.hp > 0 and foe.hp > 0 then "tempo" else nil)

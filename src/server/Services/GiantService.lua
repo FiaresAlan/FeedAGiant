@@ -7,8 +7,8 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
-local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Hooks = require(script.Parent.Parent.Hooks)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
@@ -597,22 +597,8 @@ function GiantService.applyDecay(player: Player, profile: DataService.Profile): 
 end
 
 -- XP total acumulado (todos os níveis + XP atual): base da transferência de crescimento.
-function GiantService.totalXp(level: number, xp: number): number
-	local total = xp
-	for l = 1, level - 1 do
-		total += Config.xpNeeded(l)
-	end
-	return total
-end
-
-function GiantService.fromTotalXp(total: number): (number, number)
-	local level = 1
-	while level < Config.Giant.MaxLevel and total >= Config.xpNeeded(level) do
-		total -= Config.xpNeeded(level)
-		level += 1
-	end
-	return level, math.floor(total)
-end
+GiantService.totalXp = GameLogic.totalXp
+GiantService.fromTotalXp = GameLogic.fromTotalXp
 
 -- Sistema 1 (coleção): ao ganhar uma espécie NOVA, ela nasce com GameRules.Roster.TransferFraction
 -- (30%) do XP total do gigante ATIVO naquele momento. Uma vez só por espécie (registro criado aqui;
@@ -627,8 +613,7 @@ function GiantService.grantSpecies(player: Player, speciesId: string): number
 	if rec then
 		return rec.level
 	end
-	local total = GiantService.totalXp(profile.level, profile.xp)
-	local level, xp = GiantService.fromTotalXp(math.floor(total * GameRules.Roster.TransferFraction))
+	local level, xp = GameLogic.inherit(profile.level, profile.xp)
 	profile.giants[speciesId] = { level = level, xp = xp, inherited = true }
 	DataService.markDirty(player)
 	return level
