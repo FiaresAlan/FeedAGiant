@@ -22,3 +22,7 @@ roblox.toml
 # Places de teste gerados pelo Rojo
 build/
 
+
+# Panoramas HDRI baixados (refazíveis por tools/make_sky.py)
+assets/sky/_cache/
+

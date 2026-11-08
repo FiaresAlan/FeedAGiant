@@ -1,0 +1,15 @@
+{
+  "source": "polyhaven:qwantani_sunset_puresky",
+  "url": "https://polyhaven.com/a/qwantani_sunset_puresky",
+  "license": "CC0 1.0",
+  "sun_dir": [
+    -0.9918,
+    0.0473,
+    0.1188
+  ],
+  "sun_elevation_deg": 2.71,
+  "yaw": -134.65,
+  "size": 512,
+  "warm": 0.7,
+  "remake": "python -I tools/make_sky.py dourado --from qwantani_sunset_puresky --azimuth -96.83 --size 512 --warm 0.7"
+}
