@@ -248,7 +248,7 @@ local function buildTopBar(gui: ScreenGui)
 		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		TextScaled = false,
-		TextSize = 22,
+		TextSize = 24,
 		TextWrapped = true,
 		TextColor3 = UI.Colors.Accent,
 		LayoutOrder = 1,
@@ -298,7 +298,7 @@ local function buildTopBar(gui: ScreenGui)
 		layout()
 	end)
 	local cam0 = Workspace.CurrentCamera
-	collapsed = cam0 ~= nil and cam0.ViewportSize.Y < 560
+	collapsed = cam0 ~= nil and cam0.ViewportSize.Y < 430 -- revisão: XP e fome visíveis sempre que couber
 	toggle.Text = if collapsed then "▼" else "▲"
 end
 

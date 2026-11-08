@@ -149,6 +149,7 @@ local function world(map: Instance)
 				or n == "FarSea"
 				or n == "PondWater"
 				or n == "PondRim"
+				or n == "GrassPatch" -- revisão do mundo: os discos escuros pareciam buracos na grama de terreno
 			then
 				d.Transparency = 1
 				d.CanCollide = false

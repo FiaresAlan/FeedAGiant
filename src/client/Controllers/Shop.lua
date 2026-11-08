@@ -225,8 +225,8 @@ local function buildBoxesTab(parent: Frame)
 			TextColor3 = Color3.new(1, 1, 1),
 		})
 		local oddsBtn = UI.button(card, "CHANCES", UI.Colors.Blue, {
-			Size = UDim2.fromOffset(140, 44),
-			Position = UDim2.new(1, -152, 0.5, 8),
+			Size = UDim2.fromOffset(140, 48),
+			Position = UDim2.new(1, -152, 0.5, 6),
 		})
 		oddsBtn.Activated:Connect(function()
 			Shop.showOdds(box.id, nil, box.name)

@@ -97,7 +97,7 @@ local function placeAll(gui: ScreenGui)
 	local k = UI.deviceScale()
 	-- Embaixo no meio, acima do botão ALIMENTAR (que só aparece perto do gigante).
 	card.Position = UDim2.new(0.5, 0, 1, -math.floor(140 * k))
-	arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(240 * k))
+	arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(252 * k))
 	local _ = gui
 end
 
@@ -157,7 +157,7 @@ end
 function Drops.init(gui: ScreenGui)
 	card = UI.panel(gui, {
 		Name = "DropsPanel",
-		Size = UDim2.fromOffset(460, 84),
+		Size = UDim2.fromOffset(520, 96),
 		AnchorPoint = Vector2.new(0.5, 1),
 		BackgroundTransparency = 0.08,
 		Visible = false,
@@ -169,18 +169,18 @@ function Drops.init(gui: ScreenGui)
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
 	cardTitle = UI.label(card, "", {
-		Size = UDim2.new(1, -24, 0, 24),
+		Size = UDim2.new(1, -24, 0, 28),
 		Position = UDim2.fromOffset(14, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 22,
+		TextSize = 24,
 	})
 	cardState = UI.label(card, "", {
-		Size = UDim2.new(1, -24, 0, 22),
-		Position = UDim2.fromOffset(14, 57),
+		Size = UDim2.new(1, -24, 0, 26),
+		Position = UDim2.fromOffset(14, 62),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 20,
+		TextSize = 22,
 		Font = UI.FontBody,
 	})
 	arrow = UI.title(gui, "", {
@@ -193,16 +193,16 @@ function Drops.init(gui: ScreenGui)
 	-- Caixas guardadas: chip + janela com "ABRIR" (o jogador escolhe quando).
 	boxChip = UI.button(gui, "CAIXAS (0)", UI.Colors.Purple, {
 		Name = "PendingBoxes",
-		Size = UDim2.fromOffset(200, 50),
+		Size = UDim2.fromOffset(230, 60),
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -12, 0, 190),
 		TextScaled = false,
-		TextSize = 22,
+		TextSize = 26,
 		Visible = false,
 	})
 	UI.autoScale(boxChip)
 	local wb: Frame
-	boxWin, wb = UI.window(gui, "CAIXAS GUARDADAS", UDim2.fromOffset(520, 460))
+	boxWin, wb = UI.window(gui, "CAIXAS GUARDADAS", UDim2.fromOffset(560, 340))
 	boxBody = wb
 	local lay = Instance.new("UIListLayout")
 	lay.Padding = UDim.new(0, 8)

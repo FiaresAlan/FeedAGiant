@@ -152,7 +152,7 @@ function Notifications.init(parentGui: ScreenGui)
 	-- Chip do evento no canto superior esquerdo (antes ficava no meio do topo, em cima da HUD).
 	banner = UI.frame(gui, {
 		Name = "EventBanner",
-		Size = UDim2.fromOffset(400, 60),
+		Size = UDim2.fromOffset(520, 60),
 		Position = UDim2.new(0.5, 0, 0, 8),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundColor3 = UI.Colors.Panel,
@@ -166,7 +166,7 @@ function Notifications.init(parentGui: ScreenGui)
 		Position = UDim2.fromOffset(12, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 20,
+		TextSize = 24,
 		TextWrapped = true,
 	})
 	bannerTimer = UI.title(banner, "0:00", {
