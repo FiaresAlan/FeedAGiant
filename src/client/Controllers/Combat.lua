@@ -359,18 +359,18 @@ local function buildBars(gui: ScreenGui)
 	holder.Name = "FightToggle"
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(1, 1)
-	holder.Size = UDim2.fromOffset(190, 72)
+	holder.Size = UDim2.fromOffset(210, 72)
 	holder.Position = UDim2.new(1, -12, 1, -16)
 	holder.Parent = gui
 	UI.autoScale(holder)
-	fightBtn = UI.button(holder, "", UI.Colors.Red, { Name = "FightButton", Size = UDim2.fromOffset(190, 64) })
+	fightBtn = UI.button(holder, "", UI.Colors.Red, { Name = "FightButton", Size = UDim2.fromOffset(210, 64) })
 	UI.icon(fightBtn, "glove", {
 		Size = UDim2.fromOffset(54, 54),
 		Position = UDim2.fromOffset(6, 4),
 		ZIndex = fightBtn.ZIndex + 1,
 	})
 	fightCaption = UI.label(fightBtn, "LUTAR", {
-		Size = UDim2.fromOffset(120, 56),
+		Size = UDim2.fromOffset(132, 52),
 		Position = UDim2.fromOffset(64, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = fightBtn.ZIndex + 1,
@@ -568,6 +568,12 @@ function Combat.init(gui: ScreenGui)
 				shake(if e.heavy then 1.2 else 0.5, 0.25)
 			elseif e.attacker == player.UserId then
 				shake(0.25, 0.12)
+			end
+		elseif e.kind == "NpcHit" then
+			-- soco no Dragão Faminto
+			sound(if e.heavy then "Heavy" else "Punch")
+			if e.attacker == player.UserId then
+				shake(0.3, 0.12)
 			end
 		elseif e.kind == "KO" then
 			sound("KO", 0.9)

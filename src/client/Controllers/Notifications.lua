@@ -17,6 +17,14 @@ local banner: Frame
 local bannerLabel: TextLabel
 local bannerTimer: TextLabel
 local activeEventEnd = 0
+local activeName = ""
+local activeColor = Color3.new(1, 1, 1)
+-- Próximo evento anunciado pelo servidor (os.time do início). Pedido do usuário (08/11): ver a
+-- contagem "vai começar em X minutos" para criar expectativa.
+local nextAt = 0
+local nextName = ""
+local nextColor = Color3.new(1, 1, 1)
+local bannerStroke: UIStroke
 
 local MAX_TOASTS = 5
 
@@ -65,24 +73,49 @@ function Notifications.toast(text: string, color: Color3?, duration: number?)
 	pushToast(text, color, duration)
 end
 
+local function mmss(sec: number): string
+	sec = math.max(0, math.ceil(sec))
+	return string.format("%d:%02d", sec // 60, sec % 60)
+end
+
+-- Um só laço atualiza o chip: evento ativo (cor do evento) ou contagem do próximo.
+local function tickBanner()
+	if os.clock() < activeEventEnd then
+		banner.Visible = true
+		banner.BackgroundColor3 = activeColor:Lerp(Color3.new(0, 0, 0), 0.35)
+		bannerStroke.Color = activeColor
+		bannerLabel.Text = Locale.fmt("event_now", nil, { e = Locale.upper(Locale.t(activeName)) })
+		bannerTimer.Text = mmss(activeEventEnd - os.clock())
+		bannerTimer.TextColor3 = Color3.new(1, 1, 1)
+	elseif nextAt > 0 then
+		local left = nextAt - os.time()
+		banner.Visible = true
+		banner.BackgroundColor3 = Color3.fromRGB(16, 20, 54)
+		bannerLabel.Text = Locale.fmt("next_event", nil, { e = Locale.t(nextName) })
+		bannerTimer.Text = mmss(left)
+		-- Último minuto: o chip pisca na cor do evento (expectativa), menos com "Movimento reduzido".
+		local urgent = left <= 60
+		bannerStroke.Color = if urgent then nextColor else Color3.fromRGB(90, 100, 170)
+		bannerTimer.TextColor3 = if urgent then nextColor else UI.Colors.Accent
+		if urgent and not UI.reducedMotion() and left % 2 == 0 then
+			banner.BackgroundColor3 = nextColor:Lerp(Color3.new(0, 0, 0), 0.55)
+		end
+	else
+		banner.Visible = false
+	end
+end
+
 local function showBanner(name: string, duration: number, color: Color3)
 	activeEventEnd = os.clock() + duration
-	banner.BackgroundColor3 = color
-	bannerLabel.Text = Locale.fmt("event_banner", nil, { s = string.upper(Locale.t(name)) })
-	banner.Visible = true
+	activeName = name
+	activeColor = color
+	tickBanner()
 	UI.pop(banner)
-	task.spawn(function()
-		while banner.Visible and os.clock() < activeEventEnd do
-			local left = math.max(0, math.ceil(activeEventEnd - os.clock()))
-			bannerTimer.Text = string.format("%d:%02d", left // 60, left % 60)
-			task.wait(0.25)
-		end
-	end)
 end
 
 local function hideBanner()
 	activeEventEnd = 0
-	banner.Visible = false
+	tickBanner()
 end
 
 local function stealAlert(thiefName: string, food: string)
@@ -116,23 +149,53 @@ function Notifications.init(parentGui: ScreenGui)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
 	layout.Parent = stack
 
+	-- Chip do evento no canto superior esquerdo (antes ficava no meio do topo, em cima da HUD).
 	banner = UI.frame(gui, {
 		Name = "EventBanner",
-		Size = UDim2.fromOffset(420, 52),
-		Position = UDim2.new(0.5, 0, 0, 12),
-		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(400, 60),
+		Position = UDim2.fromOffset(12, 76),
+		AnchorPoint = Vector2.new(0, 0),
+		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
 		Visible = false,
 	})
-	UI.stroke(banner, Color3.new(0, 0, 0), 3)
+	UI.autoScale(banner)
+	UI.corner(banner, 16)
+	bannerStroke = UI.stroke(banner, Color3.fromRGB(90, 100, 170), 3)
 	bannerLabel = UI.label(banner, "", {
-		Size = UDim2.new(1, -110, 1, -8),
-		Position = UDim2.fromOffset(12, 4),
+		Size = UDim2.new(1, -112, 1, -12),
+		Position = UDim2.fromOffset(12, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 20,
+		TextWrapped = true,
 	})
-	bannerTimer = UI.label(banner, "0:00", {
-		Size = UDim2.fromOffset(90, 40),
-		Position = UDim2.new(1, -100, 0, 6),
+	bannerTimer = UI.title(banner, "0:00", {
+		Size = UDim2.fromOffset(96, 48),
+		Position = UDim2.new(1, -104, 0, 6),
 	})
+	local function placeBanner()
+		local cam = workspace.CurrentCamera
+		local wide = cam ~= nil and cam.ViewportSize.X >= 1280 -- logo só aparece em telas largas
+		banner.Position = UDim2.fromOffset(12, if wide then 76 else 8)
+	end
+	placeBanner()
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBanner)
+	end
+	task.spawn(function()
+		while true do
+			tickBanner()
+			task.wait(1)
+		end
+	end)
+	Remotes.EventSchedule.OnClientEvent:Connect(function(data)
+		if type(data) == "table" and type(data.at) == "number" then
+			nextAt = data.at
+			nextName = tostring(data.nextName)
+			nextColor = if typeof(data.color) == "Color3" then data.color else UI.Colors.Accent
+			tickBanner()
+		end
+	end)
 
 	Remotes.Notify.OnClientEvent:Connect(function(data)
 		if type(data) ~= "table" then

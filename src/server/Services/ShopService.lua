@@ -30,6 +30,8 @@ local lastBuy: { [Player]: number } = {}
 local rng = Random.new()
 
 local BUY_COOLDOWN = 0.4
+local FIREWORKS_GAP = 4
+local lastFireworks = -math.huge
 local RARE_BANNER_GAP = 6 -- segundos entre faixas de "comida rara" para o servidor todo
 local lastRareBanner = -math.huge
 
@@ -83,6 +85,22 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		player,
 		{ foodId = food.id, rarity = food.rarity, name = food.name, color = food.color }
 	)
+	-- Pedido do usuário (08/11): comida Épica ou melhor = fogos de artifício no servidor inteiro.
+	if Config.Rarities[food.rarity].order >= 4 then
+		local now = os.clock()
+		if now - lastFireworks >= FIREWORKS_GAP then
+			lastFireworks = now
+			local char = player.Character
+			Remotes.Fireworks:FireAllClients({
+				userId = player.UserId,
+				name = player.DisplayName,
+				foodId = food.id,
+				rarity = food.rarity,
+				pos = if char then char:GetPivot().Position else nil,
+				big = Config.Rarities[food.rarity].order >= 5,
+			})
+		end
+	end
 	if Config.Rarities[food.rarity].order >= 5 then
 		-- Fase 3: faixa grande com a comida 3D para todos, no máximo 1 a cada 6 s (servidor cheio
 		-- abrindo caixas não vira enxurrada); fora do limite fica só o aviso de texto.

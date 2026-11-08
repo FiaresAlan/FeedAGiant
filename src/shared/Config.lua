@@ -45,13 +45,28 @@ Config.Steal = {
 	KnockbackForce = 60,
 }
 
+-- Dragão Faminto (evento na arena; ver BossService). Decisão de 08/11/2026 (pedido do usuário):
+-- vencer dá caixa épica grátis até 2x por dia; ser nocauteado faz o dragão comer 1 comida da mochila.
+Config.Boss = {
+	Height = 26, -- altura do modelo em studs
+	BaseHp = 900, -- vida com 1 lutador (~75 socos leves de um jogador iniciante)
+	HpPerFighter = 600, -- + por lutador a mais na arena
+	StompEvery = 3.2, -- segundos entre pisões
+	TelegraphSeconds = 1.4, -- tempo do círculo vermelho antes do pisão
+	StompHpFraction = 0.34, -- 3 pisões = nocaute
+	WinsPerDay = 2,
+	RewardBox = "epic",
+	RewardMinRarity = "Epic",
+}
+
 Config.Events = {
-	MinInterval = 360,
-	MaxInterval = 540,
+	FirstDelay = 120, -- 1º evento 2 min depois que o servidor abre (com contagem na HUD)
+	MinInterval = 300,
+	MaxInterval = 420,
 	List = {
 		{ id = "GoldenHour", name = "Golden Hour", duration = 90, color = Color3.fromRGB(255, 200, 40) },
 		{ id = "FoodRain", name = "Chuva de Comida", duration = 60, color = Color3.fromRGB(80, 200, 255) },
-		{ id = "HungryBoss", name = "Boss Faminto", duration = 120, color = Color3.fromRGB(255, 70, 70) },
+		{ id = "HungryBoss", name = "Dragão Faminto", duration = 180, color = Color3.fromRGB(255, 70, 70) },
 		{ id = "LuckyBoxes", name = "Lucky Boxes", duration = 60, color = Color3.fromRGB(120, 255, 120) },
 	},
 }

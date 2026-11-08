@@ -55,6 +55,7 @@ Arena.init(gui)
 Arena.playSound = Combat.sound
 Arena.shake = Combat.shake
 Effects.playSound = Combat.sound
+Effects.toast = Notifications.toast
 
 HUD.OnOpenShop = Shop.open
 HUD.OnOpenInventory = Inventory.open

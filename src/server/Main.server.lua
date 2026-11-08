@@ -19,6 +19,8 @@ local CombatService = require(Services.CombatService)
 local DropService = require(Services.DropService)
 local ArenaService = require(Services.ArenaService)
 local TutorialService = require(Services.TutorialService)
+local BossService = require(Services.BossService)
+local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
 print("[FeedAGiant] Iniciando servidor...")
@@ -36,6 +38,8 @@ EventService.init()
 CombatService.init()
 DropService.init()
 ArenaService.init()
+BossService.init()
+task.spawn(WorldFx.init, GiantService.template) -- água, fogo/fumaça do caldeirão, estátuas
 TutorialService.init() -- registra o slice "tutorial" no perfil (antes do DataService.start)
 -- Só agora começa a carregar perfis: todos os serviços já registraram o que precisam
 -- (PlayerData exige isso; ver fwjelaa-systems, ordem de inicialização).

@@ -11,10 +11,10 @@ local steps: { any } = {
 		signal = "Fed",
 		guide = "none", -- alvo é botão da HUD: o próprio botão ALIMENTAR pulsa
 		hint = {
-			Keyboard = "Clique no botão verde ALIMENTAR! embaixo",
-			Touch = "Toque no botão verde ALIMENTAR! embaixo",
-			Gamepad = "Selecione o botão ALIMENTAR! embaixo",
-			any = "Use o botão verde ALIMENTAR! embaixo",
+			Keyboard = "Fique perto do Gigante e clique em ALIMENTAR!",
+			Touch = "Fique perto do Gigante e toque em ALIMENTAR!",
+			Gamepad = "Fique perto do Gigante e use ALIMENTAR!",
+			any = "Fique perto do Gigante e use ALIMENTAR!",
 		},
 		hintAfter = 6,
 		reward = "SpareFood", -- garante comida para o próximo passo
@@ -56,7 +56,7 @@ local steps: { any } = {
 		goal = 3,
 		requires = { "box" },
 		guide = "none",
-		hint = { any = "Use ALIMENTAR! com a comida da caixa e do pátio" },
+		hint = { any = "Volte ao seu Gigante e use ALIMENTAR!" },
 		hintAfter = 15,
 		reward = "FirstGrowth",
 	},

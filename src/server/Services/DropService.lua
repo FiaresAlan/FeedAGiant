@@ -119,7 +119,7 @@ local function buildDropModel(food: Config.FoodDef, pos: Vector3): (Model, Part,
 		Parent = model,
 	})
 	local label = Util.makeBillboard(ring, "", UDim2.fromOffset(320, 90), Vector3.new(0, 10, 0), rar.color)
-	label.Text = string.format("%s\n%s — caindo!", food.name, food.rarity)
+	label.Text = string.format("%s\n%s — caindo!", food.name, Locale.rarity(food.rarity))
 	return model, ring, label
 end
 
@@ -196,7 +196,8 @@ end
 
 local function runDrop(drop: Drop)
 	-- Aviso no chão antes de cair
-	drop.label.Text = string.format("%s (%s)\nCaindo em %ds!", drop.food.name, drop.food.rarity, D.WarnBeforeFall)
+	drop.label.Text =
+		string.format("%s (%s)\nCaindo em %ds!", drop.food.name, Locale.rarity(drop.food.rarity), D.WarnBeforeFall)
 	Remotes.Notify:FireAllClients(
 		Locale.msg(
 			"drop_incoming",
@@ -278,12 +279,13 @@ local function runDrop(drop: Drop)
 			drop.label.Text = string.format(
 				"%s (%s)\n%s está defendendo: %d%%",
 				drop.food.name,
-				drop.food.rarity,
+				Locale.rarity(drop.food.rarity),
 				leader.DisplayName,
 				math.floor(lp / drop.holdTime * 100)
 			)
 		else
-			drop.label.Text = string.format("%s (%s)\nENTRE NO CÍRCULO E DEFENDA!", drop.food.name, drop.food.rarity)
+			drop.label.Text =
+				string.format("%s (%s)\nENTRE NO CÍRCULO E DEFENDA!", drop.food.name, Locale.rarity(drop.food.rarity))
 		end
 		if os.clock() - lastBroadcast > 0.4 then
 			lastBroadcast = os.clock()

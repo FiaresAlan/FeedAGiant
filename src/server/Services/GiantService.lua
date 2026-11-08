@@ -101,6 +101,16 @@ local function getTemplate(file: string, assetId: string): Model?
 	return model
 end
 
+-- Chefe e estátuas usam os mesmos modelos enviados (um carregamento por arquivo).
+function GiantService.template(file: string): Model?
+	local CreatureAssets = require(game.ReplicatedStorage.Shared.CreatureAssets)
+	local id = CreatureAssets[file]
+	if not id then
+		return nil
+	end
+	return getTemplate(file, id)
+end
+
 -- Esconde (ou mostra de novo) o corpo de blocos; guarda a transparência original.
 local function setPrimitivesHidden(model: Model, hidden: boolean)
 	for _, d in model:GetDescendants() do

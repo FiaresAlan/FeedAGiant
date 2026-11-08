@@ -69,6 +69,9 @@ export type Profile = {
 	speciesTokens: number, -- fichas do produto "Trocar Espécie" (jogador escolhe a espécie)
 	-- Fase 4: índice de coleção (comidas que já passaram pela mochila ou pelo pátio)
 	discovered: { [string]: boolean },
+	-- Dragão Faminto: vitórias contadas por dia (dia = os.time() // 86400)
+	bossDay: number,
+	bossWins: number,
 }
 
 local DataService = {}
@@ -109,6 +112,8 @@ local function defaultProfile(): Profile
 		duelProtectionUntil = 0,
 		speciesTokens = 0,
 		discovered = {},
+		bossDay = 0,
+		bossWins = 0,
 	}
 end
 DataService.defaultProfile = defaultProfile

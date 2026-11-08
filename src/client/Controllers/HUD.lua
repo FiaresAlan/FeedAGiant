@@ -44,6 +44,8 @@ local coinsReady = false -- o primeiro estado só preenche o número (sem moedas
 local hudGui: ScreenGui? = nil
 local coinIcon: GuiObject? = nil
 local miniLevel: TextLabel? = nil
+local goalLabel: TextLabel
+local goalChip: Frame
 
 HUD.OnOpenShop = nil :: (() -> ())?
 HUD.OnOpenInventory = nil :: (() -> ())?
@@ -162,6 +164,28 @@ local function buildTopBar(gui: ScreenGui)
 	})
 
 	-- Escudo (chip abaixo do painel)
+	-- Meta da progressão (pedido do usuário: "não vejo a progressão clara"): próximo estágio do
+	-- gigante ou o rebirth, sempre visível logo abaixo do painel.
+	local goal = UI.frame(top, {
+		Name = "Goal",
+		Size = UDim2.fromOffset(520, 36),
+		Position = UDim2.new(0.5, 0, 0, 122),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+		BackgroundTransparency = 0.15,
+		ZIndex = 2,
+	})
+	UI.corner(goal, 12)
+	UI.stroke(goal, UI.Colors.Accent, 2)
+	goalLabel = UI.label(goal, "", {
+		Size = UDim2.new(1, -16, 1, 0),
+		Position = UDim2.fromOffset(8, 0),
+		TextScaled = false,
+		TextSize = 20,
+		TextColor3 = UI.Colors.Accent,
+		ZIndex = 3,
+	})
+	goalChip = goal
 	shieldChip = UI.frame(top, {
 		Name = "Shield",
 		Size = UDim2.fromOffset(260, 36),
@@ -447,6 +471,41 @@ local function buildFeedButton(gui: ScreenGui)
 		end
 	end)
 
+	-- Pedido do usuário (08/11): o botão só aparece perto do próprio gigante (mesma distância que o
+	-- servidor aceita: borda do gigante + 28 studs). Longe, some e libera a tela para jogar.
+	local REACH = 28
+	local myGiant: Model? = nil
+	task.spawn(function()
+		while holder.Parent do
+			local g = myGiant
+			if not g or not g.Parent then
+				g = nil
+				for _, m in Workspace:GetChildren() do
+					if m:IsA("Model") and m:GetAttribute("OwnerUserId") == player.UserId then
+						g = m
+						break
+					end
+				end
+				myGiant = g
+			end
+			local char = player.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local near = false
+			if g and root then
+				local cf, ext = g:GetBoundingBox()
+				local d = Vector3.new(root.Position.X - cf.Position.X, 0, root.Position.Z - cf.Position.Z).Magnitude
+				near = d - math.max(ext.X, ext.Z) / 2 <= REACH
+			end
+			if near ~= holder.Visible then
+				holder.Visible = near
+				if near then
+					UI.pop(feed)
+				end
+			end
+			task.wait(0.25)
+		end
+	end)
+
 	-- Pulso de atenção só quando há comida e o gigante não está feliz (via UIScale, não Size)
 	local press = Instance.new("UIScale")
 	press.Name = "Pulse"
@@ -534,6 +593,23 @@ local function refresh(s: State.PlayerState)
 		.. (if s.rebirths > 0 then "  R" .. s.rebirths else "")
 	local pct = if s.xpNeeded > 0 then math.clamp(s.xp / s.xpNeeded, 0, 1) else 0
 	TweenService:Create(xpFill, TweenInfo.new(0.25), { Size = UDim2.fromScale(pct, 1) }):Play()
+	-- Meta: próximo estágio (ou rebirth quando já é o último)
+	local nextStage: any = nil
+	for _, st in Config.GiantStages do
+		if st.minLevel > s.level then
+			nextStage = st
+			break
+		end
+	end
+	if nextStage then
+		goalLabel.Text = Locale.fmt("goal_stage", nil, {
+			s = Locale.upper(Locale.t(nextStage.name)),
+			n = nextStage.minLevel,
+			k = nextStage.minLevel - s.level,
+		})
+	else
+		goalLabel.Text = Locale.fmt("goal_rebirth", nil, { n = Config.Rebirth.MinLevel })
+	end
 	local ml = miniLevel
 	if ml then
 		ml.Text = "Nv. " .. s.level
@@ -561,6 +637,7 @@ end
 local function shieldLoop()
 	while true do
 		local left = State.current.shieldUntil - os.time()
+		goalChip.Visible = left <= 0 -- o escudo ocupa o mesmo lugar enquanto dura
 		if left > 0 then
 			shieldChip.Visible = true
 			shieldLabel.Text = Locale.fmt("shield_active", nil, { t = string.format("%d:%02d", left // 60, left % 60) })

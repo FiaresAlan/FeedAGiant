@@ -53,6 +53,7 @@ Effects.flash = screenFlash
 local player = Players.LocalPlayer
 local banner: TextLabel
 Effects.playSound = nil :: ((string, number?) -> ())?
+Effects.toast = nil :: ((string, Color3?) -> ())?
 
 local function giantOf(userId: number): Model?
 	for _, m in Workspace:GetChildren() do
@@ -155,6 +156,104 @@ local function ring(model: Model, color: Color3)
 	task.delay(1.3, function()
 		r:Destroy()
 	end)
+end
+
+-- Fogos de artifício (pedido do usuário): comida Épica ou melhor (ou o dragão derrotado) solta fogos
+-- que TODO o servidor vê: em volta de quem achou e também perto da câmera de cada jogador.
+-- Tudo local (peças só no cliente), poucas partículas, sem nada com "Movimento reduzido" além do brilho.
+local FIREWORK_COLORS = {
+	Color3.fromRGB(255, 80, 80),
+	Color3.fromRGB(255, 210, 60),
+	Color3.fromRGB(90, 200, 255),
+	Color3.fromRGB(170, 90, 255),
+	Color3.fromRGB(90, 255, 140),
+	Color3.fromRGB(255, 120, 220),
+}
+
+local function rocket(from: Vector3, color: Color3)
+	local p = Instance.new("Part")
+	p.Name = "Firework"
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Material = Enum.Material.Neon
+	p.Color = color
+	p.Size = Vector3.new(0.6, 0.6, 0.6)
+	p.Shape = Enum.PartType.Ball
+	p.CFrame = CFrame.new(from)
+	local a0 = Instance.new("Attachment")
+	a0.Position = Vector3.new(0, 0.3, 0)
+	a0.Parent = p
+	local a1 = Instance.new("Attachment")
+	a1.Position = Vector3.new(0, -0.3, 0)
+	a1.Parent = p
+	local trail = Instance.new("Trail")
+	trail.Attachment0 = a0
+	trail.Attachment1 = a1
+	trail.Color = ColorSequence.new(Color3.fromRGB(255, 230, 160), color)
+	trail.LightEmission = 1
+	trail.Lifetime = 0.5
+	trail.Transparency = NumberSequence.new(0, 1)
+	trail.Parent = p
+	p.Parent = Workspace
+	local height = 55 + math.random() * 35
+	local top = from + Vector3.new(math.random(-12, 12), height, math.random(-12, 12))
+	local up = TweenService:Create(p, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		CFrame = CFrame.new(top),
+	})
+	up:Play()
+	up.Completed:Once(function()
+		p.Transparency = 1
+		trail.Enabled = false
+		local burst = Instance.new("ParticleEmitter")
+		burst.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		burst.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
+		burst.LightEmission = 1
+		burst.LightInfluence = 0
+		burst.Size = NumberSequence.new(2.2, 0)
+		burst.Lifetime = NumberRange.new(1.2, 1.8)
+		burst.Speed = NumberRange.new(30, 45)
+		burst.SpreadAngle = Vector2.new(180, 180)
+		burst.Drag = 2.5
+		burst.Acceleration = Vector3.new(0, -12, 0)
+		burst.Rate = 0
+		burst.Parent = p
+		burst:Emit(70)
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Range = 60
+		light.Brightness = 6
+		light.Parent = p
+		TweenService:Create(light, TweenInfo.new(0.8), { Brightness = 0 }):Play()
+		UI.sfx("Whoosh", 0.25)
+		task.delay(2.2, function()
+			p:Destroy()
+		end)
+	end)
+end
+
+function Effects.fireworks(at: Vector3?, big: boolean)
+	local spots: { Vector3 } = {}
+	if at then
+		table.insert(spots, at)
+	end
+	local cam = Workspace.CurrentCamera
+	if cam then
+		-- à frente da câmera de quem está olhando, no chão
+		local f = cam.CFrame.LookVector
+		local ahead = cam.CFrame.Position + Vector3.new(f.X, 0, f.Z).Unit * 70
+		table.insert(spots, Vector3.new(ahead.X, 2, ahead.Z))
+	end
+	local n = if big then 6 else 4
+	for _, base in spots do
+		for i = 1, n do
+			task.delay((i - 1) * 0.35 + math.random() * 0.2, function()
+				local c = FIREWORK_COLORS[math.random(1, #FIREWORK_COLORS)]
+				rocket(base + Vector3.new(math.random(-20, 20), 0, math.random(-20, 20)), c)
+			end)
+		end
+	end
 end
 
 function Effects.init(gui: ScreenGui)
@@ -269,6 +368,20 @@ function Effects.init(gui: ScreenGui)
 				end
 			end
 		end)
+	end)
+	Remotes.Fireworks.OnClientEvent:Connect(function(e)
+		if type(e) ~= "table" then
+			return
+		end
+		local pos = if typeof(e.pos) == "Vector3" then e.pos else nil
+		Effects.fireworks(pos, e.big == true)
+		local def = if type(e.foodId) == "string" then Config.FoodById[e.foodId] else nil
+		if def and type(e.name) == "string" and Effects.toast then
+			Effects.toast(
+				Locale.fmt("fireworks_msg", nil, { p = e.name, f = def.name, r = Locale.rarity(def.rarity) }),
+				Config.Rarities[def.rarity].color
+			)
+		end
 	end)
 	Remotes.GiantFed.OnClientEvent:Connect(function(e)
 		if type(e) == "table" and e.leveled and e.userId == player.UserId then
