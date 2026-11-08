@@ -11,5 +11,13 @@
   "yaw": -134.65,
   "size": 512,
   "warm": 0.7,
-  "remake": "python -I tools/make_sky.py dourado --from qwantani_sunset_puresky --azimuth -96.83 --size 512 --warm 0.7"
+  "remake": "python -I tools/make_sky.py dourado --from qwantani_sunset_puresky --azimuth -96.83 --size 512 --warm 0.7",
+  "ids": {
+    "Bk": "rbxassetid://84801158027898",
+    "Dn": "rbxassetid://105977939280582",
+    "Ft": "rbxassetid://93242303895608",
+    "Lf": "rbxassetid://122405299116112",
+    "Rt": "rbxassetid://89948045828370",
+    "Up": "rbxassetid://127052389029895"
+  }
 }
