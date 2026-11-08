@@ -98,6 +98,18 @@ local tileGrid: Frame
 local goalCard: Frame
 local collapsed = false
 local layout: () -> () = function() end
+-- MODO COMPACTO (pedido do usuário, 08/11/2026: "a HUD no celular tampa boa parte da experiência").
+-- Vault "UI Scale HUD Hide and Compact Mode" §3: em telas baixas (< 500 px lógicos de altura) a HUD
+-- vira uma VARIAÇÃO de layout, não só menor: a grade de 8 botões vira 2 botões (LOJA e MENU); o MENU
+-- abre/fecha a grade como gaveta; o cartão de nível fica recolhido; o cartão de META sai do canto
+-- inferior esquerdo (onde fica o joystick no celular) e vai para o alto, só com a linha da meta.
+local COMPACT_H = 500
+HUD.compact = false
+local compactBar: Frame
+local menuOpen = false
+local menuBadge: Frame
+local wasCompact: boolean? = nil
+local gridShop: GuiObject? = nil -- LOJA da grade (no compacto ela já está na barra)
 
 HUD.goalCard = nil :: Frame?
 HUD.goalObjective = nil :: TextLabel?
@@ -352,6 +364,7 @@ local function buildSideButtons(gui: ScreenGui)
 		end
 	end
 	local shop = tile(tileGrid, "hud2_shop", "LOJA", UI.Colors.Accent, 1)
+	gridShop = shop
 	shop.Activated:Connect(function()
 		call(HUD.OnOpenShop)
 	end)
@@ -420,6 +433,95 @@ local function buildSideButtons(gui: ScreenGui)
 		call(HUD.OnOpenRobux)
 	end)
 
+	-- Barra compacta: LOJA (o botão mais usado) + MENU (abre a gaveta com todos os botões).
+	compactBar = Instance.new("Frame")
+	compactBar.Name = "CompactBar"
+	compactBar.BackgroundTransparency = 1
+	compactBar.Size = UDim2.fromOffset(TILE * 2 + TILE_GAP, TILE)
+	compactBar.Visible = false
+	compactBar.Parent = leftRoot
+	local barList = Instance.new("UIListLayout")
+	barList.FillDirection = Enum.FillDirection.Horizontal
+	barList.Padding = UDim.new(0, TILE_GAP)
+	barList.SortOrder = Enum.SortOrder.LayoutOrder
+	barList.Parent = compactBar
+	local cShop = tile(compactBar, "hud2_shop", "LOJA", UI.Colors.Accent, 1)
+	cShop.Size = UDim2.fromOffset(TILE, TILE)
+	cShop.Activated:Connect(function()
+		call(HUD.OnOpenShop)
+	end)
+	local menuBtn = UI.button(compactBar, "", Color3.fromRGB(78, 84, 100), {
+		Name = "MenuButton",
+		Size = UDim2.fromOffset(TILE, TILE),
+		LayoutOrder = 2,
+	})
+	-- Ícone desenhado (a fonte não tem "☰"): 3 barras; aberto, vira um X (2 barras giradas).
+	local bars: { Frame } = {}
+	for i = 1, 3 do
+		local bar = UI.frame(menuBtn, {
+			Name = "Bar" .. i,
+			Size = UDim2.fromOffset(52, 8),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(TILE / 2, 16 + i * 12),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			ZIndex = menuBtn.ZIndex + 1,
+		})
+		UI.corner(bar, 4)
+		bars[i] = bar
+	end
+	local menuIcon = {
+		set = function(open: boolean)
+			bars[2].Visible = not open
+			bars[1].Rotation = if open then 45 else 0
+			bars[3].Rotation = if open then -45 else 0
+			bars[1].Position = UDim2.fromOffset(TILE / 2, if open then 40 else 28)
+			bars[3].Position = UDim2.fromOffset(TILE / 2, if open then 40 else 52)
+		end,
+	}
+	UI.label(menuBtn, "MENU", {
+		Size = UDim2.new(1, 12, 0, 24),
+		Position = UDim2.new(0, -6, 1, -22),
+		TextScaled = false,
+		TextSize = 20,
+		ZIndex = menuBtn.ZIndex + 1,
+	})
+	menuBadge = UI.frame(menuBtn, {
+		Size = UDim2.fromOffset(28, 28),
+		Position = UDim2.new(1, -18, 0, -10),
+		BackgroundColor3 = UI.Colors.Red,
+		ZIndex = menuBtn.ZIndex + 3,
+		Visible = false,
+	})
+	UI.corner(menuBadge, 14)
+	UI.stroke(menuBadge, UI.Colors.Outline, 2)
+	UI.label(menuBadge, "!", { ZIndex = menuBtn.ZIndex + 4 })
+	local function syncMenuBadge()
+		menuBadge.Visible = not menuOpen and ((collBadge ~= nil and collBadge.Visible) or dailyBadge.Visible)
+	end
+	if collBadge then
+		collBadge:GetPropertyChangedSignal("Visible"):Connect(syncMenuBadge)
+	end
+	dailyBadge:GetPropertyChangedSignal("Visible"):Connect(syncMenuBadge)
+	menuBtn.Activated:Connect(function()
+		menuOpen = not menuOpen
+		menuIcon.set(menuOpen)
+		syncMenuBadge()
+		layout()
+	end)
+	-- Tocar num botão da gaveta fecha a gaveta (a janela aberta toma a tela).
+	for _, b in tileGrid:GetChildren() do
+		if b:IsA("GuiButton") then
+			b.Activated:Connect(function()
+				if HUD.compact and menuOpen then
+					menuOpen = false
+					menuIcon.set(false)
+					syncMenuBadge()
+					layout()
+				end
+			end)
+		end
+	end
+
 	layout = function()
 		local area = gui.AbsoluteSize
 		if area.Y <= 0 then
@@ -428,8 +530,18 @@ local function buildSideButtons(gui: ScreenGui)
 		local k = UI.deviceScale()
 		local H = area.Y / k
 		leftRoot.Size = UDim2.fromOffset(640, H)
+		local compact = area.Y < COMPACT_H
+		HUD.compact = compact
+		if compact ~= wasCompact then
+			-- entrando no compacto: começa com o cartão de nível recolhido e a gaveta fechada
+			if compact then
+				collapsed = true
+				menuOpen = false
+			end
+			wasCompact = compact
+		end
 		local y = 6
-		local showLogo = H >= 760
+		local showLogo = H >= 760 and not compact
 		logoImg.Visible = showLogo
 		if showLogo then
 			y = 78
@@ -446,6 +558,42 @@ local function buildSideButtons(gui: ScreenGui)
 			levelCard.Position = UDim2.fromOffset(12, y)
 			y += 124 + 12
 		end
+		if compact then
+			-- LOJA + MENU; a grade aparece como gaveta AO LADO deles, no alto da tela (embaixo ficam o
+			-- joystick e o cartão de disputa — medido no iPhone emulado)
+			compactBar.Visible = true
+			compactBar.Position = UDim2.fromOffset(12, y)
+			local gx = 12 + TILE * 2 + TILE_GAP * 2
+			local cols = 4
+			local rows = math.ceil((TILE_COUNT - 1) / cols)
+			tileGrid.Size = UDim2.fromOffset(cols * TILE + (cols - 1) * TILE_GAP, rows * (TILE + TILE_GAP + 4))
+			tileGrid.Position = UDim2.fromOffset(gx, y)
+			leftRoot.ZIndex = if menuOpen then 20 else 1
+			tileGrid.Visible = menuOpen
+			if gridShop then
+				gridShop.Visible = false
+			end
+			-- META no alto, ao lado da barra (fora do joystick); some com a gaveta aberta
+			goalCard.AnchorPoint = Vector2.new(0, 0)
+			goalCard.Size = UDim2.fromOffset(330, 40)
+			goalCard.Position = UDim2.fromOffset(12 + TILE * 2 + TILE_GAP * 2, y)
+			goalCard.Visible = not menuOpen
+			-- escudo embaixo de LOJA/MENU (ao lado das moedas ele encostava no aviso de evento)
+			shieldChip.Position = UDim2.fromOffset(12, y + TILE + 10)
+			if menuOpen then
+				shieldChip.Visible = false
+			end
+			return
+		end
+		compactBar.Visible = false
+		leftRoot.ZIndex = 1
+		if gridShop then
+			gridShop.Visible = true
+		end
+		tileGrid.Visible = true
+		goalCard.Visible = true
+		goalCard.AnchorPoint = Vector2.new(0, 1)
+		goalCard.Size = UDim2.fromOffset(450, 40)
 		goalCard.Position = UDim2.new(0, 12, 1, -12)
 		local goalH = goalCard.AbsoluteSize.Y / k
 		local avail = H - y - goalH - 24
@@ -749,7 +897,7 @@ local function shieldLoop()
 	while true do
 		local left = State.current.shieldUntil - os.time()
 		if left > 0 then
-			shieldChip.Visible = true
+			shieldChip.Visible = not (HUD.compact and menuOpen) -- a gaveta aberta ocupa esse lugar
 			shieldLabel.Text = Locale.fmt("shield_active", nil, { t = string.format("%d:%02d", left // 60, left % 60) })
 		else
 			shieldChip.Visible = false

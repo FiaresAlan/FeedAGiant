@@ -367,6 +367,14 @@ local function buildBars(gui: ScreenGui)
 	holder.Position = UDim2.new(1, -12, 1, -16)
 	holder.Parent = gui
 	UI.autoScale(holder)
+	-- Toque (medido no iPhone emulado, 08/11/2026): o LUTAR ficava em cima do botão de pulo do Roblox
+	-- (canto inferior direito). Em tela de toque ele sobe para logo acima do pulo.
+	local function placeFight()
+		local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+		holder.Position = if touch then UDim2.new(1, -12, 1, -118) else UDim2.new(1, -12, 1, -16)
+	end
+	placeFight()
+	UserInputService.LastInputTypeChanged:Connect(placeFight)
 	-- Botão grande da referência (luva + LUTAR); continua com Q no teclado e Y no controle.
 	fightBtn = UI.button(holder, "", UI.Colors.Red, { Name = "FightButton", Size = UDim2.fromOffset(300, 92) })
 	UI.icon(fightBtn, "hud2_fistglove", {

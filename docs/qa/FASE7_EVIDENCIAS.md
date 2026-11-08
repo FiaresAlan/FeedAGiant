@@ -123,3 +123,20 @@ cima dos golpes (y = 196) — sumia. Agora é posicionado pela altura da tela, l
 golpes 196–307) e fica por cima do botão LUTAR e do cartão de disputa durante a luta.
 Ainda sobrepostos (de antes desta missão): faixas do tutorial sobre o selo de evento; joystick sobre o cartão META.
 **Não é celular físico:** o emulador muda tela e toque, não o processador do aparelho.
+
+## 12. HUD compacta para celular (pedido do usuário: "a HUD no celular tampa boa parte da experiência")
+Base: vault "UI Scale HUD Hide and Compact Mode" §3 (modo compacto = variação de layout, não só menor; "Mais" em gaveta; ligar
+sozinho com altura < 500 px lógicos) e "HUD Design" §1 (centro da tela livre; canto inferior direito reservado ao pulo).
+Com a tela útil abaixo de 500 px de altura (`HUD.compact`):
+- a grade de 8 botões vira **LOJA + MENU**; o MENU (ícone de 3 barras, vira X) abre a gaveta com os outros 7 botões AO LADO,
+  no alto (longe do joystick e do cartão de disputa); tocar num botão da gaveta fecha a gaveta e abre a janela;
+- o selo "!" do Diário/Coleção aparece no MENU quando a gaveta está fechada;
+- cartão de nível recolhido (fica só "Nv." no cartão de moedas; ▼ expande);
+- cartão de META sai do canto inferior esquerdo (joystick) e vai para o alto, ao lado do LOJA/MENU; some com a gaveta aberta;
+- selo do escudo vai para baixo do LOJA/MENU (encostava no aviso de evento);
+- a faixa própria do tutorial no topo fica sempre desligada (o módulo a religava e duplicava o texto do cartão de META);
+- botão LUTAR em tela de toque sobe para cima do botão de pulo do Roblox.
+Medido no iPhone 17 Pro emulado (tela útil 750×323): moedas 7–187 × 3–53; LOJA/MENU 7–137 × 58–120; META 144–342 × 58–148;
+LUTAR 558–738 × 145–205 (acima do pulo); centro e base da tela livres. Telas altas (iPad 10ª geração, console 1080p) continuam com a
+HUD completa (fotos 12 e a de console não guardada). Fotos 09 (fechada), 10 (gaveta aberta), 11 (Diário aberto pela gaveta).
+Ainda não resolvido: textos dentro das janelas (ex.: Diário) ficam pequenos no celular, porque a janela encolhe para caber.

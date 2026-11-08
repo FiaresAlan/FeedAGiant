@@ -41,6 +41,14 @@ function Tutorial.init()
 		end
 		if gui and gui:IsA("ScreenGui") then
 			gui.Enabled = false
+			-- Medido no celular (08/11/2026): o módulo religava a própria faixa no topo, duplicando o texto do
+			-- cartão de META e tampando o selo de evento. Ela fica sempre desligada.
+			local tutorialGui: ScreenGui = gui
+			tutorialGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if tutorialGui.Enabled then
+					tutorialGui.Enabled = false
+				end
+			end)
 			mirror(gui:FindFirstChild("Objective", true), HUD.goalObjective)
 			mirror(gui:FindFirstChild("Hint", true), HUD.goalHint)
 		end
