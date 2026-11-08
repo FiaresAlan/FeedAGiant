@@ -9,6 +9,7 @@ local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local GiantService = require(script.Parent.GiantService)
 local FoodModels = require(script.Parent.Parent.FoodModels)
+local TutorialService = require(script.Parent.TutorialService)
 local Guard = require(script.Parent.Parent.Guard)
 
 -- Maior índice de vaga possível (VIP tem mais vagas); o dono é conferido depois.
@@ -233,6 +234,7 @@ function PlotService.place(player: Player, invIndex: number)
 			DataService.markDirty(player)
 			PlotService.rebuildPlot(player)
 			PlotService.pushState(player)
+			TutorialService.signal(player, "Placed")
 			return
 		end
 	end
@@ -292,6 +294,8 @@ function PlotService.feed(player: Player, slot: number)
 	profile.plot[tostring(slot)] = nil
 	profile.totalFeeds += 1
 	GiantService.addXp(player, Config.Rarities[def.rarity].xp, def.id, from)
+	TutorialService.signal(player, "Fed")
+	TutorialService.refresh(player) -- passo "grow" (nível 3) completa sozinho
 	PlotService.rebuildPlot(player)
 	PlotService.pushState(player)
 end
@@ -314,6 +318,8 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 	local char = player.Character
 	local from = if char then char:GetPivot().Position + Vector3.new(0, 2, 0) else nil
 	GiantService.addXp(player, Config.Rarities[def.rarity].xp, def.id, from)
+	TutorialService.signal(player, "Fed")
+	TutorialService.refresh(player)
 	PlotService.pushState(player)
 end
 

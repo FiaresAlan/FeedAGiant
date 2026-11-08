@@ -18,6 +18,7 @@ local LeaderboardService = require(Services.LeaderboardService)
 local CombatService = require(Services.CombatService)
 local DropService = require(Services.DropService)
 local ArenaService = require(Services.ArenaService)
+local TutorialService = require(Services.TutorialService)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
 print("[FeedAGiant] Iniciando servidor...")
@@ -35,9 +36,11 @@ EventService.init()
 CombatService.init()
 DropService.init()
 ArenaService.init()
+TutorialService.init() -- registra o slice "tutorial" no perfil (antes do DataService.start)
 -- Só agora começa a carregar perfis: todos os serviços já registraram o que precisam
 -- (PlayerData exige isso; ver fwjelaa-systems, ordem de inicialização).
 DataService.start()
+TutorialService.start()
 
 local function onPlayerAdded(player: Player)
 	-- PlayerData pode levar ~7-25 s se outro servidor ainda segura a sessão (lease).
@@ -78,7 +81,7 @@ local function onPlayerAdded(player: Player)
 		PlotService.giveFood(player, "apple")
 		PlotService.giveFood(player, "bread")
 		Remotes.Notify:FireClient(player, {
-			text = "Bem-vindo! Coloque comida no pátio e alimente seu Gigante.",
+			text = "Bem-vindo! Seu Gigante está com fome!",
 			color = Color3.fromRGB(255, 220, 80),
 		})
 	end

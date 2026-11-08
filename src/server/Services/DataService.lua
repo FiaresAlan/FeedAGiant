@@ -169,6 +169,11 @@ function DataService.onReleasing(fn: (Player, Profile) -> ())
 	end)
 end
 
+-- Registra uma parte extra do perfil (ex.: "tutorial"). Só antes de DataService.start().
+function DataService.registerSlice(name: string, makeDefault: () -> any)
+	PlayerData.RegisterSlice(name, makeDefault)
+end
+
 function DataService.saveNow(player: Player): boolean
 	return PlayerData.SaveNowAsync(player)
 end

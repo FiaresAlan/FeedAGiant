@@ -174,6 +174,8 @@ local function buildMap(): Folder
 	-- Chão primeiro e sem pcall: sem ele os jogadores cairiam no vazio.
 	World.buildGround(root)
 	MapService.ShopPad = World.buildHub(root)
+	-- Fase 4: alvo do passo "box" do tutorial (trilha até a loja)
+	game:GetService("CollectionService"):AddTag(MapService.ShopPad :: Part, "TutorialShop")
 	-- Fase 3: arena física das lutas (falha aqui não impede o jogo; a ArenaService avisa)
 	local okArena, errArena = pcall(World.buildArena :: any, root)
 	if not okArena then
@@ -265,6 +267,7 @@ local function adoptBakedMap(root: Instance): boolean
 	end
 	MapService.Bases = bases
 	MapService.ShopPad = shop
+	game:GetService("CollectionService"):AddTag(shop, "TutorialShop")
 	return true
 end
 

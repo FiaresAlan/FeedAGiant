@@ -21,6 +21,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
 local StealService = require(script.Parent.StealService)
+local TutorialService = require(script.Parent.TutorialService)
 local Guard = require(script.Parent.Parent.Guard)
 
 local ShopService = {}
@@ -91,6 +92,9 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 	end
 	DataService.markDirty(player)
 	PlotService.pushState(player)
+	if not opts.free then
+		TutorialService.signal(player, "BoughtBox")
+	end
 	return true
 end
 
