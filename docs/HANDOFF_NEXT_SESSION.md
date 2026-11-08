@@ -30,6 +30,9 @@ O usuário mandou seguir todas as fases até o fim sem perguntar nada. Ele autor
 | Luta de boxe **de verdade** na arena | `ArenaService` (`fight`, `duelBody`, `runDuel`), `CombatService` (`HitFilter`, `IgnoreSafeZone`, `CanPunch`, `NoRegen`, `resetFighter`, `hpFraction`) | **Não testada com 2 jogadores** (o controle de tela foi negado: o usuário estava ausente). Revisão independente feita e 11 achados corrigidos |
 | Boxe do personagem: luvas (douradas com Boxer Pro) e animações R15 de jab, direto, pesado e reação | `CombatService.equipGloves`; kit make-anim; `assets/anims/*.rbxmx`; `tools/upload_anims.py`; `AnimationIds.lua`; `Combat.lua` (`playAnim`) | Luvas e soco tocando; foto 06 |
 | Comida voa até a boca do gigante, com +XP | `FeedFx.lua`; `GiantFed` leva `foodId` e `from` | Voo confirmado no cliente |
+| **Fase 4: tutorial do primeiro minuto** (alimentar → pátio → loja → 3 alimentações), com dicas quando o jogador trava, trilha até a loja, Pular com confirmação, progresso salvo e funil `Tutorial_v1` | `src/vendor/shared/FwjelaaTutorial.luau`, `TutorialSteps.lua`, `TutorialService.lua`, `Controllers/Tutorial.lua`; sinais em PlotService e ShopService | Os 3 primeiros passos avançam numa cópia; o último e o novo layout (faixa abaixo da HUD, Pular embaixo à esquerda) **ainda não foram vistos** |
+| **Fase 4: fim do encolhimento** (o gigante só fica faminto, nunca perde nível) e produtos FreezeDecay7d/RestoreLevels aposentados (`retired = true`, recusados no servidor) | `GiantService.applyDecay`, `Config.DevProducts`, `MonetizationService.canPrompt`, textos e CSVs | Verificador PASS; **não visto em jogo** |
+| **Fase 4: luta justa na arena** (150 de vida e força 1 para os dois; compras não pesam no duelo) | `CombatService` (gancho `FairFight`), `ArenaService` | Verificador PASS; **não testada com 2 jogadores** |
 
 **Pendências desta sessão:**
 - **Teste com 2 jogadores** da luta real, do soco no ladrão com animação e do empurrão (`AssemblyLinearVelocity` em personagem do cliente pode não funcionar: confirmar).
@@ -82,7 +85,7 @@ Aprovadas em 07/11/2026 e ampliadas depois:
 | **1 — Mundo bonito** | 🟨 Céu de entardecer feito (08/11); falta o novo painel | **7,9** antes do céu |
 | **2 — Criaturas de verdade** | 🟩 Modelos de todas as espécies + comidas 3D + animação procedural; falta o painel `model` | não avaliada ainda |
 | 3 — Efeitos e juice | 🟧 HUD nova, arena e luta real, boxe, voo da comida (08/11); faltam música, abertura de caixa 3D e o teste com 2 jogadores | não avaliada ainda |
-| 4 — Primeiro minuto e retenção | ⬜ | — |
+| 4 — Primeiro minuto e retenção | 🟧 Tutorial, fim do encolhimento, luta justa (08/11); falta índice de coleção e teste no celular | não avaliada ainda |
 | 5 — Pré-lançamento | ⬜ | — |
 
 ## A4. O que existe hoje (resumo técnico)
@@ -258,7 +261,7 @@ O usuário pediu (08/11): "te permito seguir a fase". Antes disso ele quis o con
 
 **Outras pendências do usuário:**
 - Lucky Box comprada por conta com restrição a itens aleatórios pagos (`PromptProductPurchase` direto pelo cliente): o recibo não pode ser recusado. Proposta: entregar uma comida Rare fixa. **Falta a decisão do usuário.**
-- Fase 4: suavizar o encolhimento e o pay-to-win da arena (economia: precisa de decisão).
+- ~~Fase 4: suavizar o encolhimento e o pay-to-win da arena~~ → feito em 08/11 com a autorização total do usuário; justificativas no `GAME_BRIEF.md`.
 
 ## A7. Armadilhas medidas (economizam horas)
 
