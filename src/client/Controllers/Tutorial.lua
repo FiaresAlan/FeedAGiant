@@ -27,7 +27,12 @@ function Tutorial.init()
 			if not gui then
 				return
 			end
-			local y = 8 + 132 * UI.deviceScale()
+			-- abaixo também do chip do escudo (6 + 122 + 36 px no desenho; teste de 08/11)
+			local y = 8 + 168 * UI.deviceScale()
+			-- Por baixo da HUD do jogo: janelas abertas (loja, coleção) escurecem e cobrem a faixa.
+			if gui:IsA("ScreenGui") then
+				gui.DisplayOrder = -1
+			end
 			local objective = gui:FindFirstChild("Objective")
 			local hint = gui:FindFirstChild("Hint")
 			if objective and objective:IsA("GuiObject") then

@@ -588,6 +588,33 @@ function Locale.t(text: string, locale: string?): string
 end
 
 -- Monta mensagem dinâmica a partir de chave + params ({p}, {f}, {n}...). Params string são traduzidos por Locale.t.
+-- Nome da raridade no idioma do jogador (os IDs Common/Rare... são internos, em inglês).
+local RARITY_NAMES: { [string]: { [string]: string } } = {
+	["pt-br"] = {
+		Common = "Comum",
+		Uncommon = "Incomum",
+		Rare = "Raro",
+		Epic = "Épico",
+		Legendary = "Lendário",
+		Mythic = "Mítico",
+		Secret = "Secreto",
+	},
+	es = {
+		Common = "Común",
+		Uncommon = "Poco común",
+		Rare = "Raro",
+		Epic = "Épico",
+		Legendary = "Legendario",
+		Mythic = "Mítico",
+		Secret = "Secreto",
+	},
+}
+
+function Locale.rarity(id: string, locale: string?): string
+	local names = RARITY_NAMES[locale or Locale.of(nil)]
+	return (names and names[id]) or id
+end
+
 function Locale.fmt(key: string, locale: string?, params: { [string]: any }?): string
 	local loc = locale or Locale.of(nil)
 	local tpl = Locale.Templates[key]

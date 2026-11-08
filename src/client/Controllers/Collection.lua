@@ -18,6 +18,7 @@ local countLabel: TextLabel
 local cards: { [string]: { card: Frame, view: Frame, name: TextLabel, shown: string? } } = {}
 local speciesCards: { [string]: { card: Frame, state: TextLabel } } = {}
 local lastSeenCount = -1
+local startedAt = os.clock() -- comidas entregues na entrada (mochila inicial) não acendem o selo
 
 Collection.OnNewDiscovery = nil :: ((count: number) -> ())?
 
@@ -77,11 +78,14 @@ end
 local function refresh(s: State.PlayerState)
 	local found = s.discovered or {}
 	local n, total = Collection.count(s)
-	if lastSeenCount >= 0 and n > lastSeenCount and Collection.OnNewDiscovery then
-		(Collection.OnNewDiscovery :: (number) -> ())(n)
-	end
-	if lastSeenCount < 0 or n > lastSeenCount then
-		lastSeenCount = n
+	-- Só depois do primeiro estado real (com a lista do servidor): comidas iniciais não acendem o selo.
+	if s.discovered ~= nil then
+		if lastSeenCount >= 0 and n > lastSeenCount and os.clock() - startedAt > 15 and Collection.OnNewDiscovery then
+			(Collection.OnNewDiscovery :: (number) -> ())(n)
+		end
+		if n > lastSeenCount then
+			lastSeenCount = n
+		end
 	end
 	if not win.Visible then
 		return
@@ -119,8 +123,10 @@ function Collection.init(gui: ScreenGui)
 	local body: Frame
 	win, body = UI.window(gui, "COLEÇÃO", UDim2.fromOffset(900, 580))
 
+	-- O texto começa abaixo da faixa dourada do painel (teste de 08/11: ficava em cima dela).
 	countLabel = UI.label(body, "", {
 		Size = UDim2.new(1, 0, 0, 30),
+		Position = UDim2.fromOffset(0, 24),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
 		TextSize = 24,
@@ -128,8 +134,8 @@ function Collection.init(gui: ScreenGui)
 
 	foodGrid = Instance.new("ScrollingFrame")
 	foodGrid.Name = "List"
-	foodGrid.Size = UDim2.new(1, 0, 1, -36)
-	foodGrid.Position = UDim2.fromOffset(0, 36)
+	foodGrid.Size = UDim2.new(1, 0, 1, -60)
+	foodGrid.Position = UDim2.fromOffset(0, 60)
 	foodGrid.BackgroundColor3 = UI.Colors.Panel
 	foodGrid.BorderSizePixel = 0
 	foodGrid.ScrollBarThickness = 8
@@ -185,7 +191,7 @@ function Collection.init(gui: ScreenGui)
 			TextScaled = true,
 			ZIndex = 14,
 		})
-		UI.label(card, string.upper(Locale.t(def.rarity)), {
+		UI.label(card, string.upper(Locale.rarity(def.rarity)), {
 			Size = UDim2.new(1, -8, 0, 22),
 			Position = UDim2.fromOffset(4, 138),
 			TextScaled = false,

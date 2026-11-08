@@ -120,11 +120,17 @@ function Drops.init(gui: ScreenGui)
 	lay.Parent = list
 	arrow = UI.title(gui, "▼ COMIDA CAINDO NO CENTRO ▼", {
 		Size = UDim2.fromOffset(360, 30),
-		Position = UDim2.new(0.5, 0, 0, 100),
-		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, -140),
+		AnchorPoint = Vector2.new(0.5, 1),
 		TextColor3 = UI.Colors.Accent,
 		Visible = false,
 	})
+	-- Logo acima do botão ALIMENTAR (teste de 08/11: no topo cobria a faixa do tutorial).
+	local function placeArrow()
+		arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(130 * UI.deviceScale()))
+	end
+	placeArrow()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeArrow)
 
 	Remotes.DropState.OnClientEvent:Connect(function(d)
 		if type(d) ~= "table" or type(d.id) ~= "number" then

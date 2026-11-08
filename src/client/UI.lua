@@ -488,7 +488,7 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	})
 	local close = UI.button(
 		win,
-		"✕",
+		"X",
 		UI.Colors.Red,
 		{ Size = UDim2.fromOffset(44, 44), Position = UDim2.new(1, -30, 0, -16), ZIndex = 14 }
 	)

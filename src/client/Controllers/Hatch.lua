@@ -17,6 +17,7 @@ local reveal: Frame
 local revealName: TextLabel
 local revealRarity: TextLabel
 local revealView: Frame
+local revealStroke: UIStroke
 local busy = false
 local queue: { any } = {}
 
@@ -101,13 +102,19 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 
 	reveal.BackgroundColor3 = (def and def.color) or (data.color or rar.color)
 	revealName.Text = (def and def.name) or (data.name or data.foodId)
-	revealRarity.Text = string.upper(Locale.t(data.rarity))
+	revealRarity.Text = string.upper(Locale.rarity(data.rarity))
 	revealRarity.TextColor3 = rar.color
 	-- Fase 3: a comida aparece em 3D girando (mesmo modelo do mundo); sem modelo, fica só a cor.
 	for _, child in revealView:GetChildren() do
 		child:Destroy()
 	end
-	FoodView.create(revealView, data.foodId, { spin = true, zIndex = 53 })
+	if FoodView.create(revealView, data.foodId, { spin = true, zIndex = 53 }) then
+		-- fundo escuro com borda da raridade: a comida 3D não some na própria cor (sorvete roxo)
+		reveal.BackgroundColor3 = Color3.fromRGB(22, 26, 64)
+		revealStroke.Color = rar.color
+	else
+		revealStroke.Color = Color3.new(1, 1, 1)
+	end
 	reveal.Size = UDim2.fromOffset(0, 0)
 	reveal.Visible = true
 	TweenService:Create(
@@ -173,7 +180,7 @@ function Hatch.init(gui: ScreenGui)
 		ZIndex = 51,
 	})
 	UI.corner(reveal, 28)
-	UI.stroke(reveal, Color3.new(1, 1, 1), 4)
+	revealStroke = UI.stroke(reveal, Color3.new(1, 1, 1), 4)
 	revealName =
 		UI.label(reveal, "", { Size = UDim2.new(1, -16, 0, 44), Position = UDim2.new(0, 8, 1, -96), ZIndex = 52 })
 	revealView = Instance.new("Frame")
