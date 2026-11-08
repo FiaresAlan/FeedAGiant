@@ -11,6 +11,7 @@ local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
 local InsertService = game:GetService("InsertService")
+local AssetService = game:GetService("AssetService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local GiantService = {}
@@ -30,6 +31,41 @@ local function getTemplate(file: string, assetId: string): Model?
 		return nil -- já falhou antes: não tenta de novo a cada atualização
 	elseif cached then
 		return cached :: Model
+	end
+	-- "mesh:<malha>|<textura>": só malha+textura (ex.: gerado pela IA do Studio e ainda não publicado
+	-- como pacote). Monta a MeshPart com AssetService:CreateMeshPartAsync (vault: Importing Models and Rigs).
+	local meshUri, texUri = string.match(assetId, "^mesh:([^|]+)|(.+)$")
+	if meshUri and texUri then
+		local okMesh, part = pcall(function()
+			return AssetService:CreateMeshPartAsync(Content.fromUri(meshUri), {
+				CollisionFidelity = Enum.CollisionFidelity.Box,
+				RenderFidelity = Enum.RenderFidelity.Automatic,
+			})
+		end)
+		if not okMesh or not part then
+			warn("[GiantService] não montou a malha", file, part)
+			templates[file] = false
+			return nil
+		end
+		local mp = part :: MeshPart
+		mp.TextureID = texUri
+		mp.Anchored = true
+		mp.CanCollide = false
+		mp.CanTouch = false
+		mp.CanQuery = false
+		local model = Instance.new("Model")
+		model.Name = file
+		mp.Parent = model
+		model.PrimaryPart = mp
+		if not templateFolder then
+			local f = Instance.new("Folder")
+			f.Name = "CreatureTemplates"
+			f.Parent = ServerStorage
+			templateFolder = f
+		end
+		model.Parent = templateFolder
+		templates[file] = model
+		return model
 	end
 	local numeric = tonumber(string.match(assetId, "%d+"))
 	local ok, loaded = pcall(function()

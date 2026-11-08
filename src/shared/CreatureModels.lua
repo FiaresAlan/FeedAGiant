@@ -12,7 +12,8 @@ export type Entry = {
 
 local CreatureModels = {}
 
--- Espécies sem entrada (humano, jacaré, águia, slime) continuam com o corpo de blocos.
+-- Humano, jacaré, águia e slime (08/11/2026): malhas geradas pela IA do Roblox Studio (generate_mesh),
+-- estilo cartoon, ids em assets/optimized/assets.json ("gen-*"). Frente original = -Z (yaw 0).
 -- yaw: dragão vermelho e de cristal ficaram virados ~45° na vista de frente do Blender; conferir no Studio
 -- depois do primeiro upload e ajustar aqui (não precisa refazer o modelo).
 CreatureModels.BySpecies = {
@@ -24,6 +25,10 @@ CreatureModels.BySpecies = {
 	troll = { file = "troll", yaw = 0 },
 	wyvern = { file = "wyvern", yaw = 0 },
 	hydra = { file = "hydra", yaw = 0 },
+	human = { file = "gen-human", babyFile = "gen-human-baby", yaw = 0 },
+	gator = { file = "gen-gator", yaw = 0 },
+	eagle = { file = "gen-eagle", yaw = 0 },
+	slime = { file = "gen-slime", yaw = 0 },
 } :: { [string]: Entry }
 
 -- Arquivo e ID do modelo para a espécie no nível dado; nil se ainda não há ID (sem upload).

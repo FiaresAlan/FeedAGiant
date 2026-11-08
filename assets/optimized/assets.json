@@ -53,5 +53,25 @@
     "id": "rbxassetid://72703131003646",
     "file": "zombie.glb",
     "bytes": 673828
+  },
+  "gen-human-baby": {
+    "id": "rbxassetid://100526665323885",
+    "source": "Roblox Studio IA (generate_mesh), 08/11/2026: gigante bebê cartoon"
+  },
+  "gen-human": {
+    "id": "mesh:rbxassetid://107951426849358|rbxassetid://106094977211125",
+    "source": "Roblox Studio IA (generate_mesh), 08/11/2026: gigante adulto de regata (malha+textura)"
+  },
+  "gen-gator": {
+    "id": "rbxassetid://87733233329968",
+    "source": "Roblox Studio IA (generate_mesh), 08/11/2026: jacaré cartoon"
+  },
+  "gen-eagle": {
+    "id": "rbxassetid://136574435895953",
+    "source": "Roblox Studio IA (generate_mesh), 08/11/2026: águia cartoon"
+  },
+  "gen-slime": {
+    "id": "rbxassetid://79884372873700",
+    "source": "Roblox Studio IA (generate_mesh), 08/11/2026: slime cartoon"
   }
 }
