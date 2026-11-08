@@ -4,8 +4,8 @@
 -- bem animado, e no evento o fogo e a fumaça aumentam", "estátuas dos outros gigantes pelo mapa").
 --
 -- Roda no servidor depois do mapa pronto (assado ou gerado), então funciona nos dois casos:
---   * Água de terreno nos 3 lagos e num anel de mar em volta da praia (só o anel: água de terreno no
---     mar inteiro custava ~290 mil triângulos na Fase 1; o anel cobre o que se vê da ilha).
+--   * Mundo (item 16): chão de grama de terreno com ondulações, montanhas em volta, sem mar, água de
+--     terreno só nos 3 lagos, paredes invisíveis no limite.
 --   * Fogo e fumaça de partículas no caldeirão; as nuvens de peças e as bolas de neon somem.
 --   * Estátuas das 12 espécies de gigante em volta da praça, com placa de preço (progressão visível).
 -- Partículas usam as texturas que já vêm com o Roblox (rbxasset://textures/particles/...), sem upload.
@@ -15,6 +15,7 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local World = require(script.Parent.World)
 
 local WorldFx = {}
 
@@ -35,36 +36,183 @@ end
 ---------------------------------------------------------------------------
 -- Água
 ---------------------------------------------------------------------------
-local function water(map: Instance)
-	local terrain = Workspace.Terrain
-	terrain.WaterColor = Color3.fromRGB(40, 150, 200)
-	terrain.WaterTransparency = 0.35
-	terrain.WaterReflectance = 0.6
-	terrain.WaterWaveSize = 0.12
-	terrain.WaterWaveSpeed = 8
-	-- Mar: anel de água entre a praia e ~260 studs para fora. Topo em -1,6 (abaixo da praia, -0,6).
-	local outer = ISLAND_R + BEACH_W + 260
-	terrain:FillCylinder(CFrame.new(0, -4.4, 0), 5.6, outer, Enum.Material.Water)
-	terrain:FillCylinder(CFrame.new(0, -4.4, 0), 6, ISLAND_R - 20, Enum.Material.Air)
-	-- Lagos: água com topo 0,4 acima do chão (o aro de areia fica em volta); a peça azul some.
+-- Reforma do mapa (pedido do usuário, item 16, 08/11/2026):
+--   * SEM MAR em volta: some a água de terreno e a peça azul do horizonte (custo e limite do mapa);
+--   * chão de GRAMA DE TERRENO (textura do Roblox) com pequenas ondulações só fora das rotas de jogo
+--     (praça, caminhos das bases, bases, arena, lagos e estátuas ficam planos);
+--   * cadeia de MONTANHAS cartoon (rocha quente, encostas verdes, picos com neve) em volta de tudo,
+--     fechando o horizonte; um anel de paredes invisíveis impede sair da área jogável;
+--   * os 3 lagos continuam com água de terreno.
+-- Cores pintadas (Terrain:SetMaterialColor) para combinar com o estilo cartoon das criaturas.
+local MOUNTAIN_INNER = ISLAND_R + BEACH_W + 40
+
+local function nearPathOrBase(p: Vector3): boolean
+	local r = Vector3.new(p.X, 0, p.Z).Magnitude
+	-- ângulo até a direção de base/caminho mais próxima (múltiplos de 45°)
+	local ang = math.deg(math.atan2(p.Z, p.X)) % 45
+	local off = math.min(ang, 45 - ang)
+	if r < 360 and off < 13 then
+		return true
+	end
+	-- bases (quadrado de 60 a r 320)
+	if r > 270 and r < 380 then
+		return true
+	end
+	return false
+end
+
+local function nearPondOrArena(p: Vector3): boolean
 	for _, pond in PONDS do
 		local c = polar(pond[1], pond[2], 0)
-		terrain:FillCylinder(CFrame.new(c.X, -1.6, c.Z), 4, pond[3], Enum.Material.Water)
-	end
-	for _, d in map:GetDescendants() do
-		if d:IsA("BasePart") and d.Name == "PondWater" then
-			d.Transparency = 1
+		if (Vector3.new(p.X - c.X, 0, p.Z - c.Z)).Magnitude < pond[3] + 22 then
+			return true
 		end
 	end
-	-- O mar distante (peça) fica com a mesma cor da água e um pouco de brilho.
-	local far = map:FindFirstChild("FarSea", true)
-	if far and far:IsA("BasePart") then
-		-- Mesma cor da água vista de longe (a neblina esconde a emenda no horizonte).
-		far.Color = Color3.fromRGB(78, 178, 205)
-		far.Material = Enum.Material.SmoothPlastic
-		far.Reflectance = 0.2
-		far.Transparency = 0
+	local a = World.Arena.center
+	if Vector3.new(p.X - a.X, 0, p.Z - a.Z).Magnitude < World.Arena.outerR + 30 then
+		return true
 	end
+	-- estrada da praça até a arena
+	local dir = Vector3.new(a.X, 0, a.Z).Unit
+	local along = Vector3.new(p.X, 0, p.Z):Dot(dir)
+	if along > 0 and along < Vector3.new(a.X, 0, a.Z).Magnitude then
+		local perp = (Vector3.new(p.X, 0, p.Z) - dir * along).Magnitude
+		if perp < 20 then
+			return true
+		end
+	end
+	return false
+end
+
+local function world(map: Instance)
+	local T = Workspace.Terrain
+	T:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(104, 178, 62))
+	T:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(88, 160, 58))
+	T:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(168, 128, 112))
+	T:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(236, 204, 146))
+	T:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(246, 248, 255))
+	T.WaterColor = Color3.fromRGB(40, 150, 200)
+	T.WaterTransparency = 0.35
+	T.WaterReflectance = 0.6
+	T.WaterWaveSize = 0.12
+	T.WaterWaveSpeed = 8
+	-- Chão: areia na borda, grama no resto (topo em y = 0, igual às peças antigas)
+	-- O terreno arredonda em blocos de 4 studs (medido: preencher até y = 0 deixava a superfície em
+	-- y = 2 e cobria os caminhos, que têm topo em y = 1). Solução medida: blocos cheios até y = -4 e a
+	-- camada -4..0 escrita com ocupação 0,5 → superfície em y = 0. Lagos: água na mesma camada.
+	T:FillCylinder(CFrame.new(0, -8, 0), 8, ISLAND_R + BEACH_W + 30, Enum.Material.Sand)
+	T:FillCylinder(CFrame.new(0, -8, 0), 8, ISLAND_R, Enum.Material.Grass)
+	local pondCenters = {}
+	for _, pond in PONDS do
+		table.insert(pondCenters, { c = polar(pond[1], pond[2], 0), r = pond[3] })
+		local c = polar(pond[1], pond[2], 0)
+		T:FillCylinder(CFrame.new(c.X, -8, c.Z), 8, pond[3], Enum.Material.Water)
+	end
+	local R = ISLAND_R + BEACH_W + 30
+	local region = Region3.new(Vector3.new(-R, -4, -R), Vector3.new(R, 0, R)):ExpandToGrid(4)
+	local count = region.Size / 4
+	local minp = region.CFrame.Position - region.Size / 2
+	local mats, occs = {}, {}
+	for x = 1, count.X do
+		mats[x], occs[x] = { {} }, { {} }
+		for z = 1, count.Z do
+			local px, pz = minp.X + (x - 0.5) * 4, minp.Z + (z - 0.5) * 4
+			local r = math.sqrt(px * px + pz * pz)
+			local m, o = Enum.Material.Air, 0
+			if r <= ISLAND_R then
+				m, o = Enum.Material.Grass, 0.5
+			elseif r <= ISLAND_R + BEACH_W + 30 then
+				m, o = Enum.Material.Sand, 0.5
+			end
+			for _, pc in pondCenters do
+				local d = Vector3.new(px - pc.c.X, 0, pz - pc.c.Z).Magnitude
+				if d <= pc.r then
+					m, o = Enum.Material.Water, 1
+				elseif d <= pc.r + 5 then
+					m, o = Enum.Material.Sand, 0.5 -- margem de areia (no lugar do disco de peça)
+				end
+			end
+			mats[x][1][z] = m
+			occs[x][1][z] = o
+		end
+	end
+	T:WriteVoxels(region, 4, mats, occs)
+	task.wait()
+	-- As peças antigas do chão e do mar somem (o terreno fica no lugar delas).
+	for _, d in map:GetDescendants() do
+		if d:IsA("BasePart") then
+			local n = d.Name
+			if
+				string.sub(n, 1, 6) == "Island"
+				or string.sub(n, 1, 5) == "Beach"
+				or string.sub(n, 1, 9) == "Shallows"
+				or n == "FarSea"
+				or n == "PondWater"
+				or n == "PondRim"
+			then
+				d.Transparency = 1
+				d.CanCollide = false
+				d.CanQuery = false
+			end
+		end
+	end
+	-- Ondulações suaves (só onde ninguém precisa andar reto)
+	local rng = Random.new(4242)
+	local placed = 0
+	for _ = 1, 400 do
+		if placed >= 70 then
+			break
+		end
+		local a = rng:NextNumber(0, math.pi * 2)
+		local r = rng:NextNumber(185, ISLAND_R - 12)
+		local p = Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
+		if nearPathOrBase(p) or nearPondOrArena(p) then
+			continue
+		end
+		local radius = rng:NextNumber(14, 26)
+		local h = rng:NextNumber(1, 3.5)
+		T:FillBall(Vector3.new(p.X, h - radius - 1, p.Z), radius, Enum.Material.Grass)
+		placed += 1
+		if placed % 10 == 0 then
+			task.wait()
+		end
+	end
+	task.wait()
+	-- Montanhas
+	local n = 72
+	for i = 0, n - 1 do
+		local a = (i + rng:NextNumber(-0.3, 0.3)) / n * math.pi * 2
+		local r = MOUNTAIN_INNER + rng:NextNumber(40, 110)
+		local radius = rng:NextNumber(55, 90)
+		local cx, cz = math.cos(a) * r, math.sin(a) * r
+		local cy = radius * rng:NextNumber(0.05, 0.35)
+		T:FillBall(Vector3.new(cx, cy, cz), radius, Enum.Material.Rock)
+		-- encosta verde por baixo
+		T:FillBall(Vector3.new(cx, cy - radius * 0.55, cz), radius * 0.95, Enum.Material.LeafyGrass)
+		if cy + radius > 95 then
+			T:FillBall(Vector3.new(cx, cy + radius * 0.82, cz), radius * 0.3, Enum.Material.Snow)
+		end
+		if i % 4 == 0 then
+			task.wait()
+		end
+	end
+	-- Paredes invisíveis no pé das montanhas (ninguém sai da área de jogo)
+	local walls = Instance.new("Folder")
+	walls.Name = "Boundary"
+	local wr = ISLAND_R + BEACH_W + 24
+	local segs = 64
+	for i = 0, segs - 1 do
+		local a = (i + 0.5) / segs * math.pi * 2
+		local w = Instance.new("Part")
+		w.Name = "Wall"
+		w.Anchored = true
+		w.Transparency = 1
+		w.CanQuery = false
+		w.Size = Vector3.new(2 * math.pi * wr / segs + 4, 400, 4)
+		w.CFrame = CFrame.lookAt(Vector3.new(math.cos(a) * wr, 200, math.sin(a) * wr), Vector3.new(0, 200, 0))
+		w.Parent = walls
+	end
+	walls.Parent = map
 end
 
 ---------------------------------------------------------------------------
@@ -409,7 +557,7 @@ function WorldFx.init(template: (string) -> Model?)
 	if not map then
 		return
 	end
-	for name, step in { ["água"] = water, ["caldeirão"] = cauldron } :: { [string]: (Instance) -> () } do
+	for name, step in { ["mundo"] = world, ["caldeirão"] = cauldron } :: { [string]: (Instance) -> () } do
 		local ok, err = pcall(function()
 			step(map)
 		end)
