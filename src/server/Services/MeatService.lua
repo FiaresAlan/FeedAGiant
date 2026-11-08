@@ -183,6 +183,11 @@ local function tryCut(player: Player, f: Feast)
 		Remotes.Notify:FireClient(player, Locale.msg("meat_limit", { n = M.PerPlayer }, Color3.fromRGB(255, 170, 60)))
 		return
 	end
+	-- Teste com 2 jogadores (08/11/2026): quem já carregava algo era recusado em silêncio.
+	if DropService.isCarrying(player) or player:GetAttribute("CarryingSteal") then
+		Remotes.Notify:FireClient(player, Locale.msg("meat_carrying", nil, Color3.fromRGB(255, 170, 60)))
+		return
+	end
 	local root = Guard.rootOf(player)
 	local at = if root then root.Position + Vector3.new(0, 3, 0) else f.pos
 	if not DropService.giveCarried(player, M.FoodId, at) then

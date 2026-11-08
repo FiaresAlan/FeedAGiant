@@ -40,8 +40,11 @@ Studio: testado com o substituto em memória); tela da batalha em celular (só n
 **Documentado, não implementado:** PvP por turnos (a função `resolve` serve para 2 lados; falta convite/fila); recompensa por coleção completa;
 ranking de batalhas; auras (`RETENCAO_E_FUTURO.md` §4-5).
 
-**Bloqueado pelo ambiente:** teste com 2+ jogadores (o controle da tela foi negado nesta sessão; o modo "Servidor e clientes" precisa de
-cliques), celular físico/emulador e controle, DataStore real (place de teste não publicado), medir orçamento de triângulos da ilha com a
+**Testado com 2 jogadores (depois, com o controle de tela liberado pelo usuário):** disputa da Carne Gigante (soco derruba, o outro pega
+e entrega na própria base; os dois cortam do mesmo pedaço) e Dragão com 2 lutadores (vida escala, Player2 sai no meio e fica com
+pendência de 422 moedas + 123 XP). Evidências §9. Corrigido: aviso ao cortar carregando algo.
+
+**Bloqueado pelo ambiente:** reentrada de verdade em outro servidor, celular físico/emulador e controle, DataStore real (place de teste não publicado), medir orçamento de triângulos da ilha com a
 câmera do jogador.
 
 ### Notas de qualidade (ledger)
@@ -58,8 +61,7 @@ câmera do jogador.
 - O botão "GOLPE FORTE" e o remote `RequestGiantSpecial` não são mais usados (o remote ficou na lista só por compatibilidade).
 
 ### PRÓXIMA TAREFA PRIORITÁRIA
-1. **Teste com 2 jogadores** (Servidor e clientes, 2 jogadores): disputa da Carne Gigante (soco derruba porção, outro pega), Dragão com 2
-   lutadores (divisão do bônus, um sai no meio → pendência), troca de espécie. Isso destrava S1/S2 da rubrica.
+1. ~~Teste com 2 jogadores~~ FEITO (evidências §9). Falta: reentrada real para resgatar a pendência e um novo painel de 3 revisores.
 2. **Testes automáticos** dos sistemas novos em `tests/` (sequência, transferência 30%, renda offline com teto, pendências idempotentes).
 3. Fotos das 12 espécies comendo/comemorando (contact sheet) para a rubrica de animação; avaliar separar cabeça/corpo do dragão e do
    humano no Blender (requer novo upload: pedir autorização).

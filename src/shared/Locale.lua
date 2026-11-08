@@ -560,6 +560,11 @@ Locale.Templates = {
 		en = "You already cut {n} portions of this meat. Leave some for others!",
 		es = "Ya cortaste {n} porciones de esta carne. ¡Deja para los demás!",
 	},
+	meat_carrying = {
+		["pt-br"] = "Você já está carregando uma porção! Leve até a sua base e volte para cortar outra.",
+		en = "You're already carrying something! Take it to your base, then come back for another cut.",
+		es = "¡Ya llevas algo! Llévalo a tu base y vuelve a cortar otra porción.",
+	},
 	meat_gone = {
 		["pt-br"] = "A Carne Gigante acabou! Leve sua porção para a base.",
 		en = "The Giant Meat is gone! Bring your portion to your base.",

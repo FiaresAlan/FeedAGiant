@@ -64,3 +64,25 @@ coins=0`), modelos limpos em erro, quem segura o coliseu com fila ganha +30 s de
 follow-through (balanço atrasado depois da mordida/pouso), poeira na aterrissagem e no pisão da birra, fila de reações
 preservada, cache dos gigantes (sem varrer o Workspace a 30 Hz).
 Reteste: alimentação ok (inv 5→4, XP 0→14), console sem erro do jogo, verificador PASS.
+
+## 9. Teste com 2 jogadores (08/11/2026, noite — "Servidor e clientes", 2 jogadores)
+Cópia `FeedAGiant-s1.rbxl`, modo do Studio "Servidor e clientes" com Player1 (UserId -1) e Player2 (-2). Console do servidor sem erro do jogo.
+
+**Carne Gigante (disputa real):**
+- 8 porções com 2 jogadores (4 + 2×2), conferido na placa.
+- Player1 cortou → Player2 ligou o modo de luta e **socou o Player1: o 2º soco derrubou a porção** → Player2 pegou a porção caída
+  → levou até a **própria** base → servidor registrou `CORTOU Player1 | ENTREGUE Player2 giantmeat`.
+- Os dois cortaram do MESMO pedaço (8 → 7 → 6): vários jogadores ganham, não só o primeiro.
+- Achado e corrigido: quem tentava cortar já carregando algo era recusado **sem aviso**. Agora aparece "Você já está carregando uma
+  porção!…" (`meat_carrying`, PT/EN/ES). Retestado com 1 jogador: aviso chegou.
+- Observação de teste (não é bug): o botão de proximidade só aparece com a carne na tela; a câmera do jogador de teste estava de costas.
+
+**Dragão com 2 jogadores e saída no meio:**
+- Socos REAIS (modo de luta + `RequestPunch`) dos dois na ilha: 900/900 → 779 (Player1, 10 socos); ao chegar o 2º lutador a vida
+  escalou para **1.500**; Player2 tirou 97 com 8 socos.
+- Player2 **saiu (Kick) no meio da luta**; o Player1 terminou (golpes acelerados pelo servidor, mesmo caminho do soco).
+- Fases 2 e 3 anunciadas. Player1: `share 0,936 → participação 308 + bônus 1.685 + 123 XP + caixa épica`.
+- Player2 (fora do servidor): **pendência gravada `moedas 422 (308 + 114 = 6,4% do bônus) xp 123`**, paga na próxima entrada
+  (resgate idempotente já medido na seção 6).
+
+**Ainda não testado:** reentrada real do Player2 em outro servidor (o Studio não reconecta clientes de teste), celular e controle.
