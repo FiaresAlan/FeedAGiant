@@ -454,7 +454,7 @@ end
 
 function GiantBattleService.init()
 	Remotes.RequestGiantBattle.OnServerEvent:Connect(function(player, speciesId)
-		if type(speciesId) ~= "string" or not Guard.allow(player, "Duel") then
+		if type(speciesId) ~= "string" or #speciesId > 32 or not Guard.allow(player, "Battle") then
 			return
 		end
 		local profile = DataService.get(player)

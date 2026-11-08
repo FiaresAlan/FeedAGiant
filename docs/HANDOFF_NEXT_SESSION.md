@@ -1,6 +1,6 @@
 # Handoff — Feed a Giant ("Alimente um Gigante")
 
-**Atualizado em:** 08/11/2026 (madrugada) · **Repositório:** https://github.com/FiaresAlan/FeedAGiant (branch `main`, último commit `292ce41` + o deste handoff)
+**Atualizado em:** 08/11/2026 (noite, missão "evolução integrada") · **Repositório:** https://github.com/FiaresAlan/FeedAGiant (branch `main`, último commit `292ce41` + o deste handoff)
 **Pasta local:** `C:\Users\Administrador\Pictures\FeedAGiant PRINCIPAL`
 **Idioma obrigatório:** português brasileiro em toda comunicação, documentação e relatório. O usuário é **leigo** em programação: explicar em linguagem simples.
 
@@ -10,6 +10,60 @@
 ---
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
+
+## A0000. Missão "evolução integrada" (08/11/2026, noite) — ESTADO EXATO
+
+Pedido: alimentação com mais impacto + coleção + competição, tudo ligado ao gigante. Cópia de teste: `scratchpad/studio/FeedAGiant-s1.rbxl`
+(código chega pela sincronização do `rojo serve` do usuário). Evidências: `docs/qa/FASE7_EVIDENCIAS.md`; fotos `docs/qa/shots/fase7/`.
+Commits no `main`: `5e9f1f2`, `1757569` (selene), `207bdb1`, `a298318` (+ o deste handoff). Push feito. Nada publicado, nenhum upload, nenhum Robux.
+
+### Separação pedida
+**Implementado e testado no Studio (1 jogador):**
+- **Animações procedurais (P1)** — `GiantAnim.lua` v2 + `GiantPersonality.lua`: respiração/olhar/flutuar, antecipação enquanto a comida voa,
+  MORDIDA no instante da chegada (0,6 s, medido), 2 mastigadas, crítica (antecipação maior, mordida dupla, pulo), comemorar (5 estilos por
+  espécie), evoluir (agacha, salta girando, aterrissa, ruge), birra de fome (atributo `Mood`), follow-through com mola, poeira. Motivo de ser
+  procedural: os modelos no Roblox são 1 MeshPart com **0 ossos** (medido: goblin, troll, dragão, hidra).
+- **Bug corrigido:** o gigante voltava à escala 1 e crescia de novo a CADA alimentação (`GiantService.refreshVisual`).
+- **Sequência (4.1), características (4.3), crítica (4.4)** — `PlotService.doFeed`, números em `src/shared/GameRules.lua`.
+- **Coleção com progresso por espécie + 30%** — `GiantService.grantSpecies/setSpecies`, migração em `DataService.sanitize`.
+- **Exposição + renda offline (8 h)** — `RosterService.lua`, botões EXPOR/RECOLHER na Coleção.
+- **Batalha por turnos (PvE)** — `GiantBattleService.lua` + `GiantBattle.lua` (3 golpes/estilo, AFK não ganha).
+- **Carne Gigante (4.5)** — `MeatService.lua` + `DropService.giveCarried` + `Meat.lua` (selo e seta).
+- **Ilha do Dragão** — `World.buildBossIsland` (MAP_VERSION **3**), `BossService` com fases, participação, bônus e pendências.
+- **Diário (P5) + recordes (4.6)** — `ProgressService.lua`, `Diary.lua` (o botão DIÁRIO agora abre o painel).
+- Testes: verificador **PASS (76 arquivos)**; **39 testes antigos passaram**; simulações no Studio (seções 1-8 das evidências).
+
+**Implementado, parcialmente testado:** 4.2 estágios (já existia; ganhou animação de evolução — só visto no código/medição, não filmado);
+personalidade das 12 espécies (só humano e dragão vistos em jogo); renda offline e pendências do Dragão (DataStore real não existe no
+Studio: testado com o substituto em memória); tela da batalha em celular (só na janela baixa do Studio, escala 0,6).
+
+**Documentado, não implementado:** PvP por turnos (a função `resolve` serve para 2 lados; falta convite/fila); recompensa por coleção completa;
+ranking de batalhas; auras (`RETENCAO_E_FUTURO.md` §4-5).
+
+**Bloqueado pelo ambiente:** teste com 2+ jogadores (o controle da tela foi negado nesta sessão; o modo "Servidor e clientes" precisa de
+cliques), celular físico/emulador e controle, DataStore real (place de teste não publicado), medir orçamento de triângulos da ilha com a
+câmera do jogador.
+
+### Notas de qualidade (ledger)
+- Sistema: rodada 0 (3 revisores cegos) 6,3 / 6,25 / 6,3 → mediana **6,3** (15/24); rodada 2 (1 revisor cego, depois das correções) **7,5** (18/24).
+- Animação: rodada 0 **6,0** (18/30; o revisor errou a soma dos pesos e escreveu 5,6); rodada 2 **6,3** (19/30).
+  Bloqueadores: sem rig não há overlap real (P5) e faltam fotos/vídeo das 12 espécies (P1/P2).
+- **Abaixo de 8,5 = rascunho.** Os critérios que travam a nota são "testado com 2 jogadores" (S1/S2), "teste automático dos sistemas
+  novos" (S6) e, na animação, overlap real (precisaria separar cabeça/corpo no Blender e reenviar).
+
+### Avisos para o próximo
+- **Re-assar o mapa** no place oficial (MAP_VERSION 3) só quando o usuário pedir; sem isso o jogo gera o mapa por código (funciona).
+- O Dragão **não usa mais o coliseu**: `Main.server.lua` tirou o Boss do `IsArenaBusy`.
+- As faixas do TUTORIAL antigo aparecem por cima das janelas novas (foto 02) — problema anterior, não corrigido.
+- O botão "GOLPE FORTE" e o remote `RequestGiantSpecial` não são mais usados (o remote ficou na lista só por compatibilidade).
+
+### PRÓXIMA TAREFA PRIORITÁRIA
+1. **Teste com 2 jogadores** (Servidor e clientes, 2 jogadores): disputa da Carne Gigante (soco derruba porção, outro pega), Dragão com 2
+   lutadores (divisão do bônus, um sai no meio → pendência), troca de espécie. Isso destrava S1/S2 da rubrica.
+2. **Testes automáticos** dos sistemas novos em `tests/` (sequência, transferência 30%, renda offline com teto, pendências idempotentes).
+3. Fotos das 12 espécies comendo/comemorando (contact sheet) para a rubrica de animação; avaliar separar cabeça/corpo do dragão e do
+   humano no Blender (requer novo upload: pedir autorização).
+4. Corrigir as faixas do tutorial por cima das janelas.
 
 ## A000. Pedido integrado de 08/11/2026 (21 itens): situação de CADA item
 
