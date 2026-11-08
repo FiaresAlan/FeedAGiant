@@ -18,6 +18,7 @@ local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Guard = require(script.Parent.Parent.Guard)
+local FoodModels = require(script.Parent.Parent.FoodModels)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
@@ -101,6 +102,7 @@ local function attachCarryVisual(thief: Player, def: Config.FoodDef): Model?
 	weld.Part1 = p
 	p.CFrame = head.CFrame * CFrame.new(0, 2.5, 0)
 	weld.Parent = p
+	FoodModels.dress(p, def.id, 2.8) -- Fase 2: comida 3D na cabeça do ladrão
 	Util.makeBillboard(
 		p,
 		"ROUBANDO: " .. def.name,

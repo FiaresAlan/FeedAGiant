@@ -12,6 +12,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local CombatService = require(script.Parent.CombatService)
+local FoodModels = require(script.Parent.Parent.FoodModels)
 
 local DropService = {}
 local D = Config.Drops
@@ -81,10 +82,15 @@ local function buildDropModel(food: Config.FoodDef, pos: Vector3): (Model, Part,
 		CanCollide = false,
 		Parent = model,
 	})
-	body.Shape = if food.shape == "Ball"
-		then Enum.PartType.Ball
-		elseif food.shape == "Cylinder" then Enum.PartType.Cylinder
-		else Enum.PartType.Block
+	if FoodModels.has(food.id) then
+		-- Fase 2: comida 3D, maior que a do pátio (destaque do evento de disputa).
+		FoodModels.dress(body, food.id, 5)
+	else
+		body.Shape = if food.shape == "Ball"
+			then Enum.PartType.Ball
+			elseif food.shape == "Cylinder" then Enum.PartType.Cylinder
+			else Enum.PartType.Block
+	end
 	local light = Instance.new("PointLight")
 	light.Color = rar.color
 	light.Range = 12 + rar.order * 3

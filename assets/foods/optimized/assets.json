@@ -1,0 +1,82 @@
+{
+  "food-apple": {
+    "id": "rbxassetid://82483239165310",
+    "file": "food-apple.glb",
+    "bytes": 67796
+  },
+  "food-banana": {
+    "id": "rbxassetid://130361541369317",
+    "file": "food-banana.glb",
+    "bytes": 58336
+  },
+  "food-bento-box": {
+    "id": "rbxassetid://111978781131930",
+    "file": "food-bento-box.glb",
+    "bytes": 114748
+  },
+  "food-bread-loaf": {
+    "id": "rbxassetid://115839731201902",
+    "file": "food-bread-loaf.glb",
+    "bytes": 55032
+  },
+  "food-burger": {
+    "id": "rbxassetid://113885754030660",
+    "file": "food-burger.glb",
+    "bytes": 92776
+  },
+  "food-cake-slice": {
+    "id": "rbxassetid://130329221702864",
+    "file": "food-cake-slice.glb",
+    "bytes": 90104
+  },
+  "food-chocolate-truffle-box": {
+    "id": "rbxassetid://106676723217871",
+    "file": "food-chocolate-truffle-box.glb",
+    "bytes": 126772
+  },
+  "food-donut": {
+    "id": "rbxassetid://93821562744260",
+    "file": "food-donut.glb",
+    "bytes": 102948
+  },
+  "food-fried-chicken": {
+    "id": "rbxassetid://79530824681057",
+    "file": "food-fried-chicken.glb",
+    "bytes": 83436
+  },
+  "food-ice-cream-cone": {
+    "id": "rbxassetid://92535930753923",
+    "file": "food-ice-cream-cone.glb",
+    "bytes": 85000
+  },
+  "food-pasta-plate": {
+    "id": "rbxassetid://88013746036968",
+    "file": "food-pasta-plate.glb",
+    "bytes": 144072
+  },
+  "food-pizza": {
+    "id": "rbxassetid://125693414993487",
+    "file": "food-pizza.glb",
+    "bytes": 129528
+  },
+  "food-ramen-bowl": {
+    "id": "rbxassetid://124786439741160",
+    "file": "food-ramen-bowl.glb",
+    "bytes": 134188
+  },
+  "food-steak-plate": {
+    "id": "rbxassetid://71646112443167",
+    "file": "food-steak-plate.glb",
+    "bytes": 143312
+  },
+  "food-sushi-set": {
+    "id": "rbxassetid://115947798999032",
+    "file": "food-sushi-set.glb",
+    "bytes": 92216
+  },
+  "food-taco": {
+    "id": "rbxassetid://104456963077694",
+    "file": "food-taco.glb",
+    "bytes": 107048
+  }
+}

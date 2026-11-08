@@ -12,6 +12,7 @@ local PlotService = require(script.Parent.PlotService)
 local ShopService = require(script.Parent.ShopService)
 local GiantService = require(script.Parent.GiantService)
 local Guard = require(script.Parent.Parent.Guard)
+local FoodModels = require(script.Parent.Parent.FoodModels)
 
 local EventService = {}
 local active: string? = nil
@@ -58,6 +59,7 @@ local function runFoodRain(def)
 			Parent = folder,
 		})
 		p.Shape = Enum.PartType.Ball
+		FoodModels.dress(p, food.id, 3) -- Fase 2: comida 3D (sem modelo, fica a bola)
 		-- Física da peça fica com o servidor: o cliente não consegue puxá-la até si.
 		p:SetNetworkOwner(nil)
 		Util.makeBillboard(

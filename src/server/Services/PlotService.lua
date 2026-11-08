@@ -8,6 +8,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local GiantService = require(script.Parent.GiantService)
+local FoodModels = require(script.Parent.Parent.FoodModels)
 local Guard = require(script.Parent.Parent.Guard)
 
 -- Maior índice de vaga possível (VIP tem mais vagas); o dono é conferido depois.
@@ -97,18 +98,26 @@ function PlotService.coinsPerSecond(player: Player): number
 	return math.floor(total * mult * globalCoinMultiplier)
 end
 
+local PLOT_FOOD_SIZE = 3.6 -- maior dimensão da comida 3D no pátio (vaga de 6x6 studs)
+
 local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 	local model = Instance.new("Model")
 	model.Name = "Food_" .. def.id
+	local bounds = FoodModels.boundsFor(def.id, PLOT_FOOD_SIZE)
 	local p = Util.makePart({
 		Name = "Body",
-		Size = Vector3.new(3, 3, 3),
+		Size = if bounds then bounds:Max(Vector3.new(1, 1, 1)) else Vector3.new(3, 3, 3),
 		Color = def.color,
 		Material = if Config.Rarities[def.rarity].order >= 4 then Enum.Material.Neon else Enum.Material.SmoothPlastic,
-		CFrame = slot.CFrame * CFrame.new(0, 2, 0),
+		CFrame = if bounds
+			then slot.CFrame * CFrame.new(0, 0.2 + math.max(bounds.Y, 1) / 2, 0)
+			else slot.CFrame * CFrame.new(0, 2, 0),
 		Parent = model,
 	})
-	if def.shape == "Ball" then
+	if bounds then
+		-- Fase 2: comida 3D (Grab3D CC0). A peça fica invisível e do tamanho da malha (clique certo).
+		FoodModels.dress(p, def.id, PLOT_FOOD_SIZE)
+	elseif def.shape == "Ball" then
 		p.Shape = Enum.PartType.Ball
 	elseif def.shape == "Cylinder" then
 		p.Shape = Enum.PartType.Cylinder
@@ -127,15 +136,23 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 	end
 	model.PrimaryPart = p
 	local rc = Config.Rarities[def.rarity].color
-	Util.makeBillboard(p, def.name .. "\n" .. def.rarity, UDim2.fromOffset(140, 50), Vector3.new(0, 3, 0), rc)
+	Util.makeBillboard(
+		p,
+		def.name .. "\n" .. def.rarity,
+		UDim2.fromOffset(140, 50),
+		Vector3.new(0, p.Size.Y / 2 + 1.6, 0),
+		rc
+	)
 	local click = Instance.new("ClickDetector")
 	click.MaxActivationDistance = 25
 	click.Parent = p
-	local sel = Instance.new("SelectionBox")
-	sel.Adornee = p
-	sel.Color3 = rc
-	sel.LineThickness = 0.05
-	sel.Parent = p
+	if not bounds then
+		local sel = Instance.new("SelectionBox")
+		sel.Adornee = p
+		sel.Color3 = rc
+		sel.LineThickness = 0.05
+		sel.Parent = p
+	end
 	model:SetAttribute("FoodId", def.id)
 	model:SetAttribute("SlotIndex", slot:GetAttribute("SlotIndex"))
 	model:SetAttribute("BaseIndex", slot:GetAttribute("BaseIndex"))
@@ -293,6 +310,14 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 end
 
 function PlotService.init()
+	-- Fase 2: carrega as comidas 3D em segundo plano e remonta os pátios quando terminar
+	-- (quem entrou antes viu as formas antigas por alguns segundos).
+	FoodModels.preload()
+	FoodModels.whenReady(function()
+		for _, player in Players:GetPlayers() do
+			PlotService.rebuildPlot(player)
+		end
+	end)
 	Remotes.RequestPlace.OnServerEvent:Connect(function(player, invIndex)
 		if Guard.isIndex(invIndex, Config.MaxInventoryHard) and Guard.allow(player, "Plot") then
 			PlotService.place(player, invIndex)
