@@ -1,0 +1,57 @@
+{
+  "baby-dragon": {
+    "id": "rbxassetid://101061619934373",
+    "file": "baby-dragon.glb",
+    "bytes": 572444
+  },
+  "cauldron": {
+    "id": "rbxassetid://74001747238408",
+    "file": "cauldron.glb",
+    "bytes": 2009792
+  },
+  "crystal-dragon": {
+    "id": "rbxassetid://123375042698261",
+    "file": "crystal-dragon.glb",
+    "bytes": 1068472
+  },
+  "dragon": {
+    "id": "rbxassetid://114192879428967",
+    "file": "dragon.glb",
+    "bytes": 565264
+  },
+  "goblin": {
+    "id": "rbxassetid://121162892456103",
+    "file": "goblin.glb",
+    "bytes": 839756
+  },
+  "hydra": {
+    "id": "rbxassetid://120607062685991",
+    "file": "hydra.glb",
+    "bytes": 887764
+  },
+  "phoenix": {
+    "id": "rbxassetid://88390329506943",
+    "file": "phoenix.glb",
+    "bytes": 858676
+  },
+  "stone-golem": {
+    "id": "rbxassetid://117386809116187",
+    "file": "stone-golem.glb",
+    "bytes": 640800
+  },
+  "troll": {
+    "id": "rbxassetid://107171111505874",
+    "file": "troll.glb",
+    "bytes": 1134336
+  },
+  "wyvern": {
+    "id": "rbxassetid://103967817492078",
+    "file": "wyvern.glb",
+    "bytes": 630520
+  },
+  "zombie": {
+    "id": "rbxassetid://72703131003646",
+    "file": "zombie.glb",
+    "bytes": 673828
+  }
+}
