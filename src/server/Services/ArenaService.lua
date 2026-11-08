@@ -433,10 +433,24 @@ local function runDuel(a: Player, b: Player, tournament: boolean): Player?
 	return result
 end
 
+-- Coliseu compartilhado (item 9.4): boxe, Dragão e gigantes, um de cada vez.
+ArenaService.OtherBusy = nil :: (() -> boolean)?
+function ArenaService.isBusy(): boolean
+	return next(fighting) ~= nil
+end
+
 local function requestDuel(challenger: Player, targetId: number)
 	local target = Players:GetPlayerByUserId(targetId)
 	if not target or target == challenger then
 		return
+	end
+	local other = ArenaService.OtherBusy
+	if other and other() then
+		return notify(
+			challenger,
+			"O coliseu está ocupado (Dragão ou batalha de gigantes). Tente já já!",
+			Color3.fromRGB(255, 170, 60)
+		)
 	end
 	local ok, why = canFight(challenger)
 	if not ok then

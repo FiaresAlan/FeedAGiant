@@ -21,6 +21,7 @@ local ArenaService = require(Services.ArenaService)
 local TutorialService = require(Services.TutorialService)
 local BossService = require(Services.BossService)
 local ShieldService = require(Services.ShieldService)
+local GiantBattleService = require(Services.GiantBattleService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -41,6 +42,17 @@ DropService.init()
 ArenaService.init()
 BossService.init()
 ShieldService.init()
+GiantBattleService.init()
+-- Coliseu compartilhado: boxe, Dragão e gigantes, um de cada vez (item 9.4).
+GiantBattleService.IsArenaBusy = function()
+	return ArenaService.isBusy() or BossService.isActive()
+end
+ArenaService.OtherBusy = function()
+	return BossService.isActive() or GiantBattleService.isActive()
+end
+BossService.CanStart = function()
+	return not ArenaService.isBusy() and not GiantBattleService.isActive()
+end
 task.spawn(WorldFx.init, GiantService.template) -- água, fogo/fumaça do caldeirão, estátuas
 TutorialService.init() -- registra o slice "tutorial" no perfil (antes do DataService.start)
 -- Só agora começa a carregar perfis: todos os serviços já registraram o que precisam

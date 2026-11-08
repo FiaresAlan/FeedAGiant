@@ -31,6 +31,7 @@ local hpB: Frame
 local fightTitle: TextLabel
 local pendingFrom = 0
 Arena.playSound = nil :: ((string, number?) -> ())?
+Arena.OnOpenGiantBattle = nil :: (() -> ())?
 Arena.shake = nil :: ((number, number) -> ())?
 
 local function sfx(k: string, v: number?)
@@ -93,23 +94,43 @@ end
 
 local function buildWindow(gui: ScreenGui)
 	local body: Frame
-	win, body = UI.window(gui, "GIANT CLASH — ARENA", UDim2.fromOffset(520, 460))
-	local stats = UI.label(body, "", { Size = UDim2.new(1, 0, 0, 24), TextColor3 = UI.Colors.Accent })
+	win, body = UI.window(gui, "GIANT CLASH — COLISEU", UDim2.fromOffset(620, 540))
+	local stats = UI.label(body, "", { Size = UDim2.new(1, 0, 0, 26), TextColor3 = UI.Colors.Accent })
+	-- Dois modos no mesmo coliseu (item 9): boxe entre jogadores (aqui embaixo) e a batalha de gigantes.
+	local giantBtn = UI.button(body, "BATALHA DE GIGANTES  (seu gigante luta!)", UI.Colors.Green, {
+		Size = UDim2.new(1, 0, 0, 56),
+		Position = UDim2.fromOffset(0, 32),
+		TextScaled = false,
+		TextSize = 24,
+	})
+	giantBtn.Activated:Connect(function()
+		win.Visible = false
+		if Arena.OnOpenGiantBattle then
+			Arena.OnOpenGiantBattle()
+		end
+	end)
+	UI.label(body, "BOXE: JOGADOR x JOGADOR", {
+		Size = UDim2.new(1, 0, 0, 28),
+		Position = UDim2.fromOffset(0, 100),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Red,
+	})
 	UI.label(
 		body,
-		"Vencedor rouba as 2 comidas mais raras do PÁTIO do perdedor + 5% das moedas. Força = espécie × nível × rebirth × humor (+sorte).",
+		"Vencedor rouba as 2 comidas mais raras do PÁTIO do perdedor + 5% das moedas. Luta justa: mesma vida e força para os dois.",
 		{
-			Size = UDim2.new(1, 0, 0, 72),
-			Position = UDim2.fromOffset(0, 26),
+			Size = UDim2.new(1, 0, 0, 52),
+			Position = UDim2.fromOffset(0, 130),
 			TextScaled = false,
 			TextSize = 20,
 			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTransparency = 0.2,
 		}
 	)
 	local scroll = Instance.new("ScrollingFrame")
-	scroll.Size = UDim2.new(1, 0, 1, -76)
-	scroll.Position = UDim2.fromOffset(0, 72)
+	scroll.Size = UDim2.new(1, 0, 1, -190)
+	scroll.Position = UDim2.fromOffset(0, 188)
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 6

@@ -42,6 +42,9 @@ local EVENTS = {
 	"RequestOpenPending", -- client -> server: index (abre uma caixa guardada; nunca sozinha)
 	"ShieldMenu", -- server -> client: {left, coinSeconds, coinPrice, superSeconds, superAvailable}
 	"RequestShieldRenew", -- client -> server: renovar escudo com moedas (no pedestal da própria base)
+	"GiantBattle", -- server -> client: {kind = Start|Tick|End, ...} (arena dos gigantes)
+	"RequestGiantBattle", -- client -> server: speciesId (leva um gigante seu ao coliseu)
+	"RequestGiantSpecial", -- client -> server: GOLPE FORTE (recarga no servidor)
 }
 
 local FUNCTIONS = {

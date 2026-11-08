@@ -56,6 +56,32 @@ Config.Shield = {
 	PedestalYaw = 0,
 }
 
+-- Arena dos gigantes (GiantBattleService, item 9 do pedido de 08/11/2026). Atributos reais da espécie
+-- (arenaHp, arenaPower) crescendo devagar com nível e rebirth. Recompensa só em moedas e XP (sem moeda
+-- nova), com teto diário para não virar fazenda: nível 10 ≈ 180 moedas + 100 XP por vitória.
+Config.GiantBattle = {
+	HpPerLevel = 0.02,
+	PowerPerLevel = 0.03,
+	PerRebirth = 0.05,
+	DamageScale = 1.6, -- dano por golpe = força × isto (±15%); ~8 a 12 golpes por luta
+	CritChance = 0.12,
+	CritMult = 1.6,
+	SpecialMult = 2.2, -- GOLPE FORTE do jogador
+	SpecialCooldown = 6,
+	TurnSeconds = 1.1,
+	StartDelay = 3,
+	MaxSeconds = 45, -- passou disso, vence quem tem mais vida (em %)
+	ModelHeight = 11,
+	Spacing = 22,
+	LungeDistance = 6,
+	Cooldown = 25,
+	WinCoinsBase = 60,
+	WinCoinsPerLevel = 12,
+	WinXpBase = 40,
+	WinXpPerLevel = 6,
+	RewardedWinsPerDay = 15,
+}
+
 Config.Boss = {
 	Height = 26, -- altura do modelo em studs
 	BaseHp = 900, -- vida com 1 lutador (~75 socos leves de um jogador iniciante)
@@ -64,6 +90,9 @@ Config.Boss = {
 	TelegraphSeconds = 1.4, -- tempo do círculo vermelho antes do pisão
 	StompHpFraction = 0.34, -- 3 pisões = nocaute
 	WinsPerDay = 2,
+	Every = 900, -- o Dragão tem horário próprio (a cada 15 min), com cronômetro na entrada da arena
+	FirstDelay = 300,
+	Duration = 180,
 	RewardBox = "epic",
 	RewardMinRarity = "Epic",
 }
@@ -75,7 +104,6 @@ Config.Events = {
 	List = {
 		{ id = "GoldenHour", name = "Golden Hour", duration = 90, color = Color3.fromRGB(255, 200, 40) },
 		{ id = "FoodRain", name = "Chuva de Comida", duration = 60, color = Color3.fromRGB(80, 200, 255) },
-		{ id = "HungryBoss", name = "Dragão Faminto", duration = 180, color = Color3.fromRGB(255, 70, 70) },
 		{ id = "LuckyBoxes", name = "Lucky Boxes", duration = 60, color = Color3.fromRGB(120, 255, 120) },
 	},
 }

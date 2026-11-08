@@ -74,6 +74,11 @@ export type Profile = {
 	bossWins: number,
 	-- Lunchboxes trazidas do mapa até a base, esperando o jogador abrir (DropService)
 	pendingBoxes: { string },
+	-- Arena dos gigantes (GiantBattleService)
+	giantWins: number,
+	giantLosses: number,
+	giantDay: number,
+	giantRewardsToday: number,
 }
 
 local DataService = {}
@@ -117,6 +122,10 @@ local function defaultProfile(): Profile
 		bossDay = 0,
 		bossWins = 0,
 		pendingBoxes = {},
+		giantWins = 0,
+		giantLosses = 0,
+		giantDay = 0,
+		giantRewardsToday = 0,
 	}
 end
 DataService.defaultProfile = defaultProfile

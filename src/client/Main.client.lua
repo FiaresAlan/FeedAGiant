@@ -21,6 +21,7 @@ local GiantAnim = require(Controllers.GiantAnim)
 local FeedFx = require(Controllers.FeedFx)
 local Tutorial = require(Controllers.Tutorial)
 local Collection = require(Controllers.Collection)
+local GiantBattle = require(Controllers.GiantBattle)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -52,6 +53,8 @@ GiantAnim.init()
 FeedFx.init()
 Tutorial.init()
 Arena.init(gui)
+GiantBattle.init(gui)
+Arena.OnOpenGiantBattle = GiantBattle.open
 Arena.playSound = Combat.sound
 Arena.shake = Combat.shake
 Effects.playSound = Combat.sound

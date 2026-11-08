@@ -385,10 +385,92 @@ function BossService.run(duration: number)
 end
 
 function BossService.isActive(): boolean
-	return current ~= nil
+	return current ~= nil or BossService.running
+end
+
+BossService.running = false
+BossService.nextAt = 0
+-- true = o coliseu está livre para o Dragão (sem luta de boxe nem batalha de gigantes).
+BossService.CanStart = nil :: (() -> boolean)?
+
+-- Cronômetro na entrada da arena (item 10): horário real do próximo Dragão, do mesmo laço que o cria.
+local function buildArenaBoard(): TextLabel
+	local center = World.Arena.center
+	local toHub = Vector3.new(-center.X, 0, -center.Z).Unit
+	local pos = center + toHub * (World.Arena.outerR + 6) + Vector3.new(0, 30, 0)
+	local anchor = Instance.new("Part")
+	anchor.Name = "BossTimer"
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(1, 1, 1)
+	anchor.CFrame = CFrame.new(pos)
+	anchor.Parent = Workspace
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromScale(40, 10)
+	bb.LightInfluence = 0
+	bb.MaxDistance = 600
+	bb.Parent = anchor
+	local bg = Instance.new("Frame")
+	bg.Size = UDim2.fromScale(1, 1)
+	bg.BackgroundColor3 = Color3.fromRGB(44, 47, 55)
+	bg.BackgroundTransparency = 0.15
+	bg.Parent = bb
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.25, 0)
+	corner.Parent = bg
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(255, 80, 80)
+	stroke.Thickness = 4
+	stroke.Parent = bg
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(0.94, 0.9)
+	label.Position = UDim2.fromScale(0.03, 0.05)
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(255, 120, 110)
+	label.TextStrokeTransparency = 0.2
+	label.Parent = bg
+	return label
+end
+
+local function mmss(sec: number): string
+	sec = math.max(0, math.floor(sec))
+	return string.format("%d:%02d", sec // 60, sec % 60)
 end
 
 function BossService.init()
+	local board = buildArenaBoard()
+	BossService.nextAt = os.time() + B.FirstDelay
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local left = BossService.nextAt - os.time()
+			if BossService.running then
+				board.Text = "DRAGÃO FAMINTO NA ARENA!"
+			elseif left > 0 then
+				board.Text = "DRAGÃO FAMINTO EM " .. mmss(left)
+			else
+				board.Text = "DRAGÃO: esperando a arena ficar livre..."
+			end
+			if left <= 0 and not BossService.running then
+				local can = BossService.CanStart
+				if not can or can() then
+					BossService.running = true
+					local ok, err = pcall(function()
+						BossService.run(B.Duration)
+					end)
+					if not ok then
+						warn("[BossService]", err)
+					end
+					BossService.running = false
+					BossService.nextAt = os.time() + B.Every
+				end
+			end
+		end
+	end)
 	CombatService.HitNpc = function(attacker, origin, look, range, damage, _heavy)
 		local f = current
 		if not f or f.over or not inArena(attacker, f) then
