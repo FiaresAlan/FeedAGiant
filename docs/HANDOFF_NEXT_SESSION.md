@@ -98,6 +98,58 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 
 **Fase 2 (em andamento):** veja §2-F2 logo abaixo.
 
+### §2-F2. Fase 2 — criaturas (07/11/2026, madrugada)
+
+**Aprovação do usuário:** "pode seguir, tem total aprovação". Vale para as espécies novas e os preços.
+
+**Feito:**
+- **Pipeline Blender sem interface:** `tools/blender/prep_creature.py`.
+  - Junta as malhas e decima até o alvo (busca binária).
+  - Deixa só a textura de cor, com 1024 px, rugosidade 1 e metal 0.
+  - Ajusta a altura em studs, com os pés em Z = 0, e exporta GLB com prévia.
+  - Com esqueleto: tira a armadura durante a decimação e recoloca depois; limita os pesos a 4 e normaliza.
+  - `--merge 0` pula a solda. O troll é uma "sopa de triângulos" (15.831 pedaços) e só reduz sem solda.
+  - `tools/blender/front_view.py` faz a vista de frente para conferir a orientação.
+- **11 modelos em `assets/optimized/`** (prévias em `previews/`):
+
+  | Modelo | Triângulos |
+  |---|---|
+  | dragon | 8.000 |
+  | baby-dragon | 8.000 |
+  | crystal-dragon | 14.060 |
+  | hydra | 11.315 |
+  | phoenix | 10.333 |
+  | goblin | 7.999 (rig + andar/correr) |
+  | troll | 8.000 (rig + andar/correr) |
+  | stone-golem | 8.000 |
+  | zombie | 7.999 |
+  | wyvern | 8.000 |
+  | cauldron (caldeirão do usuário) | 15.000; 64,7 × 57 × 38 studs, no lugar do marco de primitivas |
+
+  Os que passam de 8 mil têm muitas penas ou escamas soltas; o mínimo possível é esse. Todos ficam abaixo de 20 mil.
+  Golem, zumbi e wyvern são **CC0**, da Grab3D, feitos com ajuda de IA (a licença está no zip original).
+- **Espécies novas em `Config.Species`:** goblin, zombie, troll, wyvern e hydra, com os preços e atributos do GAME_BRIEF. Testado: compra e equipa sem erro.
+- **Código:**
+  - `src/shared/CreatureModels.lua` liga cada espécie a um arquivo, com o bebê-dragão no estágio Bebê e um `yaw` por espécie.
+  - `src/shared/CreatureAssets.lua` é **gerado** por `tools/gen_creature_assets.py` e hoje está vazio.
+  - O `GiantService` carrega o Model com `InsertService:LoadAsset` (com cache em `ServerStorage.CreatureTemplates`), esconde o corpo de blocos e coloca a malha sobre o pedestal.
+  - **Sem ID, nada muda** (testado).
+
+**Bloqueado: upload.** `python -I tools/upload_models.py` foi **negado pelo classificador do modo automático** do Claude Code ("Public Data-Sharing Upload"). Para seguir, há dois caminhos:
+- o usuário roda os dois comandos no terminal: `python -I tools/upload_models.py` e depois `python -I tools/gen_creature_assets.py`;
+- ou o usuário adiciona uma regra de permissão para esse comando.
+
+Depois disso: compilar o place de teste, conferir cada criatura no Studio (escala, frente, `yaw` dos dragões, que ficaram ~45° na vista de frente) e trocar o caldeirão de primitivas pelo modelo.
+
+**Alerta de segurança:** a chave em `ROBLOX_API_KEY` tem escopos muito amplos: places, DataStores, Game Passes, `legacy-universe.badge manage-and-spend-robux`, `universe-places write`, entre outros. O ideal é criar uma chave só com `asset read/write` para uploads.
+
+**Ainda falta na Fase 2:**
+- testar no Studio, depois do upload;
+- animações idle, comer, comemorar e bravo (skill `make-anim`; troll e goblin já têm andar e correr);
+- comidas 3D;
+- revisar o troll, que tem pequenas falhas na superfície por causa da redução forte; o vault recomenda retopologia para malhas que deformam;
+- modelos para humano, jacaré, águia e slime, que hoje continuam de blocos.
+
 ## 2b. Atualização de 07/11/2026 (noite): FASE 1, MUNDO NOVO (7,9; abaixo de 8,5)
 
 - **Estilo de arte decidido pelo usuário:** cartoon pintado (stylised PBR). Está registrado no GAME_BRIEF §5 e no CLAUDE.md.

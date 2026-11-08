@@ -9,9 +9,111 @@ local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
+local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
+local InsertService = game:GetService("InsertService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local GiantService = {}
 local giants: { [Player]: Model } = {}
+local anchors: { [Player]: Part } = {}
+
+---------------------------------------------------------------------------
+-- Fase 2: modelos 3D das criaturas (CreatureModels/CreatureAssets). Sem ID, nada muda.
+---------------------------------------------------------------------------
+local templateFolder: Folder? = nil
+local templates: { [string]: Model | false } = {}
+
+-- Carrega o Model enviado (InsertService, uma vez por arquivo) e guarda em ServerStorage.
+local function getTemplate(file: string, assetId: string): Model?
+	local cached = templates[file]
+	if cached == false then
+		return nil -- já falhou antes: não tenta de novo a cada atualização
+	elseif cached then
+		return cached :: Model
+	end
+	local numeric = tonumber(string.match(assetId, "%d+"))
+	local ok, loaded = pcall(function()
+		return InsertService:LoadAsset(numeric :: number)
+	end)
+	if not ok or not loaded then
+		warn("[GiantService] não carregou o modelo", file, assetId, loaded)
+		templates[file] = false
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = file
+	for _, child in (loaded :: Instance):GetChildren() do
+		child.Parent = model
+	end
+	(loaded :: Instance):Destroy()
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+		end
+	end
+	if not templateFolder then
+		local f = Instance.new("Folder")
+		f.Name = "CreatureTemplates"
+		f.Parent = ServerStorage
+		templateFolder = f
+	end
+	model.Parent = templateFolder
+	templates[file] = model
+	return model
+end
+
+-- Esconde (ou mostra de novo) o corpo de blocos; guarda a transparência original.
+local function setPrimitivesHidden(model: Model, hidden: boolean)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and not d:FindFirstAncestor("CreatureMesh") then
+			if hidden then
+				if d:GetAttribute("OrigTransparency") == nil then
+					d:SetAttribute("OrigTransparency", d.Transparency)
+				end
+				d.Transparency = 1
+			else
+				local t = d:GetAttribute("OrigTransparency")
+				if type(t) == "number" then
+					d.Transparency = t
+					d:SetAttribute("OrigTransparency", nil)
+				end
+			end
+		end
+	end
+end
+
+-- Coloca/troca a malha da espécie (chamar com o modelo em escala 1, depois do applyStage).
+local function ensureCreatureMesh(player: Player, model: Model, speciesId: string, isBaby: boolean)
+	local file, assetId, yaw = CreatureModels.resolve(speciesId, isBaby)
+	local current = model:FindFirstChild("CreatureMesh")
+	if current and file and current:GetAttribute("File") == file then
+		setPrimitivesHidden(model, true) -- o applyStage pode ter mostrado olhos/chifres de novo
+		return
+	end
+	if current then
+		current:Destroy()
+	end
+	local template = if file and assetId then getTemplate(file, assetId) else nil
+	local anchor = anchors[player]
+	if not template or not anchor then
+		setPrimitivesHidden(model, false)
+		return
+	end
+	local mesh = template:Clone()
+	mesh.Name = "CreatureMesh"
+	mesh:SetAttribute("File", file)
+	-- pés no topo do pedestal, centro no pedestal, frente da base (+ yaw da espécie)
+	local cf, size = mesh:GetBoundingBox()
+	local bottom = cf * CFrame.new(0, -size.Y / 2, 0)
+	local offset = mesh:GetPivot():ToObjectSpace(bottom)
+	local target = anchor.CFrame * CFrame.new(0, anchor.Size.Y / 2, 0) * CFrame.Angles(0, math.rad(yaw), 0)
+	mesh:PivotTo(target * offset:Inverse())
+	mesh.Parent = model
+	setPrimitivesHidden(model, true)
+end
 local lastStage: { [Player]: string } = {}
 GiantService.OnReturnBonus = nil :: ((Player, number) -> ())?
 
@@ -288,6 +390,7 @@ local function refreshVisual(player: Player, pulse: boolean)
 	model:ScaleTo(1)
 	local stage = Config.stageForLevel(profile.level)
 	applyStage(model, stage, profile)
+	ensureCreatureMesh(player, model, profile.species, stage.minLevel == 1)
 	if pulse then
 		Util.tweenScale(model, scale, 0.6)
 	else
@@ -443,6 +546,7 @@ function GiantService.spawnFor(player: Player)
 	if giants[player] then
 		giants[player]:Destroy()
 	end
+	anchors[player] = base.giantAnchor
 	local model = buildGiantModel(player, base.giantAnchor, GiantService.species(profile))
 	model:SetAttribute("OwnerUserId", player.UserId)
 	giants[player] = model
@@ -465,6 +569,7 @@ function GiantService.init()
 			giants[player] = nil
 		end
 		lastStage[player] = nil
+		anchors[player] = nil
 	end)
 	task.spawn(function()
 		while true do
