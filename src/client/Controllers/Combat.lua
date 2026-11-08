@@ -205,26 +205,29 @@ local function buildBars(gui: ScreenGui)
 	})
 
 	-- Painel do lutador
+	-- Fase 3 (HUD): mesmo painel azul-marinho/dourado da HUD, escala por aparelho e texto >= 20 px
+	-- no desenho 1080p (>= 12 px na escala mínima 0,6).
 	local box = UI.panel(gui, {
 		Name = "CombatBars",
-		Size = UDim2.fromOffset(290, 96),
-		Position = UDim2.new(1, -12, 1, -24),
+		Size = UDim2.fromOffset(400, 128),
+		Position = UDim2.new(1, -12, 1, -16),
 		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 0.05,
 	})
-	UI.icon(box, "glove", { Size = UDim2.fromOffset(44, 44), Position = UDim2.fromOffset(10, 14), ZIndex = 3 })
+	UI.autoScale(box)
+	UI.icon(box, "glove", { Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(12, 14), ZIndex = 3 })
 	strengthLabel = UI.label(box, "FORÇA x1.00", {
-		Size = UDim2.fromOffset(80, 16),
-		Position = UDim2.fromOffset(-6, 62),
+		Size = UDim2.fromOffset(110, 24),
+		Position = UDim2.fromOffset(-6, 92),
 		TextScaled = false,
-		TextSize = 12,
+		TextSize = 20,
 		Font = UI.FontBody,
 		TextColor3 = UI.Colors.Accent,
 		ZIndex = 3,
 	})
 	UI.label(box, "HP", {
-		Size = UDim2.fromOffset(34, 20),
-		Position = UDim2.fromOffset(60, 14),
+		Size = UDim2.fromOffset(50, 28),
+		Position = UDim2.fromOffset(96, 20),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Red,
 		ZIndex = 3,
@@ -233,17 +236,17 @@ local function buildBars(gui: ScreenGui)
 	hpBg, hpFill = UI.bar(
 		box,
 		UI.Colors.Red,
-		{ Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 14), ZIndex = 3 }
+		{ Size = UDim2.fromOffset(240, 28), Position = UDim2.fromOffset(148, 20), ZIndex = 3 }
 	)
 	local hpText = UI.label(
 		hpBg,
 		"100 / 100",
-		{ Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 12, Font = UI.FontBody, ZIndex = 7 }
+		{ Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 20, Font = UI.FontBody, ZIndex = 7 }
 	)
 	hpText.Name = "HpText"
 	UI.label(box, "STA", {
-		Size = UDim2.fromOffset(34, 20),
-		Position = UDim2.fromOffset(60, 46),
+		Size = UDim2.fromOffset(50, 28),
+		Position = UDim2.fromOffset(96, 60),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Accent,
 		ZIndex = 3,
@@ -252,14 +255,14 @@ local function buildBars(gui: ScreenGui)
 	_stBg, staminaFill = UI.bar(
 		box,
 		UI.Colors.Accent,
-		{ Size = UDim2.fromOffset(184, 20), Position = UDim2.fromOffset(94, 46), ZIndex = 3 }
+		{ Size = UDim2.fromOffset(240, 28), Position = UDim2.fromOffset(148, 60), ZIndex = 3 }
 	)
 	blockBadge = UI.label(box, "🛡 BLOQUEANDO", {
-		Size = UDim2.fromOffset(180, 20),
-		Position = UDim2.fromOffset(94, 70),
+		Size = UDim2.fromOffset(240, 24),
+		Position = UDim2.fromOffset(148, 96),
 		TextColor3 = UI.Colors.Blue,
 		TextScaled = false,
-		TextSize = 13,
+		TextSize = 20,
 		Font = UI.FontBody,
 		Visible = false,
 		ZIndex = 3,
@@ -280,11 +283,11 @@ local function buildBars(gui: ScreenGui)
 	})
 	local hint =
 		UI.label(gui, "Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  zona segura no seu pátio", {
-			Size = UDim2.fromOffset(460, 18),
-			Position = UDim2.new(1, -12, 1, -126),
+			Size = UDim2.fromOffset(560, 20),
+			Position = UDim2.new(1, -12, 1, -150),
 			AnchorPoint = Vector2.new(1, 1),
 			TextScaled = false,
-			TextSize = 12,
+			TextSize = 16,
 			Font = UI.FontBody,
 			TextTransparency = 0.35,
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -299,10 +302,11 @@ local function buildMobile(gui: ScreenGui)
 	local pad = UI.frame(gui, {
 		Name = "MobileCombat",
 		Size = UDim2.fromOffset(190, 190),
-		Position = UDim2.new(1, -16, 1, -134),
+		Position = UDim2.new(1, -16, 1, -160),
 		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 1,
 	})
+	UI.autoScale(pad)
 	local punch = UI.button(
 		pad,
 		"👊",
@@ -320,10 +324,10 @@ local function buildMobile(gui: ScreenGui)
 		{ Size = UDim2.fromOffset(70, 70), Position = UDim2.fromOffset(110, 10) }
 	)
 	UI.corner(block, 35)
-	punch.MouseButton1Click:Connect(function()
+	punch.Activated:Connect(function()
 		Remotes.RequestPunch:FireServer(false)
 	end)
-	heavy.MouseButton1Click:Connect(function()
+	heavy.Activated:Connect(function()
 		Remotes.RequestPunch:FireServer(true)
 	end)
 	block.MouseButton1Down:Connect(function()

@@ -1,5 +1,13 @@
 --!strict
--- HUD.lua — barra superior (moedas, CPS, nível/XP, fome, escudo) e botões de ação (Loja, Inventário, Rebirth, Daily, Códigos).
+-- HUD.lua — Fase 3 (reforma pedida pelo usuário: "mega importante").
+-- Referências do usuário: assets/ui/panel_9slice.png (painel azul-marinho com faixa dourada e rebites),
+-- assets/ui/icons_sheet.png (ícones cartoon recortados em UIAssets), logo, thumbnail.
+-- Regras (skill fwjelaa-ui-builder; vault "Safe Areas and Insets", "Responsive UI", "Accessibility"):
+--   * desenho em 1920x1080 com UM UIScale por grupo, preso entre 0,6 e 1,0 (texto >= 12 px e toque
+--     >= 44 px no menor celular);
+--   * o ScreenGui usa ScreenInsets = CoreUISafeInsets: tudo fica dentro da área segura e abaixo da
+--     barra do Roblox (sem somar a altura da barra à mão);
+--   * botões usam Activated (mouse, toque e controle); estado nunca só por cor (texto junto).
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -21,9 +29,13 @@ local xpFill: Frame
 local xpText: TextLabel
 local hungerFill: Frame
 local hungerText: TextLabel
+local shieldChip: Frame
 local shieldLabel: TextLabel
-local rebirthBtn: TextButton
-local dailyBtn: TextButton
+local rebirthCaption: TextLabel
+local rebirthTile: TextButton
+local dailyCaption: TextLabel
+local dailyTile: TextButton
+local dailyBadge: Frame
 local lastCoins = 0
 
 HUD.OnOpenShop = nil :: (() -> ())?
@@ -31,197 +43,271 @@ HUD.OnOpenInventory = nil :: (() -> ())?
 HUD.OnOpenCodes = nil :: (() -> ())?
 HUD.OnOpenArena = nil :: (() -> ())?
 
+-- Escala por aparelho: no kit UI (UI.deviceScale / UI.autoScale), igual para todos os painéis.
+local scaled = UI.autoScale
+
 local function moodColor(h: number): Color3
-	if h < 25 then
+	if h < 30 then
 		return UI.Colors.Red
-	elseif h < 70 then
+	elseif h < 75 then
 		return UI.Colors.Accent
 	end
 	return UI.Colors.Green
 end
 
 local function moodName(h: number): string
-	if h < 25 then
-		return Locale.t("Faminto") .. " (0.8x)"
-	elseif h < 70 then
-		return Locale.t("Satisfeito") .. " (1.0x)"
+	if h < 30 then
+		return Locale.t("Faminto") .. "  x0.8"
+	elseif h < 75 then
+		return Locale.t("Satisfeito") .. "  x1.0"
 	end
-	return Locale.t("Feliz") .. " (1.25x)"
+	return Locale.t("Feliz") .. "  x1.25"
 end
 
-local function setCaption(b: TextButton, text: string)
-	for _, c in b:GetChildren() do
-		if c:IsA("TextLabel") and c.TextSize == 13 then
-			c.Text = text
-		end
-	end
+-- Cápsula escura dentro do painel (fundo das estatísticas).
+local function pill(parent: Instance, x: number, w: number, accent: Color3): Frame
+	local f = UI.frame(parent, {
+		Size = UDim2.fromOffset(w, 76),
+		Position = UDim2.fromOffset(x, 26),
+		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+		ZIndex = 3,
+	})
+	UI.corner(f, 18)
+	UI.stroke(f, accent, 2.5)
+	return f
 end
 
 local function buildTopBar(gui: ScreenGui)
-	-- Logo no canto
-	UI.logo(gui, { Name = "Logo", Size = UDim2.fromOffset(190, 70), Position = UDim2.fromOffset(10, 4), ZIndex = 3 })
+	-- O ScreenGui usa ScreenInsets = CoreUISafeInsets: a área já começa abaixo da barra do Roblox
+	-- (medido no teste de 08/11: somar TopbarInset de novo deixava o painel ~60 px baixo demais).
+	local top = Instance.new("Frame")
+	top.Name = "TopCluster"
+	top.BackgroundTransparency = 1
+	top.AnchorPoint = Vector2.new(0.5, 0)
+	top.Position = UDim2.new(0.5, 0, 0, 6)
+	top.Size = UDim2.fromOffset(900, 150)
+	top.Parent = gui
+	scaled(top)
 
-	local bar = UI.panel(gui, {
-		Name = "TopBar",
-		Size = UDim2.fromOffset(600, 78),
-		Position = UDim2.fromOffset(206, 10),
-		BackgroundTransparency = 0.05,
-	})
+	local panel = UI.panel(top, { Name = "Panel", Size = UDim2.fromOffset(900, 116), ZIndex = 2 })
+	UI.glow(panel, UI.Colors.Accent, 14, 0.82)
 
-	-- Moedas (cápsula dourada com ícone)
-	local coinBox = UI.frame(bar, {
-		Size = UDim2.fromOffset(200, 56),
-		Position = UDim2.fromOffset(12, 12),
-		BackgroundColor3 = UI.Colors.Bg,
-		ZIndex = 2,
-	})
-	UI.stroke(coinBox, UI.Colors.Accent, 2)
-	UI.glow(coinBox, UI.Colors.Accent, 10, 0.8)
-	UI.icon(coinBox, "coin", { Size = UDim2.fromOffset(44, 44), Position = UDim2.fromOffset(6, 6), ZIndex = 3 })
-	coinsLabel = UI.title(coinBox, "0", {
-		Size = UDim2.fromOffset(140, 30),
-		Position = UDim2.fromOffset(54, 3),
+	-- Moedas
+	local coin = pill(panel, 18, 300, UI.Colors.Accent)
+	UI.icon(coin, "coin", { Size = UDim2.fromOffset(64, 64), Position = UDim2.fromOffset(6, 6), ZIndex = 4 })
+	coinsLabel = UI.title(coin, "0", {
+		Size = UDim2.fromOffset(212, 44),
+		Position = UDim2.fromOffset(78, 2),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
+		ZIndex = 4,
 	})
-	cpsLabel = UI.label(coinBox, "+0/s", {
-		Size = UDim2.fromOffset(140, 18),
-		Position = UDim2.fromOffset(56, 34),
+	cpsLabel = UI.label(coin, "+0/s", {
+		Size = UDim2.fromOffset(212, 24),
+		Position = UDim2.fromOffset(80, 46),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Green,
 		TextScaled = false,
-		TextSize = 14,
-		Font = UI.FontBody,
-		ZIndex = 3,
+		TextSize = 22,
+		ZIndex = 4,
 	})
 
 	-- Nível + XP
-	local lvlBox = UI.frame(bar, {
-		Size = UDim2.fromOffset(220, 56),
-		Position = UDim2.fromOffset(222, 12),
-		BackgroundColor3 = UI.Colors.Bg,
-		ZIndex = 2,
-	})
-	UI.stroke(lvlBox, UI.Colors.Blue, 2)
-	levelLabel = UI.label(lvlBox, "Bebê Nv. 1", {
-		Size = UDim2.new(1, -16, 0, 24),
-		Position = UDim2.fromOffset(8, 3),
+	local lvl = pill(panel, 330, 330, UI.Colors.Blue)
+	UI.icon(lvl, "crown", { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(8, 10), ZIndex = 4 })
+	levelLabel = UI.label(lvl, "Bebê • Nv. 1", {
+		Size = UDim2.fromOffset(250, 30),
+		Position = UDim2.fromOffset(70, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
+		TextScaled = false,
+		TextSize = 24,
+		ZIndex = 4,
 	})
 	local xpBg
-	xpBg, xpFill = UI.bar(
-		lvlBox,
-		UI.Colors.Blue,
-		{ Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(8, 32), ZIndex = 3 }
-	)
-	xpText = UI.label(
-		xpBg,
-		"0 / 50 XP",
-		{ Size = UDim2.fromScale(1, 1), TextSize = 12, TextScaled = false, Font = UI.FontBody, ZIndex = 6 }
-	)
-
-	-- Fome / humor
-	local hBox = UI.frame(bar, {
-		Size = UDim2.fromOffset(136, 56),
-		Position = UDim2.fromOffset(452, 12),
-		BackgroundColor3 = UI.Colors.Bg,
-		ZIndex = 2,
+	xpBg, xpFill = UI.bar(lvl, UI.Colors.Blue, {
+		Size = UDim2.fromOffset(246, 26),
+		Position = UDim2.fromOffset(70, 40),
+		ZIndex = 4,
 	})
-	UI.stroke(hBox, UI.Colors.Green, 2)
-	hungerText = UI.label(hBox, "Fome", {
-		Size = UDim2.new(1, -16, 0, 24),
-		Position = UDim2.fromOffset(8, 3),
+	xpText = UI.label(xpBg, "0 / 50 XP", {
+		Size = UDim2.fromScale(1, 1),
+		TextScaled = false,
+		TextSize = 18,
+		Font = UI.FontBody,
+		ZIndex = 7,
+	})
+
+	-- Humor / fome
+	local mood = pill(panel, 672, 210, UI.Colors.Green)
+	hungerText = UI.label(mood, "Satisfeito", {
+		Size = UDim2.fromOffset(190, 30),
+		Position = UDim2.fromOffset(10, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
+		TextScaled = false,
+		TextSize = 22,
+		ZIndex = 4,
 	})
 	local _hBg
-	_hBg, hungerFill = UI.bar(
-		hBox,
-		UI.Colors.Green,
-		{ Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(8, 32), ZIndex = 3 }
-	)
-
-	-- Escudo
-	shieldLabel = UI.label(gui, "", {
-		Size = UDim2.fromOffset(320, 24),
-		Position = UDim2.fromOffset(212, 92),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = UI.Colors.Blue,
-		Visible = false,
+	_hBg, hungerFill = UI.bar(mood, UI.Colors.Green, {
+		Size = UDim2.fromOffset(190, 26),
+		Position = UDim2.fromOffset(10, 40),
+		ZIndex = 4,
 	})
+
+	-- Escudo (chip abaixo do painel)
+	shieldChip = UI.frame(top, {
+		Name = "Shield",
+		Size = UDim2.fromOffset(260, 36),
+		Position = UDim2.new(0.5, 0, 0, 122),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+		Visible = false,
+		ZIndex = 2,
+	})
+	UI.stroke(shieldChip, UI.Colors.Blue, 2)
+	UI.icon(shieldChip, "shield", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(6, 3), ZIndex = 3 })
+	shieldLabel = UI.label(shieldChip, "", {
+		Size = UDim2.new(1, -46, 1, 0),
+		Position = UDim2.fromOffset(42, 0),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 20,
+		TextColor3 = UI.Colors.Blue,
+		ZIndex = 3,
+	})
+
+	-- Logo no canto (só em telas largas: no celular a área é das estatísticas)
+	local logo = UI.logo(gui, {
+		Name = "Logo",
+		Size = UDim2.fromOffset(170, 64),
+		Position = UDim2.fromOffset(12, 4),
+		ZIndex = 3,
+	})
+	local function updateLogo()
+		local cam = Workspace.CurrentCamera
+		logo.Visible = cam ~= nil and cam.ViewportSize.X >= 1280
+	end
+	updateLogo()
+	if Workspace.CurrentCamera then
+		(Workspace.CurrentCamera :: Camera):GetPropertyChangedSignal("ViewportSize"):Connect(updateLogo)
+	end
+end
+
+-- Azulejo do menu lateral: ícone grande + legenda, botão "pressionável" com sombra.
+local function tile(
+	parent: Instance,
+	icon: string,
+	caption: string,
+	color: Color3,
+	order: number
+): (TextButton, TextLabel)
+	local b = UI.button(parent, "", color, { Size = UDim2.fromOffset(104, 112), LayoutOrder = order })
+	UI.icon(b, icon, { Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(6, -2), ZIndex = b.ZIndex + 1 })
+	local cap = UI.label(b, caption, {
+		Size = UDim2.new(1, 8, 0, 24),
+		Position = UDim2.new(0, -4, 1, -22),
+		TextScaled = false,
+		TextSize = 19,
+		ZIndex = b.ZIndex + 1,
+	})
+	return b, cap
 end
 
 local function buildSideButtons(gui: ScreenGui)
-	local col = UI.frame(gui, {
-		Name = "SideButtons",
-		Size = UDim2.fromOffset(92, 6 * 88),
-		Position = UDim2.new(0, 12, 0.5, 20),
-		AnchorPoint = Vector2.new(0, 0.5),
-		BackgroundTransparency = 1,
-	})
+	local col = Instance.new("Frame")
+	col.Name = "SideCluster"
+	col.BackgroundTransparency = 1
+	col.AnchorPoint = Vector2.new(0, 0.5)
+	col.Position = UDim2.new(0, 14, 0.5, 30)
+	col.Size = UDim2.fromOffset(104, 6 * 112 + 5 * 12)
+	col.Parent = gui
+	scaled(col)
 	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 10)
+	layout.Padding = UDim.new(0, 12)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = col
 
-	local function side(icon: string, caption: string, color: Color3, order: number, cb: () -> ()): TextButton
-		local b = UI.iconButton(col, icon, caption, color, { Size = UDim2.new(1, 0, 0, 78), LayoutOrder = order })
-		b.MouseButton1Click:Connect(cb)
-		return b
+	local function open(cb: (() -> ())?)
+		return function()
+			if cb then
+				cb()
+			end
+		end
 	end
 
-	side("lunchbox", "LOJA", UI.Colors.Accent, 1, function()
-		if HUD.OnOpenShop then
-			HUD.OnOpenShop()
-		end
+	local shop = tile(col, "lunchbox", "LOJA", UI.Colors.Accent, 1)
+	shop.Activated:Connect(function()
+		open(HUD.OnOpenShop)()
 	end)
-	side("backpack", "ITENS", UI.Colors.Blue, 2, function()
-		if HUD.OnOpenInventory then
-			HUD.OnOpenInventory()
-		end
+	local inv = tile(col, "backpack", "ITENS", UI.Colors.Blue, 2)
+	inv.Activated:Connect(function()
+		open(HUD.OnOpenInventory)()
 	end)
-	rebirthBtn = side("crown", "REBIRTH", UI.Colors.Purple, 3, function()
+	rebirthTile, rebirthCaption = tile(col, "crown", "REBIRTH", UI.Colors.Purple, 3)
+	rebirthTile.Activated:Connect(function()
 		Remotes.RequestRebirth:FireServer()
 	end)
-	dailyBtn = side("trophy", "DIÁRIO", UI.Colors.Green, 4, function()
+	dailyTile, dailyCaption = tile(col, "trophy", "DIÁRIO", UI.Colors.Green, 4)
+	dailyTile.Activated:Connect(function()
 		Remotes.RequestClaimDaily:FireServer()
 	end)
-	side("glove", "ARENA", UI.Colors.Red, 5, function()
-		if HUD.OnOpenArena then
-			HUD.OnOpenArena()
-		end
+	-- Bolinha de "pronto para resgatar" (forma + cor, não só cor)
+	dailyBadge = UI.frame(dailyTile, {
+		Size = UDim2.fromOffset(28, 28),
+		Position = UDim2.new(1, -18, 0, -10),
+		BackgroundColor3 = UI.Colors.Red,
+		ZIndex = dailyTile.ZIndex + 3,
+		Visible = false,
+	})
+	UI.corner(dailyBadge, 14)
+	UI.stroke(dailyBadge, UI.Colors.Outline, 2)
+	UI.label(dailyBadge, "!", { ZIndex = dailyTile.ZIndex + 4 })
+	local arena = tile(col, "glove", "ARENA", UI.Colors.Red, 5)
+	arena.Activated:Connect(function()
+		open(HUD.OnOpenArena)()
 	end)
-	side("gear", "CÓDIGOS", Color3.fromRGB(120, 125, 165), 6, function()
-		if HUD.OnOpenCodes then
-			HUD.OnOpenCodes()
-		end
+	local codes = tile(col, "gear", "CÓDIGOS", Color3.fromRGB(120, 125, 165), 6)
+	codes.Activated:Connect(function()
+		open(HUD.OnOpenCodes)()
 	end)
 end
 
 local function buildFeedButton(gui: ScreenGui)
-	local feed = UI.button(gui, "ALIMENTAR GIGANTE", UI.Colors.Green, {
+	local holder = Instance.new("Frame")
+	holder.Name = "FeedCluster"
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = Vector2.new(0.5, 1)
+	holder.Position = UDim2.new(0.5, 0, 1, -18)
+	holder.Size = UDim2.fromOffset(420, 104)
+	holder.Parent = gui
+	scaled(holder)
+
+	local feed = UI.button(holder, "", UI.Colors.Green, {
 		Name = "FeedButton",
-		Size = UDim2.fromOffset(300, 64),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(420, 96),
 	})
 	UI.glow(feed, UI.Colors.Green, 16, 0.6)
-	local hint = UI.label(
-		gui,
-		"Alimenta a comida mais rara do seu pátio (+XP). Comida no pátio gera moedas; comida alimentada vira crescimento.",
-		{
-			Size = UDim2.fromOffset(520, 20),
-			Position = UDim2.new(0.5, 0, 1, -94),
-			AnchorPoint = Vector2.new(0.5, 1),
-			TextSize = 13,
-			TextScaled = false,
-			TextTransparency = 0.25,
-		}
+	UI.icon(
+		feed,
+		"lunchbox",
+		{ Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(4, 2), ZIndex = feed.ZIndex + 1 }
 	)
-	hint.Visible = true
+	UI.title(feed, "ALIMENTAR!", {
+		Size = UDim2.fromOffset(300, 48),
+		Position = UDim2.fromOffset(84, 0),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = feed.ZIndex + 1,
+	})
+	local sub = UI.label(feed, "Dá a comida mais rara do pátio", {
+		Size = UDim2.fromOffset(310, 24),
+		Position = UDim2.fromOffset(86, 50),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 19,
+		Font = UI.FontBody,
+		ZIndex = feed.ZIndex + 1,
+	})
 
-	feed.MouseButton1Click:Connect(function()
+	feed.Activated:Connect(function()
 		local best: number? = nil
 		local bestOrder = 0
 		for key, food in State.current.plot do
@@ -235,23 +321,27 @@ local function buildFeedButton(gui: ScreenGui)
 			Remotes.RequestFeed:FireServer(best)
 		elseif #State.current.inventory > 0 then
 			Remotes.RequestFeed:FireServer({ inv = 1 })
-		else
-			Remotes.RequestFeed:FireServer(0)
 		end
 	end)
 
-	local pulse =
-		TweenService:Create(feed, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-			Size = UDim2.fromOffset(310, 68),
-		})
+	-- Pulso de atenção só quando há comida e o gigante não está feliz (via UIScale, não Size)
+	local press = Instance.new("UIScale")
+	press.Name = "Pulse"
+	press.Parent = feed
+	local pulse = TweenService:Create(
+		press,
+		TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{ Scale = 1.04 }
+	)
 	State.onChanged(function(s)
 		local hasFood = next(s.plot) ~= nil or #s.inventory > 0
-		feed.BackgroundColor3 = hasFood and UI.Colors.Green or Color3.fromRGB(90, 90, 100)
-		if hasFood and s.hunger < 70 then
+		feed.BackgroundColor3 = if hasFood then UI.Colors.Green else Color3.fromRGB(90, 90, 100)
+		sub.Text = if hasFood then Locale.t("Dá a comida mais rara do pátio") else Locale.t("Compre comida na LOJA")
+		if hasFood and s.hunger < 75 then
 			pulse:Play()
 		else
 			pulse:Cancel()
-			feed.Size = UDim2.fromOffset(300, 64)
+			press.Scale = 1
 		end
 	end)
 end
@@ -259,26 +349,17 @@ end
 local function refresh(s: State.PlayerState)
 	if s.coins ~= lastCoins then
 		local delta = s.coins - lastCoins
-		if s.coins > lastCoins + 0.5 then
-			UI.pulse(coinsLabel, 1.15, 0.2)
-		end
 		lastCoins = s.coins
 		coinsLabel.Text = Util.formatNumber(s.coins)
 		if delta > 0 then
-			TweenService:Create(
-				coinsLabel,
-				TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true),
-				{ TextColor3 = UI.Colors.Green }
-			):Play()
+			UI.pulse(coinsLabel, 1.1, 0.2)
 		end
 	end
 	cpsLabel.Text = "+" .. Util.formatNumber(s.cps) .. "/s"
-	levelLabel.Text = Locale.fmt("level_label", nil, {
-		s = (s :: any).stage or "Gigante",
-		n = s.level,
-		m = string.format("%.1f", 1 + s.level * Config.Giant.ScalePerLevel),
-	})
-	local pct = s.xpNeeded > 0 and math.clamp(s.xp / s.xpNeeded, 0, 1) or 0
+	local stage = (s :: any).stage or "Gigante"
+	levelLabel.Text = string.format("%s • Nv. %d", Locale.t(stage), s.level)
+		.. (if s.rebirths > 0 then "  R" .. s.rebirths else "")
+	local pct = if s.xpNeeded > 0 then math.clamp(s.xp / s.xpNeeded, 0, 1) else 0
 	TweenService:Create(xpFill, TweenInfo.new(0.25), { Size = UDim2.fromScale(pct, 1) }):Play()
 	xpText.Text = Util.formatNumber(s.xp) .. " / " .. Util.formatNumber(s.xpNeeded) .. " XP"
 	hungerText.Text = moodName(s.hunger)
@@ -289,30 +370,25 @@ local function refresh(s: State.PlayerState)
 	):Play()
 
 	local canRebirth = s.level >= Config.Rebirth.MinLevel
-	setCaption(
-		rebirthBtn,
-		canRebirth and Locale.t("REBIRTH!") or Locale.fmt("rebirth_btn", nil, { n = Config.Rebirth.MinLevel })
-	)
-	rebirthBtn.BackgroundColor3 = canRebirth and Color3.fromRGB(255, 120, 255) or Color3.fromRGB(110, 70, 140)
-	if s.rebirths > 0 then
-		levelLabel.Text ..= "  R" .. s.rebirths
-	end
+	rebirthCaption.Text = if canRebirth
+		then Locale.t("REBIRTH!")
+		else Locale.fmt("rebirth_btn", nil, { n = Config.Rebirth.MinLevel })
+	rebirthTile.BackgroundColor3 = if canRebirth then Color3.fromRGB(255, 120, 255) else Color3.fromRGB(110, 70, 140)
 
-	local today = os.date("!*t", os.time()).yday
-	local lastDay = s.lastDaily > 0 and os.date("!*t", s.lastDaily).yday or -1
-	local claimable = today ~= lastDay
-	setCaption(dailyBtn, claimable and Locale.t("DIÁRIO!") or Locale.fmt("daily_btn", nil, { n = s.dailyStreak }))
-	dailyBtn.BackgroundColor3 = claimable and UI.Colors.Green or Color3.fromRGB(70, 130, 90)
+	local claimable = os.time() - s.lastDaily >= 20 * 3600
+	dailyCaption.Text = if claimable then Locale.t("DIÁRIO!") else Locale.fmt("daily_btn", nil, { n = s.dailyStreak })
+	dailyTile.BackgroundColor3 = if claimable then UI.Colors.Green else Color3.fromRGB(70, 130, 90)
+	dailyBadge.Visible = claimable
 end
 
 local function shieldLoop()
 	while true do
 		local left = State.current.shieldUntil - os.time()
 		if left > 0 then
-			shieldLabel.Visible = true
+			shieldChip.Visible = true
 			shieldLabel.Text = Locale.fmt("shield_active", nil, { t = string.format("%d:%02d", left // 60, left % 60) })
 		else
-			shieldLabel.Visible = false
+			shieldChip.Visible = false
 		end
 		task.wait(1)
 	end
@@ -324,8 +400,8 @@ local function watchShopPad()
 	if not map then
 		return
 	end
-	local pad = map:WaitForChild("ShopPad", 30) :: BasePart?
-	if not pad then
+	local pad = map:WaitForChild("ShopPad", 30)
+	if not pad or not pad:IsA("BasePart") then
 		return
 	end
 	local debounce = 0

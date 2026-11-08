@@ -103,6 +103,7 @@ function Drops.init(gui: ScreenGui)
 		BackgroundTransparency = 0.1,
 		Visible = false,
 	})
+	UI.autoScale(panel)
 	UI.stroke(panel, Color3.new(0, 0, 0), 3)
 	UI.title(panel, "⚔ DISPUTA DE COMIDA", {
 		Size = UDim2.new(1, -16, 0, 26),

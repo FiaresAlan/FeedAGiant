@@ -1,0 +1,42 @@
+{
+  "backpack": {
+    "id": "rbxassetid://134408732314906",
+    "file": "assets/ui/icons/backpack.png",
+    "bytes": 76155
+  },
+  "coin": {
+    "id": "rbxassetid://87673589892841",
+    "file": "assets/ui/icons/coin.png",
+    "bytes": 74945
+  },
+  "crown": {
+    "id": "rbxassetid://105178566400279",
+    "file": "assets/ui/icons/crown.png",
+    "bytes": 70550
+  },
+  "gear": {
+    "id": "rbxassetid://118748099663937",
+    "file": "assets/ui/icons/gear.png",
+    "bytes": 67743
+  },
+  "glove": {
+    "id": "rbxassetid://70769331131276",
+    "file": "assets/ui/icons/glove.png",
+    "bytes": 67507
+  },
+  "lunchbox": {
+    "id": "rbxassetid://72038605892854",
+    "file": "assets/ui/icons/lunchbox.png",
+    "bytes": 69440
+  },
+  "shield": {
+    "id": "rbxassetid://76864508733099",
+    "file": "assets/ui/icons/shield.png",
+    "bytes": 68377
+  },
+  "trophy": {
+    "id": "rbxassetid://108519441272890",
+    "file": "assets/ui/icons/trophy.png",
+    "bytes": 67972
+  }
+}

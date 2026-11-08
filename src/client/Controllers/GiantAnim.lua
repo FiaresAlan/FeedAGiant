@@ -80,7 +80,8 @@ end
 -- Deslocamento da pose para o instante `now`.
 local function offset(t: Track, now: number): CFrame
 	local h = math.max(t.height, 2)
-	local breathe = math.sin(now * 1.6 + t.phase) * 0.025 * h
+	-- 1,2% da altura (teste 08/11: 2,5% fazia o golem nível 12 subir/descer 1,5 stud)
+	local breathe = math.sin(now * 1.6 + t.phase) * 0.012 * h
 	local sway = math.rad(math.sin(now * 0.55 + t.phase) * 2.5)
 	local cf = CFrame.new(0, breathe, 0) * CFrame.Angles(0, sway, 0)
 	if t.action then

@@ -27,7 +27,11 @@ end)
 local gui = Instance.new("ScreenGui")
 gui.Name = "FeedAGiantGui"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = false
+gui.IgnoreGuiInset = true
+-- Fase 3 (HUD): conteúdo interativo dentro da área segura (entalhe, barra do Roblox);
+-- a HUD lê GuiService.TopbarInset para começar abaixo da barra (skill fwjelaa-ui-builder).
+gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
 

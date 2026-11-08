@@ -6,11 +6,13 @@ local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local UIAssets = require(game.ReplicatedStorage.Shared.UIAssets)
 
 local UI = {}
 
 UI.Font = Enum.Font.FredokaOne
-UI.FontBody = Enum.Font.GothamBold
+-- Gotham foi aposentada pela Roblox (renderiza como Montserrat): fonte de corpo pesada da Builder.
+UI.FontBody = Enum.Font.BuilderSansExtraBold
 UI.Colors = {
 	Bg = Color3.fromRGB(22, 24, 44),
 	Panel = Color3.fromRGB(36, 40, 72),
@@ -50,6 +52,47 @@ local ICON_FALLBACK = {
 
 local function assetId(n: number): string
 	return "rbxassetid://" .. n
+end
+
+---------------------------------------------------------------------------
+-- Escala por aparelho (Fase 3, HUD; skill fwjelaa-ui-builder): desenho em 1920x1080,
+-- UM UIScale por grupo (cluster), preso entre 0,6 e 1,0 para manter texto >= 12 px e toque >= 44 px.
+---------------------------------------------------------------------------
+local DESIGN_H = 1080
+local MIN_SCALE, MAX_SCALE = 0.6, 1.0
+local scalers: { UIScale } = {}
+local scaleWatch = false
+
+function UI.deviceScale(): number
+	local cam = workspace.CurrentCamera
+	local vp = if cam then cam.ViewportSize else Vector2.new(1920, 1080)
+	local k = math.min(vp.Y / DESIGN_H, vp.X / 1920 * 1.25)
+	return math.clamp(k, MIN_SCALE, MAX_SCALE)
+end
+
+-- Põe o UIScale do aparelho num grupo e o mantém atualizado quando a janela muda.
+function UI.autoScale(frame: GuiObject): GuiObject
+	local s = Instance.new("UIScale")
+	s.Name = "DeviceScale"
+	s.Scale = UI.deviceScale()
+	s.Parent = frame
+	table.insert(scalers, s)
+	local cam = workspace.CurrentCamera
+	if not scaleWatch and cam then
+		scaleWatch = true
+		cam:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			local k = UI.deviceScale()
+			for i = #scalers, 1, -1 do
+				local sc = scalers[i]
+				if sc.Parent then
+					sc.Scale = k
+				else
+					table.remove(scalers, i)
+				end
+			end
+		end)
+	end
+	return frame
 end
 
 function UI.corner(inst: GuiObject, radius: number?)
@@ -126,6 +169,9 @@ function UI.panel(parent: Instance, props: { [string]: any }): Frame
 		img.Image = assetId(Config.Assets.Panel)
 		img.ScaleType = Enum.ScaleType.Slice
 		img.SliceCenter = Rect.new(140, 160, 884, 884)
+		-- Os cantos da arte têm 140-160 px: sem reduzir, painéis pequenos (< 320 px) amassavam a faixa
+		-- dourada e os rebites ("ilustração estranha" vista no diagnóstico). 0,35 = cantos de ~50 px.
+		img.SliceScale = 0.35
 		img.Size = UDim2.fromScale(1, 1)
 		img.ZIndex = f.ZIndex
 		img.Parent = f
@@ -206,6 +252,22 @@ function UI.title(parent: Instance, text: string, props: { [string]: any }?): Te
 end
 
 function UI.icon(parent: Instance, name: string, props: { [string]: any }?): GuiObject
+	-- Fase 3 (HUD): ícone recortado e enviado individualmente (UIAssets). A folha 4x2 só serve de
+	-- reserva: o Roblox reduz a folha para 1024x683 e o recorte em pixels apontava para o lugar errado.
+	local single = (UIAssets :: { [string]: string })[name]
+	if single then
+		local img = Instance.new("ImageLabel")
+		img.BackgroundTransparency = 1
+		img.Image = single
+		img.ScaleType = Enum.ScaleType.Fit
+		if props then
+			for k, v in props do
+				(img :: any)[k] = v
+			end
+		end
+		img.Parent = parent
+		return img
+	end
 	local cell = UI.Icons[name]
 	if Config.Assets.IconsSheet ~= 0 and cell then
 		local img = Instance.new("ImageLabel")
