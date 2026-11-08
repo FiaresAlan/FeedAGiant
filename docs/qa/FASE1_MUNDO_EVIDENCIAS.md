@@ -4,7 +4,7 @@ Estilo: cartoon pintado (GAME_BRIEF §5). Guia: `make-map/styles/simulator.md`. 
 (`src/shared/LightingRecipes.lua`). Mundo gerado por código a cada início de servidor (`src/server/World.lua`, semente fixa)
 com o MapKit do fwjelaa vendorizado (`src/vendor/server/MapKit`).
 
-## O que existe agora (depois da rodada de correção 3)
+## O que existe agora (depois da rodada 4: clima de fim de tarde, escolhido pelo usuário)
 - **Ilha** de grama (raio 470) com manchas de grama em dois tons, praia, faixa de água rasa e mar até o horizonte,
   tudo de peça (sem água de terreno).
 - **Praça** em dois degraus (r 138 / r 120), anel e 8 faixas-guia no piso apontando para o centro.
@@ -14,10 +14,10 @@ com o MapKit do fwjelaa vendorizado (`src/vendor/server/MapKit`).
 - **Postes de luz** nas entradas e ao longo de todos os caminhos, com **arbustos** do lado oposto.
 - **8 bases** com cor-tema, cerca branca; **placa nos fundos** com **contorno escuro no texto**.
 - **3 lagos** com vitórias-régias e pedras; árvores em grupos, arbustos, flores, pedras e colinas baixas.
-- **Luz:** sol de tarde (ClockTime 15) e mais quente, contraste 0,12 e tom quente na correção de cor, raios de sol sutis,
-  névoa para profundidade.
+- **Luz (rodada 4):** fim de tarde. Sol baixo (ClockTime 16,8, latitude 30), luz alaranjada em cima e roxa embaixo, névoa
+  alaranjada (Haze 1,5, Glare 0,4), Bloom 0,7 e raios de sol. Grama #7FA34E. Lâmpadas dos postes acesas (Neon).
 
-## Verificação (place de teste, Play)
+## Verificação (place de teste, Play; rodada 4: rotas 24/24, 0/285 flutuando, 0 soltas, 4.859 peças, 48 Neon)
 | Gate | Resultado |
 |---|---|
 | Verificador Luau | overall PASS (45 arquivos) |
@@ -29,7 +29,9 @@ com o MapKit do fwjelaa vendorizado (`src/vendor/server/MapKit`).
 | Bandeiras fora do caldeirão | mastro r 34 > raio do caldeirão 32,3 |
 | Peças no mapa | 4.860 (alvo < 10.000) |
 
-**Orçamento por vista** (SceneAnalysisService, sem sombras, qualidade fixada; alvo celular 500k triângulos / 500 draw calls):
+**Orçamento por vista (rodada 4, Q5/Q10):** base 304k/35 e 316k/38 · aérea 429k/35 e 466k/33 · praça 176k/23 e 189k/25 · natureza NO 379k/28 e 411k/34.
+
+**Orçamento por vista (rodada 3)** (SceneAnalysisService, sem sombras, qualidade fixada; alvo celular 500k triângulos / 500 draw calls):
 
 | Vista | Qualidade 5 | Qualidade 10 |
 |---|---|---|
@@ -50,7 +52,7 @@ Antes da troca da água: a água de terreno custava ~290k triângulos e ~300 dra
 - `05_chegando_na_base.jpg`
 
 Capturas com o avatar R15 no quadro. A UI de tela e os letreiros flutuantes (nomes, drops, chuva de comida do evento)
-foram desligados **só no cliente da foto**. As versões anteriores estão em `rodada1/` e `rodada2/`.
+foram desligados **só no cliente da foto**. As versões anteriores estão em `rodada1/`, `rodada2/` e `rodada3/`.
 
 ## Histórico das rodadas (rubrica `world`, 3 revisores cegos, mediana por critério, soma refeita)
 | Rodada | O que mudou | Mediana W1..W6 | Nota |
@@ -58,6 +60,7 @@ foram desligados **só no cliente da foto**. As versões anteriores estão em `r
 | 1 | primeira versão + ajustes (borda, pedras, cores, caldeirão 1,7×, placares, faixas, slots, placa nos 2 lados) | [1,1,1,1,1,1] | 5,0 |
 | 2 | placa para os fundos; pedestal e bandeiras; banquete; postes; lagos; névoa; mar sem água de terreno; fotos com avatar | [2,2,1,1,1,2] | 7,9 |
 | 3 | sol de tarde e mais quente, correção de cor quente, raios de sol, fogo Neon com luz; placares de madeira; evento dourado; contorno no texto das placas; manchas de grama; arbustos nos caminhos | [2,2,1,1,1,2] | 7,9 (máx. de rodadas atingido) |
+| 4 (decisão do usuário) | **clima de fim de tarde** (receita GoldenAfternoon: vault §3.3 Golden hour com ClockTime 16,8 e ambiente mais alto), grama verde-amarelada menos saturada, postes de madeira com lâmpada Neon | (este painel) | |
 
 ## Não feito / limites
 - O marco e os props são primitivas, sem textura pintada. A textura pintada entra com os modelos da Fase 2.
