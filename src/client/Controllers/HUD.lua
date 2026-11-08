@@ -18,6 +18,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local State = require(script.Parent.Parent.State)
+local FoodView = require(script.Parent.Parent.FoodView)
 
 local HUD = {}
 
@@ -36,12 +37,14 @@ local rebirthTile: TextButton
 local dailyCaption: TextLabel
 local dailyTile: TextButton
 local dailyBadge: Frame
+local collBadge: Frame? = nil
 local lastCoins = 0
 
 HUD.OnOpenShop = nil :: (() -> ())?
 HUD.OnOpenInventory = nil :: (() -> ())?
 HUD.OnOpenCodes = nil :: (() -> ())?
 HUD.OnOpenArena = nil :: (() -> ())?
+HUD.OnOpenCollection = nil :: (() -> ())?
 
 -- Escala por aparelho: no kit UI (UI.deviceScale / UI.autoScale), igual para todos os painéis.
 local scaled = UI.autoScale
@@ -212,19 +215,44 @@ local function tile(
 	return b, cap
 end
 
+local TILE_W, TILE_H, TILE_GAP = 104, 112, 12
+local TILE_COUNT = 7
+local TOP_RESERVE = 164 -- altura do painel do topo + escudo, em pixels do desenho 1080p
+local BOTTOM_RESERVE = 70 -- espaço do botão "Pular tutorial" (canto inferior esquerdo)
+
 local function buildSideButtons(gui: ScreenGui)
 	local col = Instance.new("Frame")
 	col.Name = "SideCluster"
 	col.BackgroundTransparency = 1
-	col.AnchorPoint = Vector2.new(0, 0.5)
-	col.Position = UDim2.new(0, 14, 0.5, 30)
-	col.Size = UDim2.fromOffset(104, 6 * 112 + 5 * 12)
+	col.AnchorPoint = Vector2.new(0, 0)
 	col.Parent = gui
 	scaled(col)
-	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 12)
+	-- Fase 4 (celular primeiro): no celular deitado (844x390) a coluna única de 6 azulejos passava
+	-- da tela. Agora é uma grade que enche de cima para baixo e abre colunas quando falta altura.
+	local layout = Instance.new("UIGridLayout")
+	layout.CellSize = UDim2.fromOffset(TILE_W, TILE_H)
+	layout.CellPadding = UDim2.fromOffset(TILE_GAP, TILE_GAP)
+	layout.FillDirection = Enum.FillDirection.Vertical
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = col
+	local function fit()
+		local area = gui.AbsoluteSize
+		if area.Y <= 0 then
+			return
+		end
+		local k = UI.deviceScale()
+		local avail = area.Y / k - TOP_RESERVE - BOTTOM_RESERVE
+		local rows = math.clamp(math.floor((avail + TILE_GAP) / (TILE_H + TILE_GAP)), 1, TILE_COUNT)
+		local cols = math.ceil(TILE_COUNT / rows)
+		rows = math.ceil(TILE_COUNT / cols)
+		local h = rows * TILE_H + (rows - 1) * TILE_GAP
+		col.Size = UDim2.fromOffset(cols * TILE_W + (cols - 1) * TILE_GAP, h)
+		-- Centrada na altura quando cabe; senão logo abaixo do painel do topo.
+		local top = math.max(TOP_RESERVE, (area.Y / k - h) / 2 + 20)
+		col.Position = UDim2.fromOffset(14, top * k)
+	end
+	fit()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 
 	local function open(cb: (() -> ())?)
 		return function()
@@ -269,6 +297,55 @@ local function buildSideButtons(gui: ScreenGui)
 	codes.Activated:Connect(function()
 		open(HUD.OnOpenCodes)()
 	end)
+
+	-- Coleção: o "ícone" é uma maçã 3D (mesmo modelo do mundo); quadrado vermelho até o modelo chegar.
+	local coll = UI.button(col, "", Color3.fromRGB(255, 150, 60), { LayoutOrder = 7 })
+	local iconHolder = Instance.new("Frame")
+	iconHolder.BackgroundTransparency = 1
+	iconHolder.Size = UDim2.fromOffset(84, 80)
+	iconHolder.Position = UDim2.fromOffset(10, -4)
+	iconHolder.ZIndex = coll.ZIndex + 1
+	iconHolder.Parent = coll
+	task.spawn(function()
+		if FoodView.waitReady(60) then
+			for _ = 1, 30 do
+				if FoodView.create(iconHolder, "apple", { yaw = 20, zIndex = coll.ZIndex + 1 }) then
+					return
+				end
+				task.wait(1)
+			end
+		end
+	end)
+	UI.label(coll, "COLEÇÃO", {
+		Size = UDim2.new(1, 8, 0, 24),
+		Position = UDim2.new(0, -4, 1, -22),
+		TextScaled = false,
+		TextSize = 19,
+		ZIndex = coll.ZIndex + 1,
+	})
+	local badge = UI.frame(coll, {
+		Size = UDim2.fromOffset(28, 28),
+		Position = UDim2.new(1, -18, 0, -10),
+		BackgroundColor3 = UI.Colors.Red,
+		ZIndex = coll.ZIndex + 3,
+		Visible = false,
+	})
+	UI.corner(badge, 14)
+	UI.stroke(badge, UI.Colors.Outline, 2)
+	UI.label(badge, "!", { ZIndex = coll.ZIndex + 4 })
+	collBadge = badge
+	coll.Activated:Connect(function()
+		badge.Visible = false
+		open(HUD.OnOpenCollection)()
+	end)
+end
+
+-- Selo "!" na Coleção quando aparece comida nova (some ao abrir).
+function HUD.markNewDiscovery()
+	local badge = collBadge
+	if badge then
+		badge.Visible = true
+	end
 end
 
 local function buildFeedButton(gui: ScreenGui)

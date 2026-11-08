@@ -5,6 +5,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local State = require(script.Parent.Parent.State)
+local FoodView = require(script.Parent.Parent.FoodView)
 
 local Inventory = {}
 
@@ -55,11 +56,21 @@ local function foodRow(
 	local row =
 		UI.frame(parent, { Size = UDim2.new(1, 0, 0, 58), LayoutOrder = order, BackgroundColor3 = UI.Colors.Bg })
 	UI.stroke(row, rar.color, 2)
-	local swatch = UI.frame(
-		row,
-		{ Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(8, 9), BackgroundColor3 = def.color }
-	)
-	UI.corner(swatch, def.shape == "Ball" and 20 or 8)
+	-- Miniatura 3D (FoodView); quadrado colorido se o modelo ainda não chegou.
+	local thumb = UI.frame(row, {
+		Size = UDim2.fromOffset(48, 48),
+		Position = UDim2.fromOffset(6, 5),
+		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+	})
+	UI.corner(thumb, 10)
+	if not FoodView.create(thumb, def.id, { yaw = 30 }) then
+		local swatch = UI.frame(thumb, {
+			Size = UDim2.fromOffset(36, 36),
+			Position = UDim2.fromOffset(6, 6),
+			BackgroundColor3 = def.color,
+		})
+		UI.corner(swatch, def.shape == "Ball" and 18 or 8)
+	end
 	UI.label(row, def.name, {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 26),
 		Position = UDim2.fromOffset(56, 4),
@@ -70,7 +81,7 @@ local function foodRow(
 		Position = UDim2.fromOffset(56, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 13,
+		TextSize = 18,
 		TextColor3 = rar.color,
 	})
 	for i, a in actions do
@@ -80,7 +91,7 @@ local function foodRow(
 			a.color,
 			{ Size = UDim2.fromOffset(84, 40), Position = UDim2.new(1, -(92 * i), 0.5, -20) }
 		)
-		b.MouseButton1Click:Connect(a.cb)
+		b.Activated:Connect(a.cb)
 	end
 	return row
 end

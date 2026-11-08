@@ -67,6 +67,8 @@ export type Profile = {
 	duelProtectionUntil: number,
 	-- Fase 0
 	speciesTokens: number, -- fichas do produto "Trocar Espécie" (jogador escolhe a espécie)
+	-- Fase 4: índice de coleção (comidas que já passaram pela mochila ou pelo pátio)
+	discovered: { [string]: boolean },
 }
 
 local DataService = {}
@@ -106,6 +108,7 @@ local function defaultProfile(): Profile
 		lastDuel = 0,
 		duelProtectionUntil = 0,
 		speciesTokens = 0,
+		discovered = {},
 	}
 end
 DataService.defaultProfile = defaultProfile

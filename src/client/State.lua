@@ -27,6 +27,7 @@ export type PlayerState = {
 	levelsLostToDecay: number?,
 	championUntil: number?,
 	speciesTokens: number?,
+	discovered: { [string]: boolean }?,
 }
 
 local State = {}

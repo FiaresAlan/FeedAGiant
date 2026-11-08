@@ -33,12 +33,37 @@ function PlotService.maxSlots(profile: DataService.Profile): number
 	return if profile.passes.VIP then Config.PlotSlotsVIP else Config.PlotSlots
 end
 
+-- Índice de coleção (Fase 4): toda comida que passa pela mochila ou pelo pátio fica "descoberta".
+-- Feito aqui porque todo caminho que entrega comida (caixa, drop, roubo, tutorial, código) termina
+-- num pushState; marcar é idempotente e só toca o save quando aparece algo novo.
+local function markDiscovered(player: Player, profile: DataService.Profile)
+	local found = profile.discovered
+	local changed = false
+	local function mark(id: string)
+		if not found[id] and Config.FoodById[id] then
+			found[id] = true
+			changed = true
+		end
+	end
+	for _, food in profile.inventory do
+		mark(food.id)
+	end
+	for _, food in profile.plot do
+		mark(food.id)
+	end
+	if changed then
+		DataService.markDirty(player)
+	end
+end
+
 function PlotService.pushState(player: Player)
 	local profile = DataService.get(player)
 	if not profile then
 		return
 	end
+	markDiscovered(player, profile)
 	Remotes.StateChanged:FireClient(player, {
+		discovered = profile.discovered,
 		coins = profile.coins,
 		level = profile.level,
 		xp = profile.xp,
@@ -366,7 +391,7 @@ function PlotService.init()
 		if Config.GroupId == 0 then
 			return
 		end
-		local ok, isMember = pcall(player.IsInGroup, player, Config.GroupId)
+		local ok, isMember = pcall(player.IsInGroupAsync, player, Config.GroupId)
 		if ok and player.Parent then
 			groupMember[player] = isMember == true
 		end

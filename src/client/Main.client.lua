@@ -20,6 +20,7 @@ local Effects = require(Controllers.Effects)
 local GiantAnim = require(Controllers.GiantAnim)
 local FeedFx = require(Controllers.FeedFx)
 local Tutorial = require(Controllers.Tutorial)
+local Collection = require(Controllers.Collection)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -42,6 +43,7 @@ Notifications.init(gui)
 HUD.init(gui)
 Shop.init(gui)
 Inventory.init(gui)
+Collection.init(gui)
 Hatch.init(gui)
 Combat.init(gui)
 Drops.init(gui)
@@ -58,5 +60,9 @@ HUD.OnOpenShop = Shop.open
 HUD.OnOpenInventory = Inventory.open
 HUD.OnOpenCodes = Shop.openCodes
 HUD.OnOpenArena = Arena.open
+HUD.OnOpenCollection = Collection.open
+Collection.OnNewDiscovery = function(_n: number)
+	HUD.markNewDiscovery()
+end
 
 print("[FeedAGiant] Cliente pronto.")

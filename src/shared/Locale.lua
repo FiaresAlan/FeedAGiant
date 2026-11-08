@@ -9,6 +9,12 @@ Locale.Supported = { "pt-br", "en", "es" }
 Locale.Default = "pt-br"
 
 Locale.Exact = {
+	-- Fase 4: coleção
+	["COLEÇÃO"] = { en = "COLLECTION", es = "COLECCIÓN" },
+	["COMIDAS"] = { en = "FOODS", es = "COMIDAS" },
+	["ESPÉCIES DE GIGANTE"] = { en = "GIANT SPECIES", es = "ESPECIES DE GIGANTE" },
+	["✔ TENHO"] = { en = "✔ OWNED", es = "✔ TENGO" },
+	["🔒 FALTA"] = { en = "🔒 MISSING", es = "🔒 FALTA" },
 	["ALIMENTAR GIGANTE"] = { en = "FEED GIANT", es = "ALIMENTAR GIGANTE" },
 	["LOJA — entre para abrir"] = { en = "SHOP — walk in to open", es = "TIENDA — entra para abrir" },
 	["BASE LIVRE"] = { en = "FREE BASE", es = "BASE LIBRE" },
@@ -523,6 +529,11 @@ Locale.Templates = {
 	rebirth_btn = { ["pt-br"] = "REBIRTH (Nv.{n})", en = "REBIRTH (Lv.{n})", es = "REBIRTH (Nv.{n})" },
 	daily_btn = { ["pt-br"] = "DIÁRIO ({n}/7)", en = "DAILY ({n}/7)", es = "DIARIO ({n}/7)" },
 	shield_active = { ["pt-br"] = "ESCUDO ATIVO: {t}", en = "SHIELD ACTIVE: {t}", es = "ESCUDO ACTIVO: {t}" },
+	collection_count = {
+		["pt-br"] = "Comidas descobertas: {n} de {m}",
+		en = "Foods discovered: {n} of {m}",
+		es = "Comidas descubiertas: {n} de {m}",
+	},
 	backpack_n = { ["pt-br"] = "MOCHILA ({n})", en = "BACKPACK ({n})", es = "MOCHILA ({n})" },
 	yard_n = { ["pt-br"] = "PÁTIO ({n} / {m})", en = "YARD ({n} / {m})", es = "PATIO ({n} / {m})" },
 	food_row = {

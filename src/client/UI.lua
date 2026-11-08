@@ -510,7 +510,23 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 			win.Size = size
 		end)
 	end
-	close.MouseButton1Click:Connect(hide)
+	close.Activated:Connect(hide)
+	-- Fase 4 (celular primeiro): a janela é desenhada em pixels de 1080p e encolhe para caber na
+	-- área segura (antes, 760x500 passava da tela de 844x390). Um UIScale só, separado do pop.
+	local fit = Instance.new("UIScale")
+	fit.Name = "FitScale"
+	fit.Parent = win
+	local function refit()
+		local area = gui.AbsoluteSize
+		if area.X <= 0 or area.Y <= 0 then
+			return
+		end
+		local w = size.X.Offset + area.X * size.X.Scale
+		local h = size.Y.Offset + area.Y * size.Y.Scale + 24 -- cabeçalho acima da janela
+		fit.Scale = math.clamp(math.min(1, (area.X - 24) / math.max(w, 1), (area.Y - 24) / math.max(h, 1)), 0.4, 1)
+	end
+	refit()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 	-- compat: código antigo faz win.Visible = false / UI.pop(win)
 	win:GetPropertyChangedSignal("Visible"):Connect(function()
 		dim.Visible = win.Visible
