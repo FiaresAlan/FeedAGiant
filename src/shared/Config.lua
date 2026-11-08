@@ -719,26 +719,51 @@ Config.Assets = {
 	IconsSheet = 110810450318375, -- assets/ui/icons_sheet.png (grade 4x2: coin, glove, lunchbox, backpack / trophy, shield, crown, gear)
 	Panel = 88757291686340, -- assets/ui/panel_9slice.png
 }
+-- Sons aprovados pelo usuário (08/11/2026): assets/audio, enviados por tools/upload_audio.py.
+-- IDs em AudioAssets (gerado). Sem ID, cai no som antigo da biblioteca Roblox.
+local AudioAssets = require(script.Parent.AudioAssets)
+local function snd(file: string, fallback: string): string
+	return AudioAssets[file] or fallback
+end
+local function vo(name: string, loc: string): string | number
+	return AudioAssets["vo_" .. name .. "." .. loc] or 0
+end
 Config.Sounds = {
-	-- SFX: assets/audio/sfx_*.wav (gerados para este projeto). Fallback = biblioteca Roblox.
-	Punch = "rbxassetid://12222216",
-	Heavy = "rbxassetid://12222242",
-	Block = "rbxassetid://12222225",
-	KO = "rbxassetid://12222030",
-	Impact = "rbxassetid://12222124",
-	LevelUp = "rbxassetid://12222253",
-	Evolve = "rbxassetid://12222005",
-	Bell = "rbxassetid://12222152",
-	Win = "rbxassetid://12222084",
-	Coin = "rbxassetid://12222005",
-	Whoosh = "rbxassetid://12222216",
-	Click = "rbxassetid://12221967",
-	-- Narrador (ElevenLabs, voz "Tyler – Arena Announcer"). Arquivos: assets/audio/vo_<nome>.<idioma>.mp3
-	-- Suba os 15 arquivos e cole os IDs abaixo. 0 = mudo. O cliente escolhe o idioma pelo LocaleId do jogador.
+	Punch = snd("sfx_punch", "rbxassetid://12222216"),
+	Heavy = snd("sfx_heavy", "rbxassetid://12222242"),
+	Block = snd("sfx_block", "rbxassetid://12222225"),
+	KO = snd("sfx_ko", "rbxassetid://12222030"),
+	Impact = snd("sfx_impact", "rbxassetid://12222124"),
+	LevelUp = snd("sfx_levelup", "rbxassetid://12222253"),
+	Evolve = snd("sfx_evolve", "rbxassetid://12222005"),
+	Bell = snd("sfx_bell", "rbxassetid://12222152"),
+	Win = snd("sfx_win", "rbxassetid://12222084"),
+	Coin = snd("sfx_coin", "rbxassetid://12222005"),
+	Whoosh = snd("sfx_whoosh", "rbxassetid://12222216"),
+	Click = snd("sfx_click", "rbxassetid://12221967"),
+	-- Narrador (voz "Tyler – Arena Announcer"); o cliente escolhe o idioma pelo LocaleId.
 	VO = {
-		["pt-br"] = { Fight = 0, KO = 0, Evolved = 0, Drop = 0, Champion = 0 }, -- vo_fight.pt-BR.mp3 ...
-		["es"] = { Fight = 0, KO = 0, Evolved = 0, Drop = 0, Champion = 0 }, -- vo_fight.es.mp3 ...
-		["en"] = { Fight = 0, KO = 0, Evolved = 0, Drop = 0, Champion = 0 }, -- vo_fight.en.mp3 ...
+		["pt-br"] = {
+			Fight = vo("fight", "pt-BR"),
+			KO = vo("ko", "pt-BR"),
+			Evolved = vo("evolved", "pt-BR"),
+			Drop = vo("drop", "pt-BR"),
+			Champion = vo("champion", "pt-BR"),
+		},
+		["es"] = {
+			Fight = vo("fight", "es"),
+			KO = vo("ko", "es"),
+			Evolved = vo("evolved", "es"),
+			Drop = vo("drop", "es"),
+			Champion = vo("champion", "es"),
+		},
+		["en"] = {
+			Fight = vo("fight", "en"),
+			KO = vo("ko", "en"),
+			Evolved = vo("evolved", "en"),
+			Drop = vo("drop", "en"),
+			Champion = vo("champion", "en"),
+		},
 	},
 }
 

@@ -35,6 +35,10 @@ local EVENTS = {
 	"RequestEquipSpecies", -- client -> server: speciesId
 	"GiantEvolved", -- server -> all: {userId, stageName, level}
 	"RareFound", -- server -> all: {userId, name, foodId, rarity} (no máximo 1 a cada 6 s)
+	"RequestFightMode", -- client -> server: on:boolean (modo de luta: luvas, soco e bloqueio)
+	"Fireworks", -- server -> all: {userId, name, foodId, rarity} (fogos no servidor inteiro)
+	"EventSchedule", -- server -> all: {nextId, nextName, at (os.time), activeId?, endsAt?}
+	"BossState", -- server -> all: {active, hp, maxHp}
 }
 
 local FUNCTIONS = {

@@ -11,6 +11,7 @@ local GiantService = require(script.Parent.GiantService)
 local FoodModels = require(script.Parent.Parent.FoodModels)
 local TutorialService = require(script.Parent.TutorialService)
 local Guard = require(script.Parent.Parent.Guard)
+local Locale = require(game.ReplicatedStorage.Shared.Locale)
 
 -- Maior índice de vaga possível (VIP tem mais vagas); o dono é conferido depois.
 local MAX_SLOT_INDEX = math.max(Config.PlotSlots, Config.PlotSlotsVIP)
@@ -301,6 +302,19 @@ function PlotService.removeFromPlot(player: Player, slot: number): DataService.F
 	return item
 end
 
+-- Perto do próprio gigante: distância no chão até a borda dele (cresce com o gigante) + folga.
+PlotService.FEED_REACH = 28
+function PlotService.nearGiant(player: Player): boolean
+	local model = GiantService.getModel(player)
+	local root = Guard.rootOf(player)
+	if not model or not root then
+		return false
+	end
+	local cf, ext = model:GetBoundingBox()
+	local d = Vector3.new(root.Position.X - cf.Position.X, 0, root.Position.Z - cf.Position.Z).Magnitude
+	return d - math.max(ext.X, ext.Z) / 2 <= PlotService.FEED_REACH + Guard.MARGIN
+end
+
 function PlotService.feed(player: Player, slot: number)
 	local profile = DataService.get(player)
 	if not profile then
@@ -369,6 +383,11 @@ function PlotService.init()
 	end)
 	Remotes.RequestFeed.OnServerEvent:Connect(function(player, arg)
 		if not Guard.allow(player, "Plot") then
+			return
+		end
+		-- Teste do usuário (08/11): alimentava do outro lado do mapa. Agora só perto do gigante.
+		if not PlotService.nearGiant(player) then
+			Remotes.Notify:FireClient(player, Locale.msg("feed_far", nil, Color3.fromRGB(255, 170, 60)))
 			return
 		end
 		if type(arg) == "table" and Guard.isIndex(arg.inv, Config.MaxInventoryHard) then

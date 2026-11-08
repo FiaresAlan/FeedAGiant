@@ -31,6 +31,14 @@ local koActive = false
 local lastHp = -1
 local lowHpVignette: Frame
 local strengthLabel: TextLabel
+-- Modo de luta (pedido do usuário 08/11): fora dele o clique não soca e as luvas somem.
+local fightMode = false
+local combatBox: Frame
+local hintLabel: TextLabel
+local mobilePad: Frame? = nil
+local fightBtn: TextButton
+local fightCaption: TextLabel
+local layoutCombat: () -> () = function() end
 
 -- Fase 3: animações de boxe (kit make-anim do fwjelaa; IDs em AnimationIds). Tocadas só no
 -- personagem LOCAL: o Animator replica a animação do próprio jogador para os outros.
@@ -250,6 +258,7 @@ local function buildBars(gui: ScreenGui)
 	-- no desenho 1080p (>= 12 px na escala mínima 0,6).
 	local box = UI.panel(gui, {
 		Name = "CombatBars",
+		Visible = false,
 		Size = UDim2.fromOffset(400, 128),
 		Position = UDim2.new(1, -12, 1, -16),
 		AnchorPoint = Vector2.new(1, 1),
@@ -340,7 +349,71 @@ local function buildBars(gui: ScreenGui)
 			BackgroundColor3 = Color3.fromRGB(16, 20, 54),
 			TextXAlignment = Enum.TextXAlignment.Right,
 		})
-	hint.Visible = not UserInputService.TouchEnabled
+	hint.Visible = false
+	combatBox = box
+	hintLabel = hint
+	hint.Text = "Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  Q: sair da luta"
+
+	-- Botão LUTAR / SAIR (canto inferior direito). Teclado: Q. Controle: Y.
+	local holder = Instance.new("Frame")
+	holder.Name = "FightToggle"
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = Vector2.new(1, 1)
+	holder.Size = UDim2.fromOffset(190, 72)
+	holder.Position = UDim2.new(1, -12, 1, -16)
+	holder.Parent = gui
+	UI.autoScale(holder)
+	fightBtn = UI.button(holder, "", UI.Colors.Red, { Name = "FightButton", Size = UDim2.fromOffset(190, 64) })
+	UI.icon(fightBtn, "glove", {
+		Size = UDim2.fromOffset(54, 54),
+		Position = UDim2.fromOffset(6, 4),
+		ZIndex = fightBtn.ZIndex + 1,
+	})
+	fightCaption = UI.label(fightBtn, "LUTAR", {
+		Size = UDim2.fromOffset(120, 56),
+		Position = UDim2.fromOffset(64, 4),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = fightBtn.ZIndex + 1,
+	})
+	fightBtn.Activated:Connect(function()
+		Combat.setFightMode(not fightMode)
+	end)
+
+	layoutCombat = function()
+		local k = UI.deviceScale()
+		box.Position = UDim2.new(1, -12, 1, -math.floor(16 + 80 * k))
+		hint.Position = UDim2.new(1, -12, 1, -math.floor(16 + 80 * k + 128 * k + 8))
+	end
+	layoutCombat()
+	local cam = Workspace.CurrentCamera
+	if cam then
+		cam:GetPropertyChangedSignal("ViewportSize"):Connect(layoutCombat)
+	end
+end
+
+-- Liga/desliga o modo de luta (o servidor confirma pelo CombatState).
+function Combat.setFightMode(on: boolean)
+	if on == fightMode then
+		return
+	end
+	fightMode = on
+	Remotes.RequestFightMode:FireServer(on)
+	Combat.applyFightMode()
+	UI.sfx(if on then "Bell" else "Click", 0.5)
+end
+
+function Combat.applyFightMode()
+	combatBox.Visible = fightMode
+	hintLabel.Visible = fightMode and not UserInputService.TouchEnabled
+	local pad = mobilePad
+	if pad then
+		pad.Visible = fightMode
+	end
+	fightCaption.Text = if fightMode then "SAIR" else "LUTAR"
+	fightBtn.BackgroundColor3 = if fightMode then Color3.fromRGB(110, 110, 130) else UI.Colors.Red
+	if not fightMode and blocking then
+		blocking = false
+	end
 end
 
 local function buildMobile(gui: ScreenGui)
@@ -349,12 +422,14 @@ local function buildMobile(gui: ScreenGui)
 	end
 	local pad = UI.frame(gui, {
 		Name = "MobileCombat",
+		Visible = false,
 		Size = UDim2.fromOffset(190, 190),
-		Position = UDim2.new(1, -16, 1, -160),
+		Position = UDim2.new(1, -16, 1, -230),
 		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 1,
 	})
 	UI.autoScale(pad)
+	mobilePad = pad
 	local punch = UI.button(
 		pad,
 		"👊",
@@ -395,6 +470,13 @@ local function bindInput()
 			return
 		end
 		local key = input.KeyCode
+		if key == Enum.KeyCode.Q or key == Enum.KeyCode.ButtonY then
+			Combat.setFightMode(not fightMode)
+			return
+		end
+		if not fightMode then
+			return -- fora do modo de luta: clique é só clique (câmera, mundo)
+		end
 		if
 			input.UserInputType == Enum.UserInputType.MouseButton1
 			or key == Enum.KeyCode.J
@@ -440,6 +522,10 @@ function Combat.init(gui: ScreenGui)
 			flashDamage(lastHp - s.hp > 20)
 		end
 		lastHp = s.hp
+		if type(s.fightMode) == "boolean" and s.fightMode ~= fightMode then
+			fightMode = s.fightMode -- a arena e o chefe ligam o modo de luta pelo servidor
+			Combat.applyFightMode()
+		end
 		blockBadge.Visible = s.blocking == true
 		blocking = s.blocking == true
 		if s.combo and s.combo >= 2 then

@@ -243,6 +243,8 @@ local function fight(a: Player, b: Player): (Player?, Player?, string)
 	fighting[a], fighting[b] = b, a
 	CombatService.resetFighter(a)
 	CombatService.resetFighter(b)
+	CombatService.setFightMode(a, true) -- luta da arena: modo de luta ligado para os dois
+	CombatService.setFightMode(b, true)
 	sendTo(a, spotA, spotB.Position)
 	sendTo(b, spotB, spotA.Position)
 	setFrozen(a, true)

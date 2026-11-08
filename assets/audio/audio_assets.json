@@ -1,0 +1,110 @@
+{
+  "sfx_bell": {
+    "id": "rbxassetid://111472603332044",
+    "bytes": 141164
+  },
+  "sfx_block": {
+    "id": "rbxassetid://72931332968465",
+    "bytes": 22094
+  },
+  "sfx_click": {
+    "id": "rbxassetid://95908432445361",
+    "bytes": 5336
+  },
+  "sfx_coin": {
+    "id": "rbxassetid://75818625256493",
+    "bytes": 22094
+  },
+  "sfx_evolve": {
+    "id": "rbxassetid://136735441844853",
+    "bytes": 158804
+  },
+  "sfx_heavy": {
+    "id": "rbxassetid://122680224833928",
+    "bytes": 30912
+  },
+  "sfx_impact": {
+    "id": "rbxassetid://102535200181588",
+    "bytes": 88244
+  },
+  "sfx_ko": {
+    "id": "rbxassetid://91811884425776",
+    "bytes": 79424
+  },
+  "sfx_levelup": {
+    "id": "rbxassetid://139308167810379",
+    "bytes": 52964
+  },
+  "sfx_punch": {
+    "id": "rbxassetid://110858963114947",
+    "bytes": 15920
+  },
+  "sfx_whoosh": {
+    "id": "rbxassetid://139752197702972",
+    "bytes": 17684
+  },
+  "sfx_win": {
+    "id": "rbxassetid://107141555714371",
+    "bytes": 79424
+  },
+  "vo_champion.en": {
+    "id": "rbxassetid://115475764896635",
+    "bytes": 30136
+  },
+  "vo_champion.es": {
+    "id": "rbxassetid://76494061415890",
+    "bytes": 30136
+  },
+  "vo_champion.pt-BR": {
+    "id": "rbxassetid://90751229080751",
+    "bytes": 25538
+  },
+  "vo_drop.en": {
+    "id": "rbxassetid://88680741056333",
+    "bytes": 26374
+  },
+  "vo_drop.es": {
+    "id": "rbxassetid://98676545585200",
+    "bytes": 38913
+  },
+  "vo_drop.pt-BR": {
+    "id": "rbxassetid://90161482970805",
+    "bytes": 30972
+  },
+  "vo_evolved.en": {
+    "id": "rbxassetid://93402464839086",
+    "bytes": 27628
+  },
+  "vo_evolved.es": {
+    "id": "rbxassetid://100761448869365",
+    "bytes": 30136
+  },
+  "vo_evolved.pt-BR": {
+    "id": "rbxassetid://81790793733582",
+    "bytes": 24702
+  },
+  "vo_fight.en": {
+    "id": "rbxassetid://101130411593281",
+    "bytes": 25538
+  },
+  "vo_fight.es": {
+    "id": "rbxassetid://138407153117167",
+    "bytes": 32225
+  },
+  "vo_fight.pt-BR": {
+    "id": "rbxassetid://136432304887678",
+    "bytes": 33061
+  },
+  "vo_ko.en": {
+    "id": "rbxassetid://111180024074365",
+    "bytes": 19687
+  },
+  "vo_ko.es": {
+    "id": "rbxassetid://129800512081773",
+    "bytes": 17597
+  },
+  "vo_ko.pt-BR": {
+    "id": "rbxassetid://104554819339209",
+    "bytes": 16761
+  }
+}

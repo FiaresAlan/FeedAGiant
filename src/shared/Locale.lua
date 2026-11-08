@@ -540,6 +540,57 @@ Locale.Templates = {
 		en = "Foods discovered: {n} of {m}",
 		es = "Comidas descubiertas: {n} de {m}",
 	},
+	feed_far = {
+		["pt-br"] = "Chegue perto do seu Gigante para alimentar!",
+		en = "Get close to your Giant to feed it!",
+		es = "¡Acércate a tu Gigante para alimentarlo!",
+	},
+	next_event = {
+		["pt-br"] = "Próximo evento: {e} em {t}",
+		en = "Next event: {e} in {t}",
+		es = "Próximo evento: {e} en {t}",
+	},
+	event_now = { ["pt-br"] = "EVENTO AGORA: {e} ({t})", en = "EVENT NOW: {e} ({t})", es = "EVENTO AHORA: {e} ({t})" },
+	boss_win = {
+		["pt-br"] = "Você venceu o Dragão Faminto! Ganhou {f}!",
+		en = "You beat the Hungry Dragon! You got {f}!",
+		es = "¡Venciste al Dragón Hambriento! ¡Ganaste {f}!",
+	},
+	boss_lose = {
+		["pt-br"] = "O Dragão Faminto venceu e comeu seu {f}!",
+		en = "The Hungry Dragon won and ate your {f}!",
+		es = "¡El Dragón Hambriento ganó y se comió tu {f}!",
+	},
+	boss_lose_empty = {
+		["pt-br"] = "O Dragão Faminto venceu! (sua mochila estava vazia)",
+		en = "The Hungry Dragon won! (your backpack was empty)",
+		es = "¡El Dragón Hambriento ganó! (tu mochila estaba vacía)",
+	},
+	boss_limit = {
+		["pt-br"] = "Você já ganhou do Dragão {n} vezes hoje. Volte amanhã!",
+		en = "You already beat the Dragon {n} times today. Come back tomorrow!",
+		es = "Ya venciste al Dragón {n} veces hoy. ¡Vuelve mañana!",
+	},
+	boss_busy = {
+		["pt-br"] = "Alguém já está lutando com o Dragão. Espere a vez!",
+		en = "Someone is already fighting the Dragon. Wait your turn!",
+		es = "Alguien ya está peleando con el Dragón. ¡Espera tu turno!",
+	},
+	boss_spawned = {
+		["pt-br"] = "O DRAGÃO FAMINTO chegou na arena! Vença ele para ganhar comida rara!",
+		en = "The HUNGRY DRAGON is in the arena! Beat it to win rare food!",
+		es = "¡El DRAGÓN HAMBRIENTO llegó a la arena! ¡Véncelo para ganar comida rara!",
+	},
+	fireworks_msg = {
+		["pt-br"] = "FOGOS! {p} tirou {f} ({r})!",
+		en = "FIREWORKS! {p} got {f} ({r})!",
+		es = "¡FUEGOS! ¡{p} sacó {f} ({r})!",
+	},
+	statue_locked = {
+		["pt-br"] = "Nível {n} para desbloquear",
+		en = "Level {n} to unlock",
+		es = "Nivel {n} para desbloquear",
+	},
 	backpack_n = { ["pt-br"] = "MOCHILA ({n})", en = "BACKPACK ({n})", es = "MOCHILA ({n})" },
 	yard_n = { ["pt-br"] = "PÁTIO ({n} / {m})", en = "YARD ({n} / {m})", es = "PATIO ({n} / {m})" },
 	food_row = {

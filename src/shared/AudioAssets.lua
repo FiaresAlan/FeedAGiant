@@ -1,0 +1,32 @@
+--!strict
+-- AudioAssets — GERADO por tools/upload_audio.py a partir de assets/audio/audio_assets.json.
+-- Não editar à mão. Sons aprovados pelo usuário em 08/11/2026.
+return {
+	["sfx_bell"] = "rbxassetid://111472603332044",
+	["sfx_block"] = "rbxassetid://72931332968465",
+	["sfx_click"] = "rbxassetid://95908432445361",
+	["sfx_coin"] = "rbxassetid://75818625256493",
+	["sfx_evolve"] = "rbxassetid://136735441844853",
+	["sfx_heavy"] = "rbxassetid://122680224833928",
+	["sfx_impact"] = "rbxassetid://102535200181588",
+	["sfx_ko"] = "rbxassetid://91811884425776",
+	["sfx_levelup"] = "rbxassetid://139308167810379",
+	["sfx_punch"] = "rbxassetid://110858963114947",
+	["sfx_whoosh"] = "rbxassetid://139752197702972",
+	["sfx_win"] = "rbxassetid://107141555714371",
+	["vo_champion.en"] = "rbxassetid://115475764896635",
+	["vo_champion.es"] = "rbxassetid://76494061415890",
+	["vo_champion.pt-BR"] = "rbxassetid://90751229080751",
+	["vo_drop.en"] = "rbxassetid://88680741056333",
+	["vo_drop.es"] = "rbxassetid://98676545585200",
+	["vo_drop.pt-BR"] = "rbxassetid://90161482970805",
+	["vo_evolved.en"] = "rbxassetid://93402464839086",
+	["vo_evolved.es"] = "rbxassetid://100761448869365",
+	["vo_evolved.pt-BR"] = "rbxassetid://81790793733582",
+	["vo_fight.en"] = "rbxassetid://101130411593281",
+	["vo_fight.es"] = "rbxassetid://138407153117167",
+	["vo_fight.pt-BR"] = "rbxassetid://136432304887678",
+	["vo_ko.en"] = "rbxassetid://111180024074365",
+	["vo_ko.es"] = "rbxassetid://129800512081773",
+	["vo_ko.pt-BR"] = "rbxassetid://104554819339209",
+} :: { [string]: string }

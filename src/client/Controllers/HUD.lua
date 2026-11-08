@@ -43,6 +43,7 @@ local lastCoins = 0
 local coinsReady = false -- o primeiro estado só preenche o número (sem moedas voando)
 local hudGui: ScreenGui? = nil
 local coinIcon: GuiObject? = nil
+local miniLevel: TextLabel? = nil
 
 HUD.OnOpenShop = nil :: (() -> ())?
 HUD.OnOpenInventory = nil :: (() -> ())?
@@ -109,7 +110,7 @@ local function buildTopBar(gui: ScreenGui)
 		ZIndex = 4,
 	})
 	cpsLabel = UI.label(coin, "+0/s", {
-		Size = UDim2.fromOffset(212, 24),
+		Size = UDim2.fromOffset(110, 24),
 		Position = UDim2.fromOffset(80, 46),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Green,
@@ -181,6 +182,47 @@ local function buildTopBar(gui: ScreenGui)
 		TextColor3 = UI.Colors.Blue,
 		ZIndex = 3,
 	})
+
+	-- Pedido do usuário (08/11): o painel do topo tampava a tela. Botão para encolher: encolhido,
+	-- fica só a cápsula das moedas (o nível aparece num selo pequeno). No celular já começa encolhido.
+	local mini = UI.label(coin, "", {
+		Name = "MiniLevel",
+		Size = UDim2.fromOffset(110, 24),
+		Position = UDim2.new(1, -116, 0, 46),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextScaled = false,
+		TextSize = 20,
+		TextColor3 = UI.Colors.Blue,
+		Visible = false,
+		ZIndex = 4,
+	})
+	miniLevel = mini
+	local toggle = UI.button(top, "▲", Color3.fromRGB(70, 80, 140), {
+		Name = "Collapse",
+		Size = UDim2.fromOffset(48, 48),
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.new(1, 8, 0, 34),
+		TextScaled = false,
+		TextSize = 24,
+		ZIndex = 4,
+	})
+	local collapsed = false
+	local function apply()
+		lvl.Visible = not collapsed
+		mood.Visible = not collapsed
+		mini.Visible = collapsed
+		local w = if collapsed then 336 else 900
+		panel.Size = UDim2.fromOffset(w, 116)
+		top.Size = UDim2.fromOffset(w, 150)
+		toggle.Text = if collapsed then "▼" else "▲"
+	end
+	toggle.Activated:Connect(function()
+		collapsed = not collapsed
+		apply()
+	end)
+	local cam0 = Workspace.CurrentCamera
+	collapsed = cam0 ~= nil and cam0.ViewportSize.Y < 560
+	apply()
 
 	-- Logo no canto (só em telas largas: no celular a área é das estatísticas)
 	local logo = UI.logo(gui, {
@@ -492,6 +534,10 @@ local function refresh(s: State.PlayerState)
 		.. (if s.rebirths > 0 then "  R" .. s.rebirths else "")
 	local pct = if s.xpNeeded > 0 then math.clamp(s.xp / s.xpNeeded, 0, 1) else 0
 	TweenService:Create(xpFill, TweenInfo.new(0.25), { Size = UDim2.fromScale(pct, 1) }):Play()
+	local ml = miniLevel
+	if ml then
+		ml.Text = "Nv. " .. s.level
+	end
 	xpText.Text = Util.formatNumber(s.xp) .. " / " .. Util.formatNumber(s.xpNeeded) .. " XP"
 	hungerText.Text = moodName(s.hunger)
 	TweenService:Create(

@@ -403,17 +403,11 @@ function UI.bar(parent: Instance, color: Color3, props: { [string]: any }?): (Fr
 	shine.ClipsDescendants = true
 	shine.Parent = fill
 	UI.corner(shine, 6)
-	-- Um tween só, repetindo (antes: um laço task.spawn por barra). Parado com "Movimento reduzido".
-	if not GuiService.ReducedMotionEnabled then
-		shine.Position = UDim2.fromOffset(-14, 3)
-		TweenService:Create(
-			shine,
-			TweenInfo.new(1.6, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 1.2),
-			{ Position = UDim2.new(1, 0, 0, 3) }
-		):Play()
-	else
-		shine.Visible = false
-	end
+	-- Pedido do usuário (08/11): a "sombra branca rolando" por cima das barras parecia bug.
+	-- O brilho agora é um reflexo parado no alto da barra (sem movimento).
+	shine.Size = UDim2.new(1, -8, 0.35, 0)
+	shine.Position = UDim2.fromOffset(4, 2)
+	shine.BackgroundTransparency = 0.78
 	return bg, fill
 end
 
@@ -504,6 +498,9 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		ZIndex = 11,
+		-- BUG do teste do usuário (08/11): a janela nascia "visível" com o fundo escondido, então
+		-- `if not win.Visible then UI.pop(win)` nunca rodava e NENHUM botão da HUD abria nada.
+		Visible = false,
 	})
 	UI.glow(win, UI.Colors.Accent, 22, 0.7)
 	local header = Instance.new("Frame")

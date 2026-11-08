@@ -28,6 +28,7 @@ export type Fighter = {
 	infiniteStaminaUntil: number,
 	lastHitBy: Player?,
 	lastHitAt: number, -- os.clock() do último golpe recebido (regen de vida)
+	fightMode: boolean, -- pedido do usuário (08/11): só soca em "modo de luta" (luvas na mão)
 }
 
 local fighters: { [Player]: Fighter } = {}
@@ -45,6 +46,17 @@ CombatService.IgnoreSafeZone = nil :: ((victim: Player) -> boolean)?
 CombatService.CanPunch = nil :: ((attacker: Player) -> boolean)?
 -- Fase 3 (revisão): true = sem recuperar vida (durante a luta da arena).
 CombatService.NoRegen = nil :: ((player: Player) -> boolean)?
+-- Chefe (Dragão Faminto): o soco que não acertou jogador tenta acertar o chefe. true = acertou.
+CombatService.HitNpc = nil :: ((
+	attacker: Player,
+	origin: Vector3,
+	look: Vector3,
+	range: number,
+	damage: number,
+	heavy: boolean
+) -> boolean)?
+-- Chefe: jogador nocauteado por um NPC (o BossService decide o castigo).
+CombatService.OnNpcKO = nil :: ((victim: Player, source: string) -> ())?
 -- Fase 4 (luta justa, decisão do diretor técnico): true = vida e força iguais para todos (arena).
 -- Sem isso, o Dragão (passe pago) teria 2,5x a vida de um humano numa luta que tira moedas e comida.
 CombatService.FairFight = nil :: ((player: Player) -> boolean)?
@@ -65,6 +77,7 @@ local function getFighter(player: Player): Fighter
 			infiniteStaminaUntil = 0,
 			lastHitBy = nil,
 			lastHitAt = 0,
+			fightMode = false,
 		}
 		fighters[player] = f
 	end
@@ -142,6 +155,7 @@ local function push(player: Player)
 		combo = f.combo,
 		ko = f.koUntil > os.clock(),
 		koUntil = f.koUntil,
+		fightMode = f.fightMode,
 	})
 end
 
@@ -213,6 +227,79 @@ function CombatService.equipGloves(player: Player)
 		end
 	end
 	folder.Parent = char
+end
+
+-- Modo de luta: liga/desliga as luvas e libera socos e bloqueio. A arena e o chefe ligam sozinhos.
+function CombatService.setFightMode(player: Player, on: boolean)
+	local f = getFighter(player)
+	if f.fightMode == on then
+		push(player)
+		return
+	end
+	f.fightMode = on
+	if not on then
+		f.blocking = false
+		local char = player.Character
+		local old = char and char:FindFirstChild("BoxingGloves")
+		if old then
+			old:Destroy()
+		end
+	else
+		CombatService.equipGloves(player)
+	end
+	push(player)
+end
+
+function CombatService.inFightMode(player: Player): boolean
+	return getFighter(player).fightMode
+end
+
+-- Golpe de um NPC (chefe): dano, empurrão e nocaute sem atacante jogador.
+function CombatService.npcHit(victim: Player, damage: number, from: Vector3, source: string)
+	local f = getFighter(victim)
+	local now = os.clock()
+	if f.koUntil > now then
+		return
+	end
+	if f.blocking then
+		damage *= C.BlockDamageMult
+	end
+	f.hp = math.max(0, f.hp - damage)
+	f.lastHitAt = now
+	local char = victim.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local dir = Vector3.new(root.Position.X - from.X, 0, root.Position.Z - from.Z)
+		dir = if dir.Magnitude < 0.1 then Vector3.new(0, 0, 1) else dir.Unit
+		root.AssemblyLinearVelocity = dir * 60 + Vector3.new(0, 30, 0)
+	end
+	Remotes.CombatEvent:FireAllClients({ kind = "Hit", victim = victim.UserId, heavy = true, blocked = f.blocking })
+	if f.hp <= 0 then
+		f.koUntil = now + C.KOSeconds
+		f.hp = CombatService.maxHp(victim)
+		f.combo = 0
+		f.blocking = false
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.PlatformStand = true
+			hum.Sit = true
+		end
+		Remotes.CombatEvent:FireAllClients({ kind = "KO", victim = victim.UserId })
+		local cb = CombatService.OnNpcKO
+		if cb then
+			task.spawn(cb, victim, source)
+		end
+		task.delay(C.KOSeconds, function()
+			local c = victim.Character
+			local h = c and c:FindFirstChildOfClass("Humanoid")
+			if h then
+				h.PlatformStand = false
+				h.Sit = false
+			end
+			push(victim)
+		end)
+	end
+	push(victim)
 end
 
 -- Vida atual em 0..1 (para as barras da arena).
@@ -325,6 +412,9 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	if f.koUntil > now then
 		return
 	end
+	if not f.fightMode then
+		return -- fora do modo de luta o clique não soca (pedido do usuário: "soco no vento")
+	end
 	local canPunch = CombatService.CanPunch
 	if canPunch and not canPunch(attacker) then
 		return
@@ -389,6 +479,14 @@ local function tryPunch(attacker: Player, heavy: boolean)
 		end
 	end
 	if not best then
+		local hitNpc = CombatService.HitNpc
+		if hitNpc then
+			local npcDmg = (if heavy then C.HeavyDamage else C.PunchDamage) * dmgMult
+			if hitNpc(attacker, origin, look, range + 6, npcDmg, heavy) then
+				hitFx(origin + look * (range * 0.8) + Vector3.new(0, 2, 0), heavy)
+				Remotes.CombatEvent:FireAllClients({ kind = "NpcHit", attacker = attacker.UserId, heavy = heavy })
+			end
+		end
 		push(attacker)
 		return
 	end
@@ -463,7 +561,7 @@ end
 
 local function setBlock(player: Player, on: boolean)
 	local f = getFighter(player)
-	if f.koUntil > os.clock() then
+	if f.koUntil > os.clock() or (on and not f.fightMode) then
 		return
 	end
 	f.blocking = on and f.stamina > 5
@@ -476,6 +574,12 @@ function CombatService.init()
 			return
 		end
 		tryPunch(player, heavy)
+	end)
+	Remotes.RequestFightMode.OnServerEvent:Connect(function(player, on)
+		if type(on) ~= "boolean" or not Guard.allow(player, "Combat") then
+			return
+		end
+		CombatService.setFightMode(player, on)
 	end)
 	Remotes.RequestBlock.OnServerEvent:Connect(function(player, on)
 		if type(on) ~= "boolean" or not Guard.allow(player, "Combat") then
@@ -497,7 +601,9 @@ function CombatService.init()
 		f.koUntil = 0
 		f.blocking = false
 		task.wait(0.5)
-		CombatService.equipGloves(player)
+		if f.fightMode then
+			CombatService.equipGloves(player)
+		end
 		push(player)
 	end
 	local function watch(player: Player)
