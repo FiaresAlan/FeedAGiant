@@ -1,6 +1,7 @@
 --!strict
 -- Inventory.lua — janela de Inventário (comidas na mochila) e Pátio (slots ocupados), com ações Colocar / Alimentar / Recolher.
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
@@ -76,7 +77,22 @@ local function foodRow(
 		Position = UDim2.fromOffset(56, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
-	UI.label(row, Locale.fmt("food_row", nil, { r = Locale.rarity(def.rarity), x = rar.xp, c = rar.cps }), {
+	-- 4.3: a característica muda o XP (ao comer) e a renda (exposta): mostra os valores JÁ ajustados
+	-- e o selo colorido da característica no nome.
+	local trait = GameRules.traitOf(def.id)
+	local xpShown = math.floor(rar.xp * (if trait then trait.xpMult else 1))
+	local cpsShown = math.floor(rar.cps * (if trait then trait.incomeMult else 1) * 10 + 0.5) / 10
+	if trait then
+		UI.label(row, trait.icon .. " " .. Locale.t(trait.name), {
+			Size = UDim2.fromOffset(150, 22),
+			Position = UDim2.new(1, -(150 + #actions * 92), 0, 6),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextScaled = false,
+			TextSize = 18,
+			TextColor3 = trait.color,
+		})
+	end
+	UI.label(row, Locale.fmt("food_row", nil, { r = Locale.rarity(def.rarity), x = xpShown, c = cpsShown }), {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 20),
 		Position = UDim2.fromOffset(56, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,

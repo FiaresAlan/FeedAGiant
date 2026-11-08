@@ -9,6 +9,156 @@ Locale.Supported = { "pt-br", "en", "es" }
 Locale.Default = "pt-br"
 
 Locale.Exact = {
+	-- Missão de 08/11/2026 (noite): alimentação, coleção, turnos, Diário, carne, dragão
+	["CRÍTICO!"] = { en = "CRITICAL!", es = "¡CRÍTICO!" },
+	["SEQUÊNCIA"] = { en = "STREAK", es = "RACHA" },
+	["MÁX!"] = { en = "MAX!", es = "¡MÁX!" },
+	["Crescimento"] = { en = "Growth", es = "Crecimiento" },
+	["Renda"] = { en = "Income", es = "Ingresos" },
+	["Picante"] = { en = "Spicy", es = "Picante" },
+	["Doce"] = { en = "Sweet", es = "Dulce" },
+	["+40% XP ao alimentar"] = { en = "+40% XP when fed", es = "+40% XP al alimentar" },
+	["+50% moedas exposta no pátio"] = {
+		en = "+50% coins on display in the yard",
+		es = "+50% monedas expuesta en el patio",
+	},
+	["3x chance de alimentação CRÍTICA"] = {
+		en = "3x chance of a CRITICAL feed",
+		es = "3x probabilidad de alimentación CRÍTICA",
+	},
+	["Enche a fome e sobe +2 na sequência"] = {
+		en = "Fills hunger and adds +2 to the streak",
+		es = "Llena el hambre y suma +2 a la racha",
+	},
+	["ATIVO"] = { en = "ACTIVE", es = "ACTIVO" },
+	["EXPOR"] = { en = "DISPLAY", es = "EXPONER" },
+	["RECOLHER"] = { en = "TAKE BACK", es = "RETIRAR" },
+	["LEVAR"] = { en = "SEND", es = "LLEVAR" },
+	["equipado"] = { en = "equipped", es = "equipado" },
+	["Vida"] = { en = "HP", es = "Vida" },
+	["Força"] = { en = "Power", es = "Fuerza" },
+	["Acerto"] = { en = "Hit", es = "Acierto" },
+	["Dano"] = { en = "Dmg", es = "Daño" },
+	["Prepare-se..."] = { en = "Get ready...", es = "Prepárate..." },
+	["SUA VEZ! Escolha um golpe"] = { en = "YOUR TURN! Pick a move", es = "¡TU TURNO! Elige un golpe" },
+	["Seu"] = { en = "Your", es = "Tu" },
+	["Selvagem:"] = { en = "Wild:", es = "Salvaje:" },
+	["Seu gigante está TONTO e perdeu a vez!"] = {
+		en = "Your giant is DIZZY and lost the turn!",
+		es = "¡Tu gigante está MAREADO y perdió el turno!",
+	},
+	["O selvagem está TONTO e perdeu a vez!"] = {
+		en = "The wild giant is DIZZY and lost the turn!",
+		es = "¡El salvaje está MAREADO y perdió el turno!",
+	},
+	["acertou"] = { en = "hit", es = "acertó" },
+	["ERROU!"] = { en = "MISSED!", es = "¡FALLÓ!" },
+	["deixou TONTO!"] = { en = "made it DIZZY!", es = "¡lo dejó MAREADO!" },
+	["baixou a DEFESA!"] = { en = "lowered DEFENSE!", es = "¡bajó la DEFENSA!" },
+	["preparou a ESQUIVA!"] = { en = "got ready to DODGE!", es = "¡preparó la ESQUIVA!" },
+	["moedas"] = { en = "coins", es = "monedas" },
+	["VITÓRIA!"] = { en = "VICTORY!", es = "¡VICTORIA!" },
+	["VITÓRIA! (prêmio do dia já recebido)"] = {
+		en = "VICTORY! (today's prize already claimed)",
+		es = "¡VICTORIA! (premio del día ya recibido)",
+	},
+	["DERROTA... treine e tente de novo!"] = {
+		en = "DEFEAT... train and try again!",
+		es = "DERROTA... ¡entrena e inténtalo de nuevo!",
+	},
+	["Pancada"] = { en = "Bash", es = "Golpazo" },
+	["Pisão Sísmico"] = { en = "Quake Stomp", es = "Pisotón Sísmico" },
+	["Esmagar"] = { en = "Crush", es = "Aplastar" },
+	["Mordida"] = { en = "Bite", es = "Mordida" },
+	["Rugido"] = { en = "Roar", es = "Rugido" },
+	["Sopro"] = { en = "Blast", es = "Soplo" },
+	["Golpe Rápido"] = { en = "Quick Hit", es = "Golpe Rápido" },
+	["Esquiva"] = { en = "Dodge", es = "Esquiva" },
+	["Rasante"] = { en = "Dive", es = "Picada" },
+	["Tapa Gosmento"] = { en = "Goo Slap", es = "Bofetada Viscosa" },
+	["Gosma"] = { en = "Goo", es = "Baba" },
+	["Quique"] = { en = "Bounce", es = "Rebote" },
+	["TONTO"] = { en = "DIZZY", es = "MAREADO" },
+	["Seguro: 95% de acerto."] = { en = "Safe: 95% hit.", es = "Seguro: 95% de acierto." },
+	["50% de deixar tonto (perde a vez)."] = {
+		en = "50% to daze (skips a turn).",
+		es = "50% de marear (pierde el turno).",
+	},
+	["Muito forte, mas erra muito."] = { en = "Very strong, but misses a lot.", es = "Muy fuerte, pero falla mucho." },
+	["Baixa a defesa: +35% de dano nele por 2 turnos."] = {
+		en = "Lowers defense: +35% damage for 2 turns.",
+		es = "Baja la defensa: +35% de daño por 2 turnos.",
+	},
+	["Forte, 65% de acerto."] = { en = "Strong, 65% hit.", es = "Fuerte, 65% de acierto." },
+	["Nunca erra."] = { en = "Never misses.", es = "Nunca falla." },
+	["Ataca leve e o próximo golpe dele erra mais."] = {
+		en = "Light hit; its next attack misses more.",
+		es = "Golpe leve; su próximo ataque falla más.",
+	},
+	["Forte, 70% de acerto."] = { en = "Strong, 70% hit.", es = "Fuerte, 70% de acierto." },
+	["60% de deixar tonto (perde a vez)."] = {
+		en = "60% to daze (skips a turn).",
+		es = "60% de marear (pierde el turno).",
+	},
+	["Forte; 30% de baixar a defesa."] = {
+		en = "Strong; 30% to lower defense.",
+		es = "Fuerte; 30% de bajar la defensa.",
+	},
+	["RECOMPENSA DIÁRIA"] = { en = "DAILY REWARD", es = "RECOMPENSA DIARIA" },
+	["Dia"] = { en = "Day", es = "Día" },
+	["TAREFAS DE HOJE"] = { en = "TODAY'S TASKS", es = "TAREAS DE HOY" },
+	["novas em"] = { en = "new in", es = "nuevas en" },
+	["Complete as 3 tarefas: 1 Lunchbox Rara grátis"] = {
+		en = "Finish all 3 tasks: 1 free Rare Lunchbox",
+		es = "Completa las 3 tareas: 1 Lunchbox Rara gratis",
+	},
+	["RECORDES"] = { en = "RECORDS", es = "RÉCORDS" },
+	["Alimente seu gigante {n} vezes"] = { en = "Feed your giant {n} times", es = "Alimenta a tu gigante {n} veces" },
+	["Faça uma sequência de {n}"] = { en = "Reach a feeding streak of {n}", es = "Logra una racha de {n}" },
+	["Consiga {n} alimentação crítica"] = {
+		en = "Get {n} critical feed",
+		es = "Consigue {n} alimentación crítica",
+	},
+	["Entregue {n} comidas do mapa na base"] = {
+		en = "Deliver {n} map foods to your base",
+		es = "Entrega {n} comidas del mapa en tu base",
+	},
+	["Vença {n} batalhas de gigantes"] = { en = "Win {n} giant battles", es = "Gana {n} batallas de gigantes" },
+	["Ajude a derrotar o Dragão {n} vez"] = {
+		en = "Help defeat the Dragon {n} time",
+		es = "Ayuda a derrotar al Dragón {n} vez",
+	},
+	["Leve {n} porção de Carne Gigante para a base"] = {
+		en = "Bring {n} Giant Meat portion to your base",
+		es = "Lleva {n} porción de Carne Gigante a tu base",
+	},
+	["Suba {n} níveis com qualquer gigante"] = {
+		en = "Gain {n} levels with any giant",
+		es = "Sube {n} niveles con cualquier gigante",
+	},
+	["Maior gigante (nível)"] = { en = "Biggest giant (level)", es = "Gigante más grande (nivel)" },
+	["Mais níveis numa sessão"] = { en = "Most levels in one session", es = "Más niveles en una sesión" },
+	["Maior sequência"] = { en = "Best feeding streak", es = "Mejor racha" },
+	["Comidas entregues na base"] = { en = "Foods delivered to base", es = "Comidas entregadas en la base" },
+	["Maior alimentação (XP)"] = { en = "Biggest single feed (XP)", es = "Mayor alimentación (XP)" },
+	["CARNE GIGANTE caindo na praça em"] = {
+		en = "GIANT MEAT falling in the plaza in",
+		es = "CARNE GIGANTE cayendo en la plaza en",
+	},
+	["CARNE GIGANTE"] = { en = "GIANT MEAT", es = "CARNE GIGANTE" },
+	["porções"] = { en = "portions", es = "porciones" },
+	["segure E para cortar"] = { en = "hold E to cut", es = "mantén E para cortar" },
+	["O DRAGÃO ENTROU EM FÚRIA!"] = { en = "THE DRAGON IS ENRAGED!", es = "¡EL DRAGÓN ENTRÓ EN FURIA!" },
+	["CHUVA DE FOGO! Fuja dos círculos!"] = {
+		en = "FIRE RAIN! Get out of the circles!",
+		es = "¡LLUVIA DE FUEGO! ¡Sal de los círculos!",
+	},
+	["DRAGÃO DERROTADO!"] = { en = "DRAGON DEFEATED!", es = "¡DRAGÓN DERROTADO!" },
+	["O dragão fugiu. Participação:"] = {
+		en = "The dragon fled. Participation:",
+		es = "El dragón huyó. Participación:",
+	},
+	["sua parte"] = { en = "your share", es = "tu parte" },
 	-- Fase 4: coleção
 	["COLEÇÃO"] = { en = "COLLECTION", es = "COLECCIÓN" },
 	["COMIDAS"] = { en = "FOODS", es = "COMIDAS" },
@@ -334,6 +484,87 @@ Locale.Exact = {
 }
 
 Locale.Templates = {
+	-- Missão de 08/11/2026 (noite)
+	transfer_ok = {
+		["pt-br"] = "Você ganhou {s}! Ele herdou {p}% do crescimento do {f}: começa no nível {n}. O {f} continua salvo na sua coleção.",
+		en = "You got {s}! It inherited {p}% of {f}'s growth: starts at level {n}. {f} stays saved in your collection.",
+		es = "¡Conseguiste {s}! Heredó {p}% del crecimiento de {f}: empieza en el nivel {n}. {f} sigue guardado en tu colección.",
+	},
+	display_active = {
+		["pt-br"] = "O gigante ativo já está na base: escolha outro para expor.",
+		en = "Your active giant is already at your base: pick another to display.",
+		es = "Tu gigante activo ya está en la base: elige otro para exponer.",
+	},
+	display_full = {
+		["pt-br"] = "Você já expõe {n} gigantes. Recolha um primeiro.",
+		en = "You already display {n} giants. Take one back first.",
+		es = "Ya expones {n} gigantes. Retira uno primero.",
+	},
+	display_info = {
+		["pt-br"] = "Exponha até {m} gigantes na base ({n}/{m}): a coleção fica à mostra e rende +{c} moedas/s, também offline (metade, até 8 h).",
+		en = "Display up to {m} giants at your base ({n}/{m}): show off your collection and earn +{c} coins/s, offline too (half, up to 8 h).",
+		es = "Expón hasta {m} gigantes en tu base ({n}/{m}): muestra tu colección y gana +{c} monedas/s, también offline (mitad, hasta 8 h).",
+	},
+	offline_income = {
+		["pt-br"] = "Seus gigantes expostos renderam {n} moedas enquanto você estava fora ({h} h, máximo 8 h).",
+		en = "Your displayed giants earned {n} coins while you were away ({h} h, max 8 h).",
+		es = "Tus gigantes expuestos ganaron {n} monedas mientras no estabas ({h} h, máximo 8 h).",
+	},
+	objective_done = {
+		["pt-br"] = "Tarefa do Diário completa! Abra o DIÁRIO para resgatar.",
+		en = "Daily task complete! Open the DAILY panel to claim.",
+		es = "¡Tarea del Diario completa! Abre el DIARIO para reclamar.",
+	},
+	objective_claimed = {
+		["pt-br"] = "Tarefa resgatada: +{n} moedas, +{x} XP!",
+		en = "Task claimed: +{n} coins, +{x} XP!",
+		es = "Tarea reclamada: +{n} monedas, +{x} XP!",
+	},
+	record_new = {
+		["pt-br"] = "NOVO RECORDE! {r}: {n}",
+		en = "NEW RECORD! {r}: {n}",
+		es = "¡NUEVO RÉCORD! {r}: {n}",
+	},
+	boss_pending = {
+		["pt-br"] = "Recompensa guardada do Dragão: +{n} moedas!",
+		en = "Saved Dragon reward: +{n} coins!",
+		es = "¡Recompensa guardada del Dragón: +{n} monedas!",
+	},
+	boss_down = {
+		["pt-br"] = "O DRAGÃO FAMINTO caiu! {n} lutadores ganharam a recompensa!",
+		en = "The HUNGRY DRAGON fell! {n} fighters got the reward!",
+		es = "¡El DRAGÓN HAMBRIENTO cayó! ¡{n} luchadores ganaron la recompensa!",
+	},
+	boss_fled = {
+		["pt-br"] = "O Dragão fugiu... quem ajudou ganhou metade da participação. Volte no próximo!",
+		en = "The Dragon fled... helpers got half the participation reward. Come back next time!",
+		es = "El Dragón huyó... quienes ayudaron ganaron la mitad. ¡Vuelve la próxima!",
+	},
+	boss_phase2 = {
+		["pt-br"] = "O Dragão entrou em FÚRIA: pisões mais rápidos!",
+		en = "The Dragon is ENRAGED: faster stomps!",
+		es = "¡El Dragón entró en FURIA: pisotones más rápidos!",
+	},
+	boss_phase3 = {
+		["pt-br"] = "CHUVA DE FOGO! O Dragão está quase caindo!",
+		en = "FIRE RAIN! The Dragon is almost down!",
+		es = "¡LLUVIA DE FUEGO! ¡El Dragón casi cae!",
+	},
+	meat_warn = {
+		["pt-br"] = "CARNE GIGANTE caindo na praça em {n} s! Corra e corte sua porção!",
+		en = "GIANT MEAT falling in the plaza in {n} s! Run and cut your portion!",
+		es = "¡CARNE GIGANTE cayendo en la plaza en {n} s! ¡Corre y corta tu porción!",
+	},
+	meat_limit = {
+		["pt-br"] = "Você já cortou {n} porções desta carne. Deixe para os outros!",
+		en = "You already cut {n} portions of this meat. Leave some for others!",
+		es = "Ya cortaste {n} porciones de esta carne. ¡Deja para los demás!",
+	},
+	meat_gone = {
+		["pt-br"] = "A Carne Gigante acabou! Leve sua porção para a base.",
+		en = "The Giant Meat is gone! Bring your portion to your base.",
+		es = "¡Se acabó la Carne Gigante! Lleva tu porción a tu base.",
+	},
 	arena_won_broadcast = {
 		["pt-br"] = "⚔️ {a} venceu {b} no Giant Clash!",
 		en = "⚔️ {a} beat {b} in Giant Clash!",

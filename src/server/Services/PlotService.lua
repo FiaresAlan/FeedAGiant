@@ -178,7 +178,22 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 	local rc = Config.Rarities[def.rarity].color
 	local label = Util.makeBillboard(
 		p,
-		string.format("%s  +%d/s", def.name, Config.Rarities[def.rarity].cps), -- item 6: renda base de cada comida exposta
+		-- item 6 + 4.3: renda base da comida exposta, já com a característica (ícone na frente)
+		string.format(
+			"%s%s  +%s/s",
+			if GameRules.traitOf(def.id) then (GameRules.traitOf(def.id) :: GameRules.TraitDef).icon .. " " else "",
+			def.name,
+			tostring(
+				math.floor(
+					Config.Rarities[def.rarity].cps
+							* (if GameRules.traitOf(def.id)
+								then (GameRules.traitOf(def.id) :: GameRules.TraitDef).incomeMult
+								else 1)
+							* 10
+						+ 0.5
+				) / 10
+			)
+		),
 		UDim2.fromOffset(170, 28),
 		Vector3.new(0, p.Size.Y / 2 + 1.2, 0),
 		rc

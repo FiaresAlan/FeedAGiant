@@ -1,13 +1,17 @@
 --!strict
--- GiantBattle.lua — janela "BATALHA DE GIGANTES" (item 9.2) e o painel durante a luta.
---   * lista as espécies que o jogador POSSUI com vida, força e nível reais (mesma fórmula do servidor);
+-- GiantBattle.lua — janela "BATALHA DE GIGANTES" e o painel da luta POR TURNOS (08/11/2026, noite).
+--   * lista as espécies que o jogador POSSUI com o nível de CADA uma (coleção com progresso próprio);
 --   * LEVAR manda o gigante escolhido ao coliseu (o servidor confere a posse e se a arena está livre);
---   * durante a luta: barras de vida dos dois e o botão GOLPE FORTE (recarga), também na tecla G e no
---     botão Y do controle;
+--   * na luta: barras de vida, 3 botões de golpe (nome, % de acerto, força e o efeito em 1 linha),
+--     cronômetro do turno e uma linha que narra o que aconteceu ("Mordida acertou! -23", "ERROU!").
+--     Teclas 1/2/3 e botões X/Y/B do controle também escolhem. Sem escolha, o servidor usa o golpe 1.
 --   * no fim: resultado com as moedas e o XP ganhos.
+-- O cliente só manda o ÍNDICE do golpe; acerto, dano e efeitos são sorteados no servidor.
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local UI = require(script.Parent.Parent.UI)
@@ -19,15 +23,27 @@ local G = Config.GiantBattle
 local win: Frame
 local list: Frame
 local hud: Frame
+local movesBar: Frame
 local meName: TextLabel
 local foeName: TextLabel
 local meFill: Frame
 local foeFill: Frame
-local special: TextButton
+local meHpText: TextLabel
+local foeHpText: TextLabel
+local logLine: TextLabel
+local turnFill: Frame
 local result: TextLabel
+local moveButtons: { TextButton } = {}
+local moveLabels: { { name: TextLabel, info: TextLabel, desc: TextLabel } } = {}
 local meMax, foeMax = 1, 1
 local fighting = false
-local specialReadyAt = 0
+local myTurn = false
+
+local EFFECT_TEXT = {
+	stun = "deixou TONTO!",
+	weaken = "baixou a DEFESA!",
+	guard = "preparou a ESQUIVA!",
+}
 
 local function stats(speciesId: string, level: number, rebirths: number): (number, number)
 	local sp = Config.SpeciesById[speciesId]
@@ -37,6 +53,14 @@ local function stats(speciesId: string, level: number, rebirths: number): (numbe
 	local hp = math.floor(sp.arenaHp * (1 + level * G.HpPerLevel) * (1 + rebirths * G.PerRebirth))
 	local power = sp.arenaPower * (1 + level * G.PowerPerLevel) * (1 + rebirths * G.PerRebirth)
 	return hp, math.floor(power * 10) / 10
+end
+
+local function levelOf(s: any, speciesId: string): number
+	if s.species == speciesId then
+		return s.level or 1
+	end
+	local g = s.giants and s.giants[speciesId]
+	return if g then g.level else 1
 end
 
 local function rebuild()
@@ -53,28 +77,33 @@ local function rebuild()
 			continue
 		end
 		order += 1
-		local hp, power = stats(sp.id, s.level or 1, s.rebirths or 0)
+		local lv = levelOf(s, sp.id)
+		local hp, power = stats(sp.id, lv, s.rebirths or 0)
 		local row = UI.frame(list, {
 			Size = UDim2.new(1, -8, 0, 84),
 			LayoutOrder = order,
 			BackgroundColor3 = UI.Colors.Panel2,
 		})
 		UI.stroke(row, sp.color, 2)
-		UI.label(row, sp.name .. (if s.species == sp.id then "  (equipado)" else ""), {
+		UI.label(row, sp.name .. (if s.species == sp.id then "  (" .. Locale.t("equipado") .. ")" else ""), {
 			Size = UDim2.new(1, -190, 0, 34),
 			Position = UDim2.fromOffset(12, 6),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = sp.color,
 		})
-		UI.label(row, string.format("Nv. %d  •  Vida %d  •  Força %.1f", s.level or 1, hp, power), {
-			Size = UDim2.new(1, -190, 0, 30),
-			Position = UDim2.fromOffset(12, 44),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextScaled = false,
-			TextSize = 20,
-			TextColor3 = UI.Colors.Accent,
-		})
-		local go = UI.button(row, "LEVAR", UI.Colors.Red, {
+		UI.label(
+			row,
+			string.format("Nv. %d  •  %s %d  •  %s %.1f", lv, Locale.t("Vida"), hp, Locale.t("Força"), power),
+			{
+				Size = UDim2.new(1, -190, 0, 30),
+				Position = UDim2.fromOffset(12, 44),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 20,
+				TextColor3 = UI.Colors.Accent,
+			}
+		)
+		local go = UI.button(row, Locale.t("LEVAR"), UI.Colors.Red, {
 			Size = UDim2.fromOffset(150, 54),
 			Position = UDim2.new(1, -164, 0.5, -27),
 			TextScaled = false,
@@ -102,13 +131,39 @@ function GiantBattle.open()
 	end
 end
 
-local function doSpecial()
-	if not fighting or os.clock() < specialReadyAt then
+local function setTurn(on: boolean, seconds: number?)
+	myTurn = on
+	for _, b in moveButtons do
+		b.AutoButtonColor = on
+		local stroke = b:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			stroke.Transparency = if on then 0 else 0.6
+		end
+	end
+	movesBar.BackgroundTransparency = if on then 0.1 else 0.45
+	if on and seconds then
+		turnFill.Size = UDim2.fromScale(1, 1)
+		TweenService:Create(turnFill, TweenInfo.new(seconds, Enum.EasingStyle.Linear), {
+			Size = UDim2.fromScale(0, 1),
+		}):Play()
+	else
+		turnFill.Size = UDim2.fromScale(0, 1)
+	end
+end
+
+local function choose(i: number)
+	if not fighting or not myTurn then
 		return
 	end
-	specialReadyAt = os.clock() + G.SpecialCooldown
-	Remotes.RequestGiantSpecial:FireServer()
-	UI.sfx("Heavy", 0.7)
+	setTurn(false)
+	Remotes.RequestGiantMove:FireServer(i)
+	UI.sfx("Click", 0.6)
+end
+
+local function say(text: string, color: Color3)
+	logLine.Text = text
+	logLine.TextColor3 = color
+	UI.pop(logLine)
 end
 
 function GiantBattle.init(gui: ScreenGui)
@@ -117,7 +172,7 @@ function GiantBattle.init(gui: ScreenGui)
 	UI.label(
 		body,
 		string.format(
-			"Escolha um gigante seu para lutar contra um gigante selvagem. Vitória: moedas e XP (até %d vitórias premiadas por dia). Derrota não tira nada.",
+			"Batalha por turnos: escolha um golpe a cada rodada. Golpes fortes erram mais! Vitória: moedas e XP (até %d por dia). Derrota não tira nada.",
 			G.RewardedWinsPerDay
 		),
 		{
@@ -146,10 +201,10 @@ function GiantBattle.init(gui: ScreenGui)
 	lay.SortOrder = Enum.SortOrder.LayoutOrder
 	lay.Parent = list
 
-	-- Painel da luta (topo, no meio)
+	-- Placar da luta (topo)
 	hud = UI.panel(gui, {
 		Name = "GiantBattleHud",
-		Size = UDim2.fromOffset(640, 150),
+		Size = UDim2.fromOffset(660, 132),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 80),
 		Visible = false,
@@ -167,21 +222,77 @@ function GiantBattle.init(gui: ScreenGui)
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = UI.Colors.Red,
 	})
-	local _a
-	_a, meFill =
-		UI.bar(hud, UI.Colors.Green, { Size = UDim2.new(0.5, -20, 0, 24), Position = UDim2.fromOffset(14, 42) })
-	local _b
-	_b, foeFill = UI.bar(hud, UI.Colors.Red, {
-		Size = UDim2.new(0.5, -20, 0, 24),
+	local meBar
+	meBar, meFill =
+		UI.bar(hud, UI.Colors.Green, { Size = UDim2.new(0.5, -20, 0, 26), Position = UDim2.fromOffset(14, 42) })
+	local foeBar
+	foeBar, foeFill = UI.bar(hud, UI.Colors.Red, {
+		Size = UDim2.new(0.5, -20, 0, 26),
 		Position = UDim2.new(0.5, 6, 0, 42),
 	})
-	special = UI.button(hud, "GOLPE FORTE (G)", UI.Colors.Orange, {
-		Size = UDim2.fromOffset(300, 56),
-		Position = UDim2.new(0.5, -150, 0, 80),
+	meHpText = UI.label(meBar, "", { Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 20, ZIndex = 20 })
+	foeHpText = UI.label(foeBar, "", { Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 20, ZIndex = 20 })
+	logLine = UI.label(hud, "", {
+		Size = UDim2.new(1, -28, 0, 40),
+		Position = UDim2.fromOffset(14, 80),
 		TextScaled = false,
-		TextSize = 24,
+		TextSize = 26,
 	})
-	special.Activated:Connect(doSpecial)
+
+	-- Golpes (embaixo, grandes para o polegar)
+	movesBar = UI.panel(gui, {
+		Name = "GiantBattleMoves",
+		Size = UDim2.fromOffset(700, 150),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -16),
+		Visible = false,
+	})
+	UI.autoScale(movesBar)
+	local turnBg = UI.frame(movesBar, {
+		Size = UDim2.new(1, -28, 0, 8),
+		Position = UDim2.fromOffset(14, 8),
+		BackgroundColor3 = Color3.fromRGB(30, 30, 36),
+	})
+	UI.corner(turnBg, 4)
+	turnFill = UI.frame(turnBg, { Size = UDim2.fromScale(0, 1), BackgroundColor3 = UI.Colors.Accent })
+	UI.corner(turnFill, 4)
+	local colors = { UI.Colors.Green, UI.Colors.Blue, UI.Colors.Orange }
+	for i = 1, 3 do
+		local b = UI.button(movesBar, "", colors[i], {
+			Size = UDim2.fromOffset(214, 116),
+			Position = UDim2.fromOffset(14 + (i - 1) * 228, 24),
+		})
+		local name = UI.label(b, "", {
+			Name = "MoveName",
+			Size = UDim2.new(1, -12, 0, 34),
+			Position = UDim2.fromOffset(6, 4),
+			ZIndex = b.ZIndex + 1,
+		})
+		local info = UI.label(b, "", {
+			Name = "MoveInfo",
+			Size = UDim2.new(1, -12, 0, 24),
+			Position = UDim2.fromOffset(6, 40),
+			TextScaled = false,
+			TextSize = 20,
+			ZIndex = b.ZIndex + 1,
+		})
+		local desc = UI.label(b, "", {
+			Name = "MoveDesc",
+			Size = UDim2.new(1, -12, 0, 44),
+			Position = UDim2.fromOffset(6, 66),
+			TextScaled = false,
+			TextSize = 16,
+			TextWrapped = true,
+			Font = UI.FontBody,
+			ZIndex = b.ZIndex + 1,
+		})
+		moveLabels[i] = { name = name, info = info, desc = desc }
+		b.Activated:Connect(function()
+			choose(i)
+		end)
+		moveButtons[i] = b
+	end
+
 	result = UI.title(gui, "", {
 		Size = UDim2.fromOffset(700, 70),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -189,26 +300,30 @@ function GiantBattle.init(gui: ScreenGui)
 		Visible = false,
 		ZIndex = 30,
 	})
+	local keys = {
+		[Enum.KeyCode.One] = 1,
+		[Enum.KeyCode.Two] = 2,
+		[Enum.KeyCode.Three] = 3,
+		[Enum.KeyCode.ButtonX] = 1,
+		[Enum.KeyCode.ButtonY] = 2,
+		[Enum.KeyCode.ButtonB] = 3,
+	}
 	UserInputService.InputBegan:Connect(function(input, gp)
-		if gp then
+		if gp or not fighting then
 			return
 		end
-		if input.KeyCode == Enum.KeyCode.G or (fighting and input.KeyCode == Enum.KeyCode.ButtonY) then
-			doSpecial()
+		local i = keys[input.KeyCode]
+		if i then
+			choose(i)
 		end
 	end)
-	task.spawn(function()
-		while true do
-			task.wait(0.2)
-			if fighting then
-				local left = specialReadyAt - os.clock()
-				special.Text = if left > 0
-					then string.format("GOLPE FORTE  %.0fs", math.ceil(left))
-					else "GOLPE FORTE (G)"
-				special.BackgroundColor3 = if left > 0 then Color3.fromRGB(96, 102, 118) else UI.Colors.Orange
-			end
-		end
-	end)
+
+	local function hpTexts(meHp: number, foeHp: number)
+		UI.setBar(meFill, meHp / meMax)
+		UI.setBar(foeFill, foeHp / foeMax)
+		meHpText.Text = string.format("%d / %d", math.ceil(meHp), meMax)
+		foeHpText.Text = string.format("%d / %d", math.ceil(foeHp), foeMax)
+	end
 
 	Remotes.GiantBattle.OnClientEvent:Connect(function(e)
 		if type(e) ~= "table" then
@@ -218,37 +333,94 @@ function GiantBattle.init(gui: ScreenGui)
 			fighting = true
 			meMax = math.max(1, tonumber(e.me.hp) or 1)
 			foeMax = math.max(1, tonumber(e.foe.hp) or 1)
-			meName.Text = tostring(e.me.name)
+			meName.Text = string.format("%s Nv.%d", tostring(e.me.name), tonumber(e.me.level) or 1)
 			foeName.Text = string.format("%s Nv.%d", tostring(e.foe.name), tonumber(e.foe.level) or 1)
-			UI.setBar(meFill, 1, true)
-			UI.setBar(foeFill, 1, true)
-			specialReadyAt = 0
+			hpTexts(meMax, foeMax)
+			if type(e.moves) == "table" then
+				for i, lbl in moveLabels do
+					local m = e.moves[i]
+					if type(m) == "table" then
+						lbl.name.Text = Locale.t(tostring(m.name))
+						lbl.info.Text = string.format(
+							"%s %d%%  ·  %s x%.1f",
+							Locale.t("Acerto"),
+							math.floor((tonumber(m.accuracy) or 0) * 100 + 0.5),
+							Locale.t("Dano"),
+							tonumber(m.power) or 1
+						)
+						lbl.desc.Text = Locale.t(tostring(m.desc))
+					end
+				end
+			end
+			say(Locale.t("Prepare-se..."), Color3.new(1, 1, 1))
+			setTurn(false)
 			hud.Visible = true
+			movesBar.Visible = true
 			UI.pop(hud)
+			UI.pop(movesBar)
 			if GiantBattle.OnFight then
 				GiantBattle.OnFight(true)
 			end
 			UI.sfx("Bell", 0.8)
 			UI.sfx("VO_Fight", 1)
-		elseif e.kind == "Tick" then
-			UI.setBar(meFill, (tonumber(e.meHp) or 0) / meMax)
-			UI.setBar(foeFill, (tonumber(e.foeHp) or 0) / foeMax)
+		elseif e.kind == "Turn" then
+			say(Locale.t("SUA VEZ! Escolha um golpe"), UI.Colors.Accent)
+			setTurn(true, tonumber(e.seconds) or 12)
+		elseif e.kind == "Result" then
+			setTurn(false)
+			local mine = e.side == "me"
+			local who = if mine then Locale.t("Seu") else Locale.t("Selvagem:")
+			local text
+			if e.effect == "stunned" then
+				text = if mine
+					then Locale.t("Seu gigante está TONTO e perdeu a vez!")
+					else Locale.t("O selvagem está TONTO e perdeu a vez!")
+			elseif e.hit then
+				text = string.format(
+					"%s %s %s! -%d",
+					who,
+					Locale.t(tostring(e.move)),
+					Locale.t("acertou"),
+					tonumber(e.dmg) or 0
+				)
+				local fx = type(e.effect) == "string" and EFFECT_TEXT[e.effect]
+				if fx then
+					text ..= "  " .. Locale.t(fx)
+				end
+				UI.sfx(if mine then "Punch" else "Impact", 0.7)
+			else
+				text = string.format("%s %s %s", who, Locale.t(tostring(e.move)), Locale.t("ERROU!"))
+				if e.effect == "guard" then
+					text ..= "  " .. Locale.t(EFFECT_TEXT.guard)
+				end
+				UI.sfx("Whoosh", 0.6)
+			end
+			say(text, if mine then UI.Colors.Green else UI.Colors.Red)
+			hpTexts(tonumber(e.meHp) or 0, tonumber(e.foeHp) or 0)
 		elseif e.kind == "End" then
 			fighting = false
+			setTurn(false)
 			hud.Visible = false
+			movesBar.Visible = false
 			if GiantBattle.OnFight then
 				GiantBattle.OnFight(false)
 			end
 			if e.won then
 				result.Text = if (e.coins or 0) > 0
-					then string.format("VITÓRIA! +%s moedas  +%d XP", Util.formatNumber(e.coins), e.xp or 0)
-					else "VITÓRIA! (prêmio do dia já recebido)"
+					then string.format(
+						"%s +%s %s  +%d XP",
+						Locale.t("VITÓRIA!"),
+						Util.formatNumber(e.coins),
+						Locale.t("moedas"),
+						e.xp or 0
+					)
+					else Locale.t("VITÓRIA! (prêmio do dia já recebido)")
 				UI.sfx("Win", 0.9)
 				if GiantBattle.OnVictory then
 					GiantBattle.OnVictory()
 				end
 			else
-				result.Text = "DERROTA... treine e tente de novo!"
+				result.Text = Locale.t("DERROTA... treine e tente de novo!")
 			end
 			result.Visible = true
 			UI.pop(result)

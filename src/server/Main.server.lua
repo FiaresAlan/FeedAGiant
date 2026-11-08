@@ -24,6 +24,7 @@ local ShieldService = require(Services.ShieldService)
 local GiantBattleService = require(Services.GiantBattleService)
 local RosterService = require(Services.RosterService)
 local ProgressService = require(Services.ProgressService)
+local MeatService = require(Services.MeatService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -47,15 +48,14 @@ ShieldService.init()
 GiantBattleService.init()
 RosterService.init()
 ProgressService.init()
--- Coliseu compartilhado: boxe, Dragão e gigantes, um de cada vez (item 9.4).
+MeatService.init()
+-- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do
+-- Dragão desde 08/11/2026 (noite) e não ocupa mais o coliseu.
 GiantBattleService.IsArenaBusy = function()
-	return ArenaService.isBusy() or BossService.isActive()
+	return ArenaService.isBusy()
 end
 ArenaService.OtherBusy = function()
-	return BossService.isActive() or GiantBattleService.isActive()
-end
-BossService.CanStart = function()
-	return not ArenaService.isBusy() and not GiantBattleService.isActive()
+	return GiantBattleService.isActive()
 end
 task.spawn(WorldFx.init, GiantService.template) -- água, fogo/fumaça do caldeirão, estátuas
 TutorialService.init() -- registra o slice "tutorial" no perfil (antes do DataService.start)

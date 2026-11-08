@@ -14,6 +14,14 @@
 -- pulos de vitória. O jogador ajuda com o GOLPE FORTE (botão com recarga).
 -- Recompensa (9.3): moedas e XP que já existem, valor pela fórmula de Config.GiantBattle; vitórias
 -- contadas em profile.giantWins. Perder não tira nada.
+--
+-- 08/11/2026 (noite) — BATALHA POR TURNOS (Sistema 3 da missão). O modo PvE desta arena evoluiu:
+-- em vez de golpes automáticos + GOLPE FORTE, o jogador ESCOLHE um de 3 golpes por rodada
+-- (GameRules.MoveKits: dano, chance de acerto e, às vezes, um efeito simples: tonto, defesa baixa ou
+-- esquiva). Errar = perder o golpe. O servidor sorteia tudo; o cliente só manda o índice do golpe.
+-- O adversário selvagem tem vida e força parecidas com as do gigante do jogador (luta justa;
+-- a espécie muda só o visual e os golpes). O boxe entre jogadores (ArenaService) continua igual.
+-- PvP por turnos: a estrutura (Side + resolve) já serve para dois jogadores; não foi ligado ainda.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -21,6 +29,8 @@ local Workspace = game:GetService("Workspace")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Hooks = require(script.Parent.Parent.Hooks)
 local DataService = require(script.Parent.DataService)
 local GiantService = require(script.Parent.GiantService)
 local PlotService = require(script.Parent.PlotService)
@@ -190,24 +200,60 @@ local function flash(s: Side, color: Color3)
 	end)
 end
 
-local function strike(att: Side, def: Side, mult: number): boolean
+type Fx = { stun: boolean, weak: number, guard: boolean }
+
+-- Resolve um golpe. Devolve (acertou, dano, efeito aplicado).
+local function resolve(att: Side, def: Side, move: GameRules.MoveDef, attFx: Fx, defFx: Fx): (boolean, number, string?)
+	local TB = GameRules.TurnBattle
+	local acc = move.accuracy
+	if defFx.guard then
+		acc *= TB.GuardAccuracy
+		defFx.guard = false
+	end
 	local dir = (def.home.Position - att.home.Position).Unit
 	local base = att.model:GetPivot()
-	-- investida
 	animate(att, base + dir * G.LungeDistance, 0.18, Enum.EasingStyle.Back)
-	local crit = math.random() < G.CritChance
-	local dmg = att.power * G.DamageScale * (0.85 + math.random() * 0.3) * mult * (if crit then G.CritMult else 1)
-	setHp(def, def.hp - dmg)
-	flash(def, if crit then Color3.fromRGB(255, 220, 60) else Color3.fromRGB(255, 60, 60))
-	Remotes.CombatEvent:FireAllClients({ kind = "Impact", pos = def.home.Position })
-	-- tranco de quem apanhou
-	local dbase = def.model:GetPivot()
-	task.spawn(function()
-		animate(def, dbase * CFrame.Angles(math.rad(-10), 0, 0) + dir * 1.5, 0.1)
-		animate(def, dbase, 0.2)
-	end)
+	local hit = math.random() < acc
+	local dmg = 0
+	local effect: string? = nil
+	if hit then
+		dmg = att.power * move.power * TB.DamageScale * (0.9 + math.random() * 0.2)
+		if defFx.weak > 0 then
+			dmg *= TB.WeakenMult
+			defFx.weak -= 1
+		end
+		dmg = math.max(1, math.floor(dmg))
+		setHp(def, def.hp - dmg)
+		flash(def, Color3.fromRGB(255, 60, 60))
+		Remotes.CombatEvent:FireAllClients({ kind = "Impact", pos = def.home.Position })
+		local dbase = def.model:GetPivot()
+		task.spawn(function()
+			animate(def, dbase * CFrame.Angles(math.rad(-10), 0, 0) + dir * 1.5, 0.1)
+			animate(def, dbase, 0.2)
+		end)
+		if move.effect and move.effect ~= "guard" and math.random() < (move.effectChance or 1) then
+			effect = move.effect
+			if effect == "stun" then
+				defFx.stun = true
+			elseif effect == "weaken" then
+				defFx.weak = TB.WeakenTurns
+			end
+		end
+	else
+		-- ERROU: o alvo desvia de lado
+		local dbase = def.model:GetPivot()
+		local side = dir:Cross(Vector3.yAxis)
+		task.spawn(function()
+			animate(def, dbase + side * 3, 0.12)
+			animate(def, dbase, 0.2)
+		end)
+	end
+	if move.effect == "guard" then
+		attFx.guard = true -- esquiva: o próximo golpe do adversário erra mais (mesmo se este errar)
+		effect = "guard"
+	end
 	animate(att, base, 0.25)
-	return crit
+	return hit, dmg, effect
 end
 
 local function finish(player: Player, me: Side, foe: Side, won: boolean, reason: string?)
@@ -235,10 +281,13 @@ local function finish(player: Player, me: Side, foe: Side, won: boolean, reason:
 					profile.giantRewardsToday = 0
 				end
 				profile.giantWins = (profile.giantWins or 0) + 1
+				Hooks.fire("battleWon", player)
+				Remotes.GiantReact:FireAllClients({ userId = player.UserId, kind = "cheer" })
 				if (profile.giantRewardsToday or 0) < G.RewardedWinsPerDay then
 					profile.giantRewardsToday = (profile.giantRewardsToday or 0) + 1
-					coins = math.floor(G.WinCoinsBase + profile.level * G.WinCoinsPerLevel)
-					xp = math.floor(G.WinXpBase + profile.level * G.WinXpPerLevel)
+					local lv = GiantService.levelOf(profile, me.speciesId)
+					coins = math.floor(G.WinCoinsBase + lv * G.WinCoinsPerLevel)
+					xp = math.floor(G.WinXpBase + lv * G.WinXpPerLevel)
 					profile.coins += coins
 					GiantService.addXp(player, xp, nil, nil)
 				end
@@ -269,6 +318,7 @@ local function run(player: Player, speciesId: string)
 	if not profile then
 		return
 	end
+	local TB = GameRules.TurnBattle
 	local center = World.Arena.center
 	local y = center.Y + World.Arena.floorTop
 	local axis = CFrame.lookAt(Vector3.new(center.X, y, center.Z), Vector3.new(0, y, 0))
@@ -276,16 +326,18 @@ local function run(player: Player, speciesId: string)
 	local homeFoe = axis * CFrame.new(0, 0, -G.Spacing / 2)
 	homeMe = CFrame.lookAt(homeMe.Position, homeFoe.Position)
 	homeFoe = CFrame.lookAt(homeFoe.Position, homeMe.Position)
-	-- Adversário: espécie comprável com moedas, nível parecido (±2)
+	-- Adversário: espécie comprável com moedas, nível parecido; vida e força ESPELHADAS do jogador
+	-- (90% a 105%): a espécie muda o visual e os golpes, não a justiça da luta.
 	local pool = {}
 	for _, sp in Config.Species do
-		if not sp.robux and CreatureModels.BySpecies[sp.id] then
+		if not sp.robux and CreatureModels.BySpecies[sp.id] and sp.id ~= speciesId then
 			table.insert(pool, sp.id)
 		end
 	end
 	local foeId = pool[math.random(1, #pool)]
-	local foeLevel = math.max(1, profile.level + math.random(-2, 2))
-	local me = makeSide(speciesId, profile.level, profile.rebirths, homeMe, Color3.fromRGB(90, 220, 120))
+	local myLevel = math.max(1, GiantService.levelOf(profile, speciesId))
+	local foeLevel = math.max(1, myLevel + math.random(-TB.FoeLevelSpread, TB.FoeLevelSpread))
+	local me = makeSide(speciesId, myLevel, profile.rebirths, homeMe, Color3.fromRGB(90, 220, 120))
 	local foe = makeSide(foeId, foeLevel, profile.rebirths, homeFoe, Color3.fromRGB(255, 90, 90))
 	if not me or not foe then
 		if me then
@@ -300,41 +352,96 @@ local function run(player: Player, speciesId: string)
 		)
 		return
 	end
-	local state = { player = player, me = me, foe = foe, over = false, specialAt = 0 }
+	foe.maxHp = math.floor(me.maxHp * (0.9 + math.random() * 0.15))
+	setHp(foe, foe.maxHp)
+	foe.power = me.power * (0.9 + math.random() * 0.15)
+	local myMoves = GameRules.movesFor(speciesId)
+	local foeMoves = GameRules.movesFor(foeId)
+	local state: any = {
+		player = player,
+		me = me,
+		foe = foe,
+		over = false,
+		specialAt = 0,
+		waiting = false,
+		choice = nil,
+	}
 	active = state
+	local moveInfo = {}
+	for i, m in myMoves do
+		moveInfo[i] = { name = m.name, power = m.power, accuracy = m.accuracy, desc = m.desc, effect = m.effect }
+	end
 	Remotes.GiantBattle:FireClient(player, {
 		kind = "Start",
-		me = { name = me.name, hp = me.maxHp, power = me.power },
-		foe = { name = foe.name, hp = foe.maxHp, power = foe.power, level = foeLevel },
-		specialCooldown = G.SpecialCooldown,
+		me = { name = me.name, hp = me.maxHp, power = me.power, species = speciesId, level = myLevel },
+		foe = { name = foe.name, hp = foe.maxHp, power = foe.power, level = foeLevel, species = foeId },
+		moves = moveInfo,
+		turnSeconds = TB.TurnSeconds,
 	})
 	task.wait(G.StartDelay)
-	local t0 = os.clock()
-	local turn = math.random() < 0.5
-	while me.hp > 0 and foe.hp > 0 and os.clock() - t0 < G.MaxSeconds do
-		if not player.Parent then
+	local meFx: Fx = { stun = false, weak = 0, guard = false }
+	local foeFx: Fx = { stun = false, weak = 0, guard = false }
+	local function report(side: string, moveName: string, hit: boolean, dmg: number, effect: string?)
+		Remotes.GiantBattle:FireClient(player, {
+			kind = "Result",
+			side = side,
+			move = moveName,
+			hit = hit,
+			dmg = dmg,
+			effect = effect,
+			meHp = me.hp,
+			foeHp = foe.hp,
+		})
+	end
+	local rounds = 0
+	while me.hp > 0 and foe.hp > 0 and rounds < TB.MaxRounds and player.Parent do
+		rounds += 1
+		-- Vez do jogador
+		if meFx.stun then
+			meFx.stun = false
+			report("me", "TONTO", false, 0, "stunned")
+			task.wait(1.2)
+		else
+			state.choice = nil
+			state.waiting = true
+			local deadline = os.clock() + TB.TurnSeconds
+			Remotes.GiantBattle:FireClient(player, { kind = "Turn", round = rounds, seconds = TB.TurnSeconds })
+			while state.choice == nil and os.clock() < deadline and player.Parent do
+				task.wait(0.1)
+			end
+			state.waiting = false
+			if not player.Parent then
+				break
+			end
+			local move = myMoves[state.choice or 1]
+			local hit, dmg, effect = resolve(me, foe, move, meFx, foeFx)
+			report("me", move.name, hit, dmg, effect)
+			task.wait(0.9)
+		end
+		if foe.hp <= 0 then
 			break
 		end
-		if turn then
-			local mult = 1
-			if state.specialAt > 0 then
-				mult = G.SpecialMult
-				state.specialAt = 0
-			end
-			strike(me, foe, mult)
+		-- Vez do selvagem: prefere o golpe seguro; quando está perdendo, arrisca mais.
+		if foeFx.stun then
+			foeFx.stun = false
+			report("foe", "TONTO", false, 0, "stunned")
+			task.wait(1.0)
 		else
-			strike(foe, me, 1)
+			local r = math.random()
+			local losing = foe.hp / foe.maxHp < me.hp / me.maxHp
+			local idx = if r < (if losing then 0.35 else 0.55) then 1 elseif r < 0.78 then 2 else 3
+			local move = foeMoves[idx]
+			local hit, dmg, effect = resolve(foe, me, move, foeFx, meFx)
+			report("foe", move.name, hit, dmg, effect)
+			task.wait(0.9)
 		end
-		turn = not turn
-		Remotes.GiantBattle:FireClient(player, { kind = "Tick", meHp = me.hp, foeHp = foe.hp })
-		task.wait(G.TurnSeconds)
 	end
 	state.over = true
 	local won = foe.hp <= 0 or (me.hp > 0 and me.hp / me.maxHp > foe.hp / foe.maxHp)
 	if not player.Parent then
 		won = false
 	end
-	finish(player, me, foe, won, if os.clock() - t0 >= G.MaxSeconds then "tempo" else nil)
+	finish(player, me, foe, won, if rounds >= TB.MaxRounds and me.hp > 0 and foe.hp > 0 then "tempo" else nil)
 	active = nil
 end
 
@@ -377,18 +484,15 @@ function GiantBattleService.init()
 			end
 		end)
 	end)
-	Remotes.RequestGiantSpecial.OnServerEvent:Connect(function(player)
-		local a = active
-		if not a or a.player ~= player or a.over or not Guard.allow(player, "Combat") then
+	Remotes.RequestGiantMove.OnServerEvent:Connect(function(player, index)
+		if type(index) ~= "number" or not Guard.isIndex(index, 3) then
 			return
 		end
-		local now = os.clock()
-		local last = (a :: any).lastSpecial or 0
-		if now - last < G.SpecialCooldown then
+		local a: any = active
+		if not a or a.player ~= player or a.over or not a.waiting or not Guard.allow(player, "Move") then
 			return
 		end
-		(a :: any).lastSpecial = now
-		a.specialAt = now -- o próximo ataque do seu gigante sai forte
+		a.choice = index
 	end)
 	Players.PlayerRemoving:Connect(function(p)
 		lastBattle[p] = nil

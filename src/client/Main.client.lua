@@ -23,6 +23,8 @@ local Tutorial = require(Controllers.Tutorial)
 local Collection = require(Controllers.Collection)
 local GiantBattle = require(Controllers.GiantBattle)
 local Music = require(Controllers.Music)
+local Diary = require(Controllers.Diary)
+local Meat = require(Controllers.Meat)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -56,6 +58,8 @@ FeedFx.init()
 Tutorial.init()
 Arena.init(gui)
 GiantBattle.init(gui)
+Diary.init(gui)
+Meat.init(gui)
 Arena.OnOpenGiantBattle = GiantBattle.open
 -- Música: trilha mais baixa durante as lutas; fanfarra de vitória só no fim (item 3, regra 9)
 Arena.OnFight = function(started: boolean, won: boolean?)
@@ -81,6 +85,8 @@ HUD.OnOpenInventory = Inventory.open
 HUD.OnOpenCodes = Shop.openCodes
 HUD.OnOpenArena = Arena.open
 HUD.OnOpenCollection = Collection.open
+HUD.OnOpenDiary = Diary.open
+Diary.OnClaimable = HUD.setDiaryClaimable
 Collection.OnNewDiscovery = function(_n: number)
 	HUD.markNewDiscovery()
 end

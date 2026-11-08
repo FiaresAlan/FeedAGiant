@@ -72,6 +72,19 @@ local function nearPondOrArena(p: Vector3): boolean
 	if Vector3.new(p.X - a.X, 0, p.Z - a.Z).Magnitude < World.Arena.outerR + 30 then
 		return true
 	end
+	-- Ilha do Dragão e a ponte (chão plano por baixo)
+	local isle = World.BossIsland
+	local ic = isle.center
+	if Vector3.new(p.X - ic.X, 0, p.Z - ic.Z).Magnitude < isle.radius + 30 then
+		return true
+	end
+	local idir = Vector3.new(ic.X, 0, ic.Z).Unit
+	local ialong = Vector3.new(p.X, 0, p.Z):Dot(idir)
+	if ialong > isle.bridgeFrom - 20 and ialong < isle.bridgeTo + 10 then
+		if (Vector3.new(p.X, 0, p.Z) - idir * ialong).Magnitude < isle.bridgeW / 2 + 14 then
+			return true
+		end
+	end
 	-- estrada da praça até a arena
 	local dir = Vector3.new(a.X, 0, a.Z).Unit
 	local along = Vector3.new(p.X, 0, p.Z):Dot(dir)

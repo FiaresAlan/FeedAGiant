@@ -1247,16 +1247,237 @@ function World.buildArena(root: Instance): Model
 	return model
 end
 
+---------------------------------------------------------------------------
+-- 08/11/2026 (noite): ILHA DO DRAGÃO — ilha flutuante vizinha, ligada por uma ponte de madeira.
+-- Destino do chefe coletivo (BossService). Lugar: vão entre as bases a φ 247,5° (bases a cada 45°;
+-- lagos em 67,5/202,5/292,5; arena em 22,5). A ilha (r 55, topo y 40) fica dentro do anel de
+-- paredes (r 520) e na frente das montanhas; a ponte sobe 40 studs em 180 (≈ 12,5°, andável).
+-- Só peças e materiais do Roblox (~90 peças, sem upload). Orçamento: longe da praça e das bases.
+---------------------------------------------------------------------------
+World.BossIsland = {
+	phi = 247.5,
+	r = 440,
+	radius = 55,
+	top = 40,
+	fightR = 44, -- quem está dentro deste raio (e em cima da ilha) é lutador
+	bridgeFrom = 205, -- r onde a ponte começa no chão
+	bridgeTo = 388, -- r onde a ponte encosta na ilha
+	bridgeW = 14,
+}
+World.BossIsland.center = polar(World.BossIsland.phi, World.BossIsland.r, World.BossIsland.top)
+
+local ISLE = {
+	rock = "#8A7766",
+	rockDark = "#6B5A4C",
+	grass = "#7FA34E",
+	stone = "#A89EB8",
+	wood = "#A85F2E",
+	woodDark = "#7A4320",
+	rope = "#D9C49A",
+	fire = "#FF8A2A",
+}
+
+local function isleCyl(
+	parent: Instance,
+	name: string,
+	center: Vector3,
+	radius: number,
+	height: number,
+	color: string,
+	mat: Enum.Material?
+): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.Shape = Enum.PartType.Cylinder
+	p.Size = Vector3.new(height, radius * 2, radius * 2)
+	p.CFrame = CFrame.new(center) * CFrame.Angles(0, 0, math.rad(90))
+	p.Color = Color3.fromHex(color)
+	p.Material = mat or Enum.Material.SmoothPlastic
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+function World.buildBossIsland(root: Instance): Model
+	local I = World.BossIsland
+	local model = Instance.new("Model")
+	model.Name = "DragonIsland"
+	local c = I.center
+	local base = Vector3.new(c.X, 0, c.Z)
+	-- Topo de grama e "bolo" de rocha pendurado embaixo (ilha flutuante)
+	isleCyl(model, "Top", base + Vector3.new(0, I.top - 2, 0), I.radius, 4, ISLE.grass, Enum.Material.Grass)
+	isleCyl(model, "Rim", base + Vector3.new(0, I.top - 5, 0), I.radius - 1, 4, ISLE.rock, Enum.Material.Slate)
+	local layers = { { 0.86, 8 }, { 0.66, 9 }, { 0.44, 9 }, { 0.22, 7 } }
+	local y = I.top - 7
+	for i, l in layers do
+		y -= l[2]
+		isleCyl(
+			model,
+			"Under" .. i,
+			base + Vector3.new(0, y + l[2] / 2, 0),
+			I.radius * l[1],
+			l[2],
+			if i % 2 == 0 then ISLE.rockDark else ISLE.rock,
+			Enum.Material.Slate
+		)
+	end
+	-- Pedras soltas flutuando em volta (dão a leitura de "ilha no céu")
+	local rng = Random.new(2477)
+	for i = 1, 6 do
+		local a = i / 6 * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
+		local rr = I.radius + rng:NextNumber(10, 22)
+		local rock = Instance.new("Part")
+		rock.Name = "FloatingRock"
+		rock.Anchored = true
+		rock.Size = Vector3.new(1, 1, 1) * rng:NextNumber(4, 8)
+		rock.CFrame = CFrame.new(base + Vector3.new(math.cos(a) * rr, I.top - rng:NextNumber(8, 22), math.sin(a) * rr))
+			* CFrame.Angles(rng:NextNumber(0, 6), rng:NextNumber(0, 6), 0)
+		rock.Color = Color3.fromHex(ISLE.rock)
+		rock.Material = Enum.Material.Slate
+		rock.Parent = model
+	end
+	-- Ringue de pedra lilás (mesma família do coliseu) com anel e 8 braseiros
+	isleCyl(model, "FightFloor", base + Vector3.new(0, I.top + 0.25, 0), I.fightR, 0.5, ISLE.stone, Enum.Material.Slate)
+	isleCyl(
+		model,
+		"FightRing",
+		base + Vector3.new(0, I.top + 0.3, 0),
+		I.fightR * 0.55,
+		0.5,
+		"#B85A30",
+		Enum.Material.Sand
+	)
+	for i = 0, 7 do
+		local a = (i + 0.5) / 8 * math.pi * 2
+		local pos = base + Vector3.new(math.cos(a) * (I.fightR + 6), I.top, math.sin(a) * (I.fightR + 6))
+		local pillar = Instance.new("Part")
+		pillar.Name = "Pillar"
+		pillar.Anchored = true
+		pillar.Size = Vector3.new(3, 9, 3)
+		pillar.CFrame = CFrame.new(pos + Vector3.new(0, 4.5, 0))
+		pillar.Color = Color3.fromHex(ISLE.stone)
+		pillar.Material = Enum.Material.Slate
+		pillar.Parent = model
+		local bowl = isleCyl(model, "Brazier", pos + Vector3.new(0, 9.4, 0), 2.2, 0.9, "#B08D57", Enum.Material.Metal)
+		local fire = Instance.new("Fire")
+		fire.Size = 5
+		fire.Heat = 6
+		fire.Color = Color3.fromHex(ISLE.fire)
+		fire.SecondaryColor = Color3.fromRGB(255, 220, 120)
+		fire.Parent = bowl
+	end
+	-- Ponte de madeira em rampa (segmentos), com corrimão de corda e paredes invisíveis
+	local dir = polar(I.phi, 1, 0)
+	local flat = Vector3.new(dir.X, 0, dir.Z).Unit
+	local segs = 12
+	local len = I.bridgeTo - I.bridgeFrom
+	local bridge = Instance.new("Model")
+	bridge.Name = "Bridge"
+	for i = 0, segs - 1 do
+		local t0, t1 = i / segs, (i + 1) / segs
+		local p0 = flat * (I.bridgeFrom + len * t0) + Vector3.new(0, 0.6 + (I.top - 0.6) * t0, 0)
+		local p1 = flat * (I.bridgeFrom + len * t1) + Vector3.new(0, 0.6 + (I.top - 0.6) * t1, 0)
+		local mid = (p0 + p1) / 2
+		local seg = Instance.new("Part")
+		seg.Name = "Deck"
+		seg.Anchored = true
+		seg.Size = Vector3.new(I.bridgeW, 1.2, (p1 - p0).Magnitude + 0.4)
+		seg.CFrame = CFrame.lookAt(mid, p1)
+		seg.Color = Color3.fromHex(if i % 2 == 0 then ISLE.wood else ISLE.woodDark)
+		seg.Material = Enum.Material.WoodPlanks
+		seg.Parent = bridge
+		for _, side in { -1, 1 } do
+			local post = Instance.new("Part")
+			post.Name = "Post"
+			post.Anchored = true
+			post.Size = Vector3.new(1, 4, 1)
+			post.CFrame = CFrame.lookAt(mid, p1) * CFrame.new(side * (I.bridgeW / 2 - 0.5), 2.4, 0)
+			post.Color = Color3.fromHex(ISLE.woodDark)
+			post.Material = Enum.Material.Wood
+			post.Parent = bridge
+			local rope = Instance.new("Part")
+			rope.Name = "Rope"
+			rope.Anchored = true
+			rope.CanCollide = false
+			rope.Size = Vector3.new(0.4, 0.4, (p1 - p0).Magnitude + 0.4)
+			rope.CFrame = CFrame.lookAt(mid, p1) * CFrame.new(side * (I.bridgeW / 2 - 0.5), 3.8, 0)
+			rope.Color = Color3.fromHex(ISLE.rope)
+			rope.Material = Enum.Material.Fabric
+			rope.Parent = bridge
+			local wall = Instance.new("Part")
+			wall.Name = "Guard"
+			wall.Anchored = true
+			wall.Transparency = 1
+			wall.CanQuery = false
+			wall.Size = Vector3.new(0.6, 8, (p1 - p0).Magnitude + 0.6)
+			wall.CFrame = CFrame.lookAt(mid, p1) * CFrame.new(side * (I.bridgeW / 2 + 0.2), 4, 0)
+			wall.Parent = bridge
+		end
+	end
+	bridge.Parent = model
+	-- Arco de entrada no começo da ponte com a placa (lida de quem vem da praça)
+	local gatePos = flat * (I.bridgeFrom - 4)
+	local gate = CFrame.lookAt(gatePos, gatePos + flat)
+	for _, side in { -1, 1 } do
+		local col = Instance.new("Part")
+		col.Name = "GateColumn"
+		col.Anchored = true
+		col.Size = Vector3.new(2.4, 16, 2.4)
+		col.CFrame = gate * CFrame.new(side * (I.bridgeW / 2 + 1.5), 8, 0)
+		col.Color = Color3.fromHex(ISLE.stone)
+		col.Material = Enum.Material.Slate
+		col.Parent = model
+	end
+	local beam = Instance.new("Part")
+	beam.Name = "GateSign"
+	beam.Anchored = true
+	beam.Size = Vector3.new(I.bridgeW + 6, 4, 1.2)
+	beam.CFrame = gate * CFrame.new(0, 17, 0)
+	beam.Color = Color3.fromHex(ISLE.woodDark)
+	beam.Material = Enum.Material.Wood
+	beam.Parent = model
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = face
+		sg.Parent = beam
+		local t = Instance.new("TextLabel")
+		t.BackgroundTransparency = 1
+		t.Size = UDim2.fromScale(1, 1)
+		t.Text = "ILHA DO DRAGÃO"
+		t.TextScaled = true
+		t.Font = Enum.Font.FredokaOne
+		t.TextColor3 = Color3.fromRGB(255, 205, 120)
+		t.TextStrokeTransparency = 0
+		t.Parent = sg
+	end
+	model:SetAttribute("TopY", I.top)
+	model.Parent = root
+	return model
+end
+
 -- Área que a natureza deve evitar (arena + estrada até a praça).
 function World.arenaExclusions(): { any }
 	local c = World.Arena.center
 	local dir = polar(World.Arena.phi, 1, 0)
+	local idir = polar(World.BossIsland.phi, 1, 0)
 	return {
 		{ center = Vector2.new(c.X, c.Z), radius = World.Arena.outerR + 12 },
 		{
 			a = Vector2.new(dir.X, dir.Z) * PLAZA_OUTER_R,
 			b = Vector2.new(c.X, c.Z),
 			radius = PATH_W / 2 + 6,
+		},
+		-- Ilha do Dragão: nada de árvore embaixo da ilha nem atravessando a ponte
+		{
+			center = Vector2.new(World.BossIsland.center.X, World.BossIsland.center.Z),
+			radius = World.BossIsland.radius + 26,
+		},
+		{
+			a = Vector2.new(idir.X, idir.Z) * (World.BossIsland.bridgeFrom - 14),
+			b = Vector2.new(idir.X, idir.Z) * World.BossIsland.bridgeTo,
+			radius = World.BossIsland.bridgeW / 2 + 8,
 		},
 	}
 end

@@ -6,6 +6,8 @@
 -- Sem recompensa por enquanto (economia: decisão registrada no handoff como sugestão).
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local State = require(script.Parent.Parent.State)
 local FoodView = require(script.Parent.Parent.FoodView)
@@ -17,7 +19,8 @@ local foodGrid: ScrollingFrame
 local countLabel: TextLabel
 local progressFill: Frame
 local cards: { [string]: { card: Frame, view: Frame, name: TextLabel, shown: string? } } = {}
-local speciesCards: { [string]: { card: Frame, state: TextLabel } } = {}
+local speciesCards: { [string]: { card: Frame, state: TextLabel, expose: TextButton } } = {}
+local displayInfo: TextLabel
 local lastSeenCount = -1
 local startedAt = os.clock() -- comidas entregues na entrada (mochila inicial) não acendem o selo
 
@@ -97,12 +100,29 @@ local function refresh(s: State.PlayerState)
 		paintCard(def, found[def.id] == true)
 	end
 	local owned = s.ownedSpecies or {}
+	local giants = s.giants or {}
+	local display = s.display or {}
 	for id, sc in speciesCards do
 		local has = owned[id] == true
-		sc.state.Text = if has then Locale.t("✔ TENHO") else Locale.t("🔒 FALTA")
+		local active = s.species == id
+		local lv = if active then s.level elseif giants[id] then giants[id].level else nil
+		if has then
+			sc.state.Text = (if active then Locale.t("ATIVO") .. "  ·  " else "") .. string.format("Nv. %d", lv or 1)
+		else
+			sc.state.Text = Locale.t("🔒 FALTA")
+		end
 		sc.state.TextColor3 = if has then UI.Colors.Green else Color3.fromRGB(170, 170, 190)
 		sc.card.BackgroundTransparency = if has then 0 else 0.35
+		local shown = table.find(display, id) ~= nil
+		sc.expose.Visible = has and not active
+		sc.expose.Text = if shown then Locale.t("RECOLHER") else Locale.t("EXPOR")
+		sc.expose.BackgroundColor3 = if shown then Color3.fromRGB(96, 102, 118) else UI.Colors.Blue
 	end
+	displayInfo.Text = Locale.fmt(
+		"display_info",
+		nil,
+		{ n = #display, m = GameRules.Roster.DisplaySlots, c = string.format("%.1f", s.displayCps or 0) }
+	)
 end
 
 function Collection.open()
@@ -211,7 +231,19 @@ function Collection.init(gui: ScreenGui)
 	end
 
 	sectionTitle(foodGrid, Locale.t("ESPÉCIES DE GIGANTE"), 3)
-	local species = grid(4, Vector2.new(200, 84))
+	-- Coleção de gigantes (08/11/2026): cada espécie guarda o próprio nível; até 3 ficam EXPOSTAS
+	-- na base (vitrine + renda complementar, também offline até 8 h). O servidor confere tudo.
+	displayInfo = UI.label(foodGrid, "", {
+		Size = UDim2.new(1, 0, 0, 52),
+		LayoutOrder = 4,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 18,
+		TextWrapped = true,
+		Font = UI.FontBody,
+		ZIndex = 13,
+	})
+	local species = grid(5, Vector2.new(210, 128))
 	for i, sp in Config.Species do
 		local card = UI.frame(species, { LayoutOrder = i, BackgroundColor3 = UI.Colors.Bg, ZIndex = 13 })
 		UI.corner(card, 14)
@@ -238,7 +270,20 @@ function Collection.init(gui: ScreenGui)
 			TextSize = 20,
 			ZIndex = 14,
 		})
-		speciesCards[sp.id] = { card = card, state = state }
+		local expose = UI.button(card, "", UI.Colors.Blue, {
+			Size = UDim2.new(1, -16, 0, 40),
+			Position = UDim2.new(0, 8, 1, -46),
+			TextScaled = false,
+			TextSize = 20,
+			ZIndex = 15,
+			Visible = false,
+		})
+		local spId = sp.id
+		expose.Activated:Connect(function()
+			local shown = table.find(State.current.display or {}, spId) ~= nil
+			Remotes.RequestDisplay:FireServer(spId, not shown)
+		end)
+		speciesCards[sp.id] = { card = card, state = state, expose = expose }
 	end
 
 	State.onChanged(refresh)

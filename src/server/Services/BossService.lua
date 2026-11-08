@@ -11,7 +11,18 @@
 --   * Se a vida do dragão chega a zero, todo mundo que ajudou (>= 3% do dano) GANHA uma caixa
 --     épica grátis (comida Épica ou melhor), no máximo Config.Boss.WinsPerDay vezes por dia.
 -- Vida escala com o número de lutadores (justo com 1 ou com 8). Tudo validado no servidor.
+--
+-- 08/11/2026 (noite) — ILHA DO DRAGÃO (Sistema 4 da missão):
+--   * a luta saiu do coliseu e foi para a ilha flutuante (World.BossIsland), ligada por uma ponte;
+--   * FASES: até 50% de vida normal; "FÚRIA" (≤ 50%): pisões mais rápidos e em 2 alvos;
+--     "CHUVA DE FOGO" (≤ 20%): além disso, 3 círculos espalhados perto dos lutadores;
+--   * RECOMPENSA para todo participante válido (≥ 3% do dano OU ≥ 3 golpes acertados), vencendo ou
+--     não (se o dragão fugir, metade) — ninguém é punido pelo resultado do grupo;
+--   * BÔNUS proporcional ao dano (só na vitória) e o prêmio de conclusão (caixa épica, 2 por dia);
+--   * quem ajudou e SAIU antes do fim recebe na próxima entrada (ProgressService.addPending,
+--     idempotente por id da luta).
 local Players = game:GetService("Players")
+local Guard = require(script.Parent.Parent.Guard)
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
@@ -24,6 +35,9 @@ local ShopService = require(script.Parent.ShopService)
 local GiantService = require(script.Parent.GiantService)
 local CombatService = require(script.Parent.CombatService)
 local World = require(script.Parent.Parent.World)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Hooks = require(script.Parent.Parent.Hooks)
+local ProgressService = require(script.Parent.ProgressService)
 
 local BossService = {}
 
@@ -37,6 +51,10 @@ type Fight = {
 	hp: number,
 	maxHp: number,
 	damage: { [Player]: number },
+	hits: { [Player]: number },
+	levels: { [Player]: number }, -- nível do gigante quando ajudou (para pagar quem saiu)
+	id: string,
+	phase: number,
 	ate: { [Player]: boolean },
 	label: TextLabel,
 	fill: Frame,
@@ -65,7 +83,7 @@ local function inArena(player: Player, f: Fight): boolean
 		return false
 	end
 	local d = Vector3.new(root.Position.X - f.center.X, 0, root.Position.Z - f.center.Z).Magnitude
-	return d <= World.Arena.outerR and math.abs(root.Position.Y - f.floorY) < 30
+	return d <= World.BossIsland.fightR + 4 and root.Position.Y > f.floorY - 6 and root.Position.Y < f.floorY + 40
 end
 
 local function fighters(f: Fight): { Player }
@@ -181,15 +199,11 @@ local function faceTowards(f: Fight, pos: Vector3)
 	f.hitbox.CFrame = hb -- o cilindro sólido não gira (não empurra ninguém de lado)
 end
 
--- Círculo de aviso no chão e pisão 1,4 s depois.
-local function stomp(f: Fight, target: Player)
-	local char = target.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not root then
-		return
+-- Círculo de aviso no chão e pisão 1,4 s depois (em um jogador ou num ponto: chuva de fogo).
+local function stompAt(f: Fight, pos: Vector3, turn: boolean)
+	if turn then
+		faceTowards(f, pos)
 	end
-	local pos = Vector3.new(root.Position.X, f.floorY + 0.15, root.Position.Z)
-	faceTowards(f, pos)
 	local ring = Instance.new("Part")
 	ring.Name = "StompWarning"
 	ring.Shape = Enum.PartType.Cylinder
@@ -243,6 +257,15 @@ local function stomp(f: Fight, target: Player)
 	end
 end
 
+local function stomp(f: Fight, target: Player)
+	local char = target.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+	stompAt(f, Vector3.new(root.Position.X, f.floorY + 0.15, root.Position.Z), true)
+end
+
 -- O dragão come uma comida da mochila de quem foi nocauteado (no máximo 1 por evento).
 local function eatFrom(f: Fight, victim: Player)
 	if f.ate[victim] then
@@ -273,46 +296,82 @@ local function finish(f: Fight, won: boolean)
 		return
 	end
 	f.over = true
-	if won then
-		local total = 0
-		for _, d in f.damage do
-			total += d
+	local BI = GameRules.BossIsland
+	local total = 0
+	for _, d in f.damage do
+		total += d
+	end
+	local valid: { Player } = {}
+	for p, d in f.damage do
+		if d >= total * BI.MinShare or (f.hits[p] or 0) >= BI.MinHits then
+			table.insert(valid, p)
 		end
-		for p, d in f.damage do
-			if not p.Parent or d < total * 0.03 then
-				continue
-			end
+	end
+	local pool = BI.BonusPoolPerPlayer * #valid
+	for _, p in valid do
+		local level = f.levels[p] or 1
+		local share = if total > 0 then (f.damage[p] or 0) / total else 0
+		local k = if won then 1 else BI.FailFraction
+		local coins = math.floor((BI.JoinCoinsBase + BI.JoinCoinsPerLevel * level) * k)
+		local xp = math.floor((BI.JoinXpBase + BI.JoinXpPerLevel * level) * k)
+		local bonus = if won then math.floor(pool * share) else 0
+		local box: string? = nil
+		if p.Parent then
 			local profile: any = DataService.get(p)
-			if not profile then
-				continue
+			if profile then
+				if won then
+					if winsToday(profile) < B.WinsPerDay then
+						if profile.bossDay ~= today() then
+							profile.bossDay = today()
+							profile.bossWins = 0
+						end
+						profile.bossWins += 1
+						box = B.RewardBox
+					else
+						Remotes.Notify:FireClient(
+							p,
+							Locale.msg("boss_limit", { n = B.WinsPerDay }, Color3.fromRGB(255, 200, 80))
+						)
+					end
+				end
+				profile.coins += coins + bonus
+				DataService.markDirty(p)
+				GiantService.addXp(p, xp, nil, nil)
+				if box then
+					ShopService.openBox(p, box, { free = true, force = true, minRarity = B.RewardMinRarity })
+				end
+				PlotService.pushState(p)
+				Remotes.BossState:FireClient(p, {
+					kind = "Rewards",
+					won = won,
+					coins = coins,
+					bonus = bonus,
+					xp = xp,
+					share = share,
+					box = box ~= nil,
+				})
+				if won then
+					Hooks.fire("bossHelped", p)
+					Remotes.GiantReact:FireAllClients({ userId = p.UserId, kind = "cheer" })
+				end
 			end
-			if winsToday(profile) >= B.WinsPerDay then
-				Remotes.Notify:FireClient(
-					p,
-					Locale.msg("boss_limit", { n = B.WinsPerDay }, Color3.fromRGB(255, 200, 80))
-				)
-				continue
-			end
-			if profile.bossDay ~= today() then
-				profile.bossDay = today()
-				profile.bossWins = 0
-			end
-			profile.bossWins += 1
-			DataService.markDirty(p)
-			ShopService.openBox(p, B.RewardBox, { free = true, force = true, minRarity = B.RewardMinRarity })
+		else
+			-- Ajudou e saiu: fica guardado para a próxima entrada (sem caixa extra além do limite
+			-- diário, que não dá para conferir offline: só moedas e XP).
+			ProgressService.addPending(p.UserId, {
+				id = f.id,
+				coins = coins + bonus,
+				xp = xp,
+				box = nil,
+			})
 		end
-		Remotes.Notify:FireAllClients({
-			text = "O DRAGÃO FAMINTO caiu! Os lutadores ganharam comida rara!",
-			color = Color3.fromRGB(255, 200, 60),
-		})
+	end
+	if won then
+		Remotes.Notify:FireAllClients(Locale.msg("boss_down", { n = #valid }, Color3.fromRGB(255, 200, 60)))
 		Remotes.Fireworks:FireAllClients({ pos = f.center, big = true })
-		-- Dragão cai e some.
 		TweenService:Create(f.hitbox, TweenInfo.new(1), { Transparency = 1 }):Play()
 	else
-		Remotes.Notify:FireAllClients({
-			text = "O Dragão Faminto voou embora... volte no próximo evento!",
-			color = Color3.fromRGB(255, 120, 90),
-		})
+		Remotes.Notify:FireAllClients(Locale.msg("boss_fled", nil, Color3.fromRGB(255, 120, 90)))
 	end
 	task.delay(if won then 1.5 else 0.2, function()
 		f.model:Destroy()
@@ -321,8 +380,8 @@ end
 
 -- Roda o evento inteiro (chamado pelo EventService). Bloqueia até acabar.
 function BossService.run(duration: number)
-	local center = World.Arena.center
-	local floorY = center.Y + World.Arena.floorTop
+	local center = World.BossIsland.center
+	local floorY = World.BossIsland.top + 0.5
 	local model, hitbox = buildBoss(center, floorY)
 	if not model or not hitbox then
 		warn("[BossService] modelo do dragão não carregou; evento sem chefe")
@@ -335,6 +394,10 @@ function BossService.run(duration: number)
 		hp = 0,
 		maxHp = 0,
 		damage = {},
+		hits = {},
+		levels = {},
+		id = string.format("boss-%d-%d", os.time(), math.random(1, 1e6)),
+		phase = 1,
 		ate = {},
 		label = label,
 		fill = fill,
@@ -358,16 +421,29 @@ function BossService.run(duration: number)
 
 	local t0 = os.clock()
 	local lastStomp = os.clock()
+	local lastRain = os.clock()
+	local BI = GameRules.BossIsland
 	while not f.over and os.clock() - t0 < duration do
 		task.wait(0.25)
 		local list = fighters(f)
 		for _, p in list do
 			if not CombatService.inFightMode(p) then
-				CombatService.setFightMode(p, true) -- entrou na arena com o dragão: luvas na mão
+				CombatService.setFightMode(p, true) -- entrou na ilha com o dragão: luvas na mão
 			end
 		end
 		rescale()
-		if #list > 0 and os.clock() - lastStomp >= B.StompEvery then
+		-- Fases pela vida que falta (anunciadas uma vez)
+		local frac = f.hp / math.max(f.maxHp, 1)
+		local phase = if frac <= BI.Phase3At then 3 elseif frac <= BI.Phase2At then 2 else 1
+		if phase > f.phase then
+			f.phase = phase
+			Remotes.BossState:FireAllClients({ kind = "Phase", phase = phase })
+			Remotes.Notify:FireAllClients(
+				Locale.msg(if phase == 2 then "boss_phase2" else "boss_phase3", nil, Color3.fromRGB(255, 90, 60))
+			)
+		end
+		local every = if f.phase >= 2 then B.StompEvery * BI.Phase2StompMult else B.StompEvery
+		if #list > 0 and os.clock() - lastStomp >= every then
 			lastStomp = os.clock()
 			local alive = {}
 			for _, p in list do
@@ -375,8 +451,30 @@ function BossService.run(duration: number)
 					table.insert(alive, p)
 				end
 			end
-			if #alive > 0 then
-				task.spawn(stomp, f, alive[math.random(1, #alive)])
+			local targets = if f.phase >= 2 then 2 else 1
+			for _ = 1, math.min(targets, #alive) do
+				local i = math.random(1, #alive)
+				local target = table.remove(alive, i)
+				if target then
+					task.spawn(stomp, f, target)
+				end
+			end
+		end
+		-- Fase 3: chuva de fogo (3 círculos perto dos lutadores, a cada ~4 s)
+		if f.phase >= 3 and #list > 0 and os.clock() - lastRain >= B.StompEvery * 1.3 then
+			lastRain = os.clock()
+			for _ = 1, 3 do
+				local p = list[math.random(1, #list)]
+				local r = Guard.rootOf(p)
+				if r then
+					local off = Vector3.new(math.random(-14, 14), 0, math.random(-14, 14))
+					local at = Vector3.new(r.Position.X, f.floorY + 0.15, r.Position.Z) + off
+					local flat = Vector3.new(at.X - f.center.X, 0, at.Z - f.center.Z)
+					if flat.Magnitude > World.BossIsland.fightR then
+						at = Vector3.new(f.center.X, at.Y, f.center.Z) + flat.Unit * World.BossIsland.fightR
+					end
+					task.spawn(stompAt, f, at, false)
+				end
 			end
 		end
 	end
@@ -395,9 +493,10 @@ BossService.CanStart = nil :: (() -> boolean)?
 
 -- Cronômetro na entrada da arena (item 10): horário real do próximo Dragão, do mesmo laço que o cria.
 local function buildArenaBoard(): TextLabel
-	local center = World.Arena.center
-	local toHub = Vector3.new(-center.X, 0, -center.Z).Unit
-	local pos = center + toHub * (World.Arena.outerR + 6) + Vector3.new(0, 30, 0)
+	-- Na entrada da ponte da Ilha do Dragão, lida de quem vem da praça.
+	local c = World.BossIsland.center
+	local dir = Vector3.new(c.X, 0, c.Z).Unit
+	local pos = dir * (World.BossIsland.bridgeFrom - 4) + Vector3.new(0, 26, 0)
 	local anchor = Instance.new("Part")
 	anchor.Name = "BossTimer"
 	anchor.Anchored = true
@@ -449,11 +548,11 @@ function BossService.init()
 			task.wait(1)
 			local left = BossService.nextAt - os.time()
 			if BossService.running then
-				board.Text = "DRAGÃO FAMINTO NA ARENA!"
+				board.Text = "DRAGÃO FAMINTO NA ILHA! Atravesse a ponte!"
 			elseif left > 0 then
-				board.Text = "DRAGÃO FAMINTO EM " .. mmss(left)
+				board.Text = "DRAGÃO FAMINTO NA ILHA EM " .. mmss(left)
 			else
-				board.Text = "DRAGÃO: esperando a arena ficar livre..."
+				board.Text = "DRAGÃO: chegando..."
 			end
 			if left <= 0 and not BossService.running then
 				local can = BossService.CanStart
@@ -486,6 +585,11 @@ function BossService.init()
 		end
 		f.hp = math.max(0, f.hp - damage)
 		f.damage[attacker] = (f.damage[attacker] or 0) + damage
+		f.hits[attacker] = (f.hits[attacker] or 0) + 1
+		local prof = DataService.get(attacker)
+		if prof then
+			f.levels[attacker] = prof.level
+		end
 		updateBar(f)
 		if f.hp <= 0 then
 			current = nil

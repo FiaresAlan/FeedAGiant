@@ -53,7 +53,6 @@ local EVENTS = {
 	"RequestClaimObjective", -- client -> server: índice da tarefa (1..3) ou 0 = bônus do dia
 	"RequestDisplay", -- client -> server: speciesId, on:boolean (expor gigante na base)
 	"MeatState", -- server -> all: {kind = Warn|Land|Update|End, pos, portions, endsAt}
-	"RequestMeatCut", -- client -> server: cortar uma porção da Carne Gigante
 	"BossState", -- server -> all: {kind = Phase|Rewards, ...} (ilha do Dragão)
 }
 

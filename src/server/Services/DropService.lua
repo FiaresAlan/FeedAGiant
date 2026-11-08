@@ -537,6 +537,43 @@ function DropService.spawnAt(pos: Vector3, kind: Kind?, id: string?, silent: boo
 	end)
 end
 
+-- Carne Gigante (MeatService, 4.5): entrega uma porção JÁ na cabeça do jogador, como se ele tivesse
+-- pegado um drop. Daí em diante vale tudo o que já existe: peso, soco derruba, outro jogador pode
+-- pegar a porção caída, entrega só na própria base. Devolve false se ele não pôde carregar.
+function DropService.giveCarried(player: Player, foodId: string, at: Vector3): boolean
+	local food = Config.FoodById[foodId]
+	if not food or carrying[player] or player:GetAttribute("CarryingSteal") then
+		return false
+	end
+	nextId += 1
+	local it: Item = {
+		id = nextId,
+		kind = "food",
+		foodId = food.id,
+		name = food.name,
+		rarity = food.rarity,
+		color = Config.Rarities[food.rarity].color,
+		pos = at,
+		unlockAt = 0,
+	} :: any
+	it.pickedAt = 0
+	it.pickedPos = at
+	it.landed = true
+	it.expiresAt = os.clock() + D.ExpireAfter
+	it.done = false
+	it.holder = buildHolder(it, at)
+	items[it.id] = it
+	it.prompt.Triggered:Connect(function(p)
+		tryPickup(p, it)
+	end)
+	tryPickup(player, it)
+	if it.carrier ~= player then
+		remove(it)
+		return false
+	end
+	return true
+end
+
 -- Ponto aleatório na praça (entre o caldeirão e a loja), como antes.
 function DropService.plazaPoint(): Vector3
 	local a = math.random() * math.pi * 2

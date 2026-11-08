@@ -152,7 +152,8 @@ end
 -- um mapa "assado" (salvo no place pelo MapService.bake) com versão diferente é descartado ao rodar e
 -- o jogo gera de novo (o place salvo não muda; é só re-assar para atualizar a visão no modo edição).
 -- v2 (08/11/2026): arena física (World.buildArena) + estrada da praça até ela.
-local MAP_VERSION = 2
+-- v3 (08/11/2026 noite): Ilha do Dragão flutuante + ponte (World.buildBossIsland).
+local MAP_VERSION = 3
 
 -- Places antigos (ex.: o place oficial) ainda têm o Baseplate de 1200x4 com topo em y=2, acima do chão
 -- novo (topo em 0): árvores, estrada e bases ficavam "enterradas". Move para o ServerStorage (não apaga).
@@ -177,6 +178,10 @@ local function buildMap(): Folder
 	-- Fase 4: alvo do passo "box" do tutorial (trilha até a loja)
 	game:GetService("CollectionService"):AddTag(MapService.ShopPad :: Part, "TutorialShop")
 	-- Fase 3: arena física das lutas (falha aqui não impede o jogo; a ArenaService avisa)
+	local okIsle, errIsle = pcall(World.buildBossIsland :: any, root)
+	if not okIsle then
+		warn("[MapService] ilha do dragão falhou:", errIsle)
+	end
 	local okArena, errArena = pcall(World.buildArena :: any, root)
 	if not okArena then
 		warn("[MapService] arena não construída:", errArena)

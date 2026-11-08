@@ -29,6 +29,11 @@ export type PlayerState = {
 	speciesTokens: number?,
 	discovered: { [string]: boolean }?,
 	pendingBoxes: { string }?,
+	-- coleção de gigantes (08/11/2026)
+	giants: { [string]: { level: number, xp: number } }?,
+	display: { string }?,
+	displayCps: number?,
+	streak: number?,
 }
 
 local State = {}

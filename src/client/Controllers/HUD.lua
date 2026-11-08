@@ -51,6 +51,15 @@ HUD.OnOpenInventory = nil :: (() -> ())?
 HUD.OnOpenCodes = nil :: (() -> ())?
 HUD.OnOpenArena = nil :: (() -> ())?
 HUD.OnOpenCollection = nil :: (() -> ())?
+HUD.OnOpenDiary = nil :: (() -> ())?
+local diaryClaimable = false
+-- Diário avisa quando há tarefa para resgatar (selo "!" no botão).
+function HUD.setDiaryClaimable(on: boolean)
+	diaryClaimable = on
+	if dailyBadge then
+		dailyBadge.Visible = on or os.time() - State.current.lastDaily >= 20 * 3600
+	end
+end
 
 -- Escala por aparelho: no kit UI (UI.deviceScale / UI.autoScale), igual para todos os painéis.
 local scaled = UI.autoScale
@@ -379,8 +388,9 @@ local function buildSideButtons(gui: ScreenGui)
 		call(HUD.OnOpenCollection)
 	end)
 	dailyTile, dailyCaption = tile(tileGrid, "hud2_daily", "DIÁRIO", UI.Colors.Green, 7)
+	-- 08/11/2026 (noite): o DIÁRIO virou um painel (recompensa diária + tarefas + recordes).
 	dailyTile.Activated:Connect(function()
-		Remotes.RequestClaimDaily:FireServer()
+		call(HUD.OnOpenDiary)
 	end)
 	dailyBadge = UI.frame(dailyTile, {
 		Size = UDim2.fromOffset(28, 28),
@@ -732,7 +742,7 @@ local function refresh(s: State.PlayerState)
 	local claimable = os.time() - s.lastDaily >= 20 * 3600
 	dailyCaption.Text = if claimable then Locale.t("DIÁRIO!") else Locale.fmt("daily_btn", nil, { n = s.dailyStreak })
 	dailyTile.BackgroundColor3 = if claimable then UI.Colors.Green else Color3.fromRGB(70, 130, 90)
-	dailyBadge.Visible = claimable
+	dailyBadge.Visible = claimable or diaryClaimable
 end
 
 local function shieldLoop()
