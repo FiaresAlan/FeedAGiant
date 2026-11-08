@@ -295,6 +295,11 @@ function MeatService.init()
 				local ok, err = pcall(MeatService.run :: any)
 				if not ok then
 					warn("[MeatService]", err)
+					local f = current
+					if f then
+						pcall(finish, f) -- nunca deixa uma carne "presa" (o próximo evento acontece)
+						current = nil
+					end
 				end
 				MeatService.nextAt = os.time() + math.random(M.Every[1], M.Every[2])
 			end

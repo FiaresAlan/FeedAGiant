@@ -407,7 +407,11 @@ function PlotService.feed(player: Player, slot: number)
 	local fromModel = foodModels[player] and foodModels[player][slot]
 	local from = if fromModel then fromModel:GetPivot().Position else nil
 	profile.plot[tostring(slot)] = nil
-	doFeed(player, profile, def, from)
+	local ok, err = pcall(doFeed :: any, player, profile, def, from)
+	if not ok then
+		profile.plot[tostring(slot)] = item -- devolve a comida: nada se perde por um erro
+		warn("[PlotService] alimentar falhou:", err)
+	end
 	PlotService.rebuildPlot(player)
 	PlotService.pushState(player)
 end
@@ -428,7 +432,11 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 	table.remove(profile.inventory, invIndex)
 	local char = player.Character
 	local from = if char then char:GetPivot().Position + Vector3.new(0, 2, 0) else nil
-	doFeed(player, profile, def, from)
+	local ok, err = pcall(doFeed :: any, player, profile, def, from)
+	if not ok then
+		table.insert(profile.inventory, invIndex, item)
+		warn("[PlotService] alimentar falhou:", err)
+	end
 	PlotService.pushState(player)
 end
 

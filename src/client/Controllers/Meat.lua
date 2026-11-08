@@ -207,6 +207,11 @@ function Meat.init(gui: ScreenGui)
 					Color3.fromRGB(255, 190, 130)
 				)
 				ensureBeam(target :: Vector3)
+			elseif target and endsAt > 0 and endsAt <= now then
+				-- acabou o tempo e o "End" ainda não chegou: esconde já
+				target = nil
+				chip.Visible = false
+				clearBeam()
 			end
 		end
 	end)

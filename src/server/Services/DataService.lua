@@ -178,6 +178,28 @@ local function sanitize(player: Player, profile: Profile)
 			}
 		end
 	end
+	-- Valores impossíveis nos campos novos (save corrompido/antigo): corrige sem apagar nada útil.
+	local function num(v: any, lo: number, hi: number, default: number): number
+		if type(v) ~= "number" or v ~= v then
+			return default
+		end
+		return math.clamp(math.floor(v), lo, hi)
+	end
+	for id, rec in profile.giants do
+		if type(rec) ~= "table" or not Config.SpeciesById[id] then
+			profile.giants[id] = nil
+		else
+			rec.level = num(rec.level, 1, Config.Giant.MaxLevel, 1)
+			rec.xp = num(rec.xp, 0, math.huge, 0)
+		end
+	end
+	for k, v in profile.records do
+		profile.records[k] = num(v, 0, math.huge, 0)
+	end
+	for k, v in profile.objProgress do
+		profile.objProgress[k] = num(v, 0, 1e6, 0)
+	end
+	profile.displaySettledAt = num(profile.displaySettledAt, 0, os.time(), 0)
 	-- Exposição: só espécies possuídas, sem a ativa, sem repetição, até o limite.
 	local seen: { [string]: boolean } = {}
 	local clean = {}

@@ -50,9 +50,10 @@ type Fight = {
 	hitbox: Part,
 	hp: number,
 	maxHp: number,
-	damage: { [Player]: number },
-	hits: { [Player]: number },
-	levels: { [Player]: number }, -- nível do gigante quando ajudou (para pagar quem saiu)
+	-- por UserId: quem sai e volta na mesma luta continua sendo UMA pessoa (revisão cega, rodada 1)
+	damage: { [number]: number },
+	hits: { [number]: number },
+	levels: { [number]: number }, -- nível do gigante quando ajudou (para pagar quem saiu)
 	id: string,
 	phase: number,
 	ate: { [Player]: boolean },
@@ -301,22 +302,23 @@ local function finish(f: Fight, won: boolean)
 	for _, d in f.damage do
 		total += d
 	end
-	local valid: { Player } = {}
-	for p, d in f.damage do
-		if d >= total * BI.MinShare or (f.hits[p] or 0) >= BI.MinHits then
-			table.insert(valid, p)
+	local valid: { number } = {}
+	for uid, d in f.damage do
+		if d >= total * BI.MinShare or (f.hits[uid] or 0) >= BI.MinHits then
+			table.insert(valid, uid)
 		end
 	end
 	local pool = BI.BonusPoolPerPlayer * #valid
-	for _, p in valid do
-		local level = f.levels[p] or 1
-		local share = if total > 0 then (f.damage[p] or 0) / total else 0
+	for _, uid in valid do
+		local level = f.levels[uid] or 1
+		local share = if total > 0 then (f.damage[uid] or 0) / total else 0
 		local k = if won then 1 else BI.FailFraction
 		local coins = math.floor((BI.JoinCoinsBase + BI.JoinCoinsPerLevel * level) * k)
 		local xp = math.floor((BI.JoinXpBase + BI.JoinXpPerLevel * level) * k)
 		local bonus = if won then math.floor(pool * share) else 0
 		local box: string? = nil
-		if p.Parent then
+		local p = Players:GetPlayerByUserId(uid)
+		if p then
 			local profile: any = DataService.get(p)
 			if profile then
 				if won then
@@ -358,7 +360,7 @@ local function finish(f: Fight, won: boolean)
 		else
 			-- Ajudou e saiu: fica guardado para a próxima entrada (sem caixa extra além do limite
 			-- diário, que não dá para conferir offline: só moedas e XP).
-			ProgressService.addPending(p.UserId, {
+			ProgressService.addPending(uid, {
 				id = f.id,
 				coins = coins + bonus,
 				xp = xp,
@@ -572,8 +574,8 @@ function BossService.init()
 	end)
 	CombatService.HitNpc = function(attacker, origin, look, range, damage, _heavy)
 		local f = current
-		if not f or f.over or not inArena(attacker, f) then
-			return false
+		if not f or f.over or not inArena(attacker, f) or CombatService.isKO(attacker) then
+			return false -- nocauteado não causa dano nem conta como participação
 		end
 		local delta = Vector3.new(f.center.X - origin.X, 0, f.center.Z - origin.Z)
 		local dist = delta.Magnitude - BOSS_RADIUS
@@ -584,11 +586,12 @@ function BossService.init()
 			return false
 		end
 		f.hp = math.max(0, f.hp - damage)
-		f.damage[attacker] = (f.damage[attacker] or 0) + damage
-		f.hits[attacker] = (f.hits[attacker] or 0) + 1
+		local uid = attacker.UserId
+		f.damage[uid] = (f.damage[uid] or 0) + damage
+		f.hits[uid] = (f.hits[uid] or 0) + 1
 		local prof = DataService.get(attacker)
 		if prof then
-			f.levels[attacker] = prof.level
+			f.levels[uid] = prof.level
 		end
 		updateBar(f)
 		if f.hp <= 0 then

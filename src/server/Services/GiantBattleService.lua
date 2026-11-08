@@ -441,7 +441,14 @@ local function run(player: Player, speciesId: string)
 	if not player.Parent then
 		won = false
 	end
+	-- Sem escolher nenhum golpe (AFK, o servidor jogou sozinho) não há prêmio: anti-fazenda.
+	if (state.acted or 0) == 0 then
+		won = false
+	end
 	finish(player, me, foe, won, if rounds >= TB.MaxRounds and me.hp > 0 and foe.hp > 0 then "tempo" else nil)
+	if state.someoneWaiting then
+		lastBattle[player] = os.clock() + 30 -- descanso extra: a vez é de quem estava esperando
+	end
 	active = nil
 end
 
@@ -456,6 +463,11 @@ function GiantBattleService.init()
 		end
 		local busy = GiantBattleService.IsArenaBusy
 		if active or (busy and busy()) then
+			-- alguém esperou: quem está lutando ganha um descanso maior depois (o coliseu gira)
+			local a: any = active
+			if a and a.player ~= player then
+				a.someoneWaiting = true
+			end
 			Remotes.Notify:FireClient(
 				player,
 				{ text = "O coliseu está ocupado. Tente em alguns segundos!", color = Color3.fromRGB(255, 170, 60) }
@@ -480,6 +492,15 @@ function GiantBattleService.init()
 			end)
 			if not ok then
 				warn("[GiantBattleService]", err)
+				-- nunca deixa modelos/barras no coliseu nem o coliseu preso
+				local a: any = active
+				if a then
+					for _, side in { a.me, a.foe } do
+						if side and side.model then
+							side.model:Destroy()
+						end
+					end
+				end
 				active = nil
 			end
 		end)
@@ -489,10 +510,14 @@ function GiantBattleService.init()
 			return
 		end
 		local a: any = active
-		if not a or a.player ~= player or a.over or not a.waiting or not Guard.allow(player, "Move") then
+		if not a or a.player ~= player or a.over or not a.waiting or a.choice ~= nil then
+			return
+		end
+		if not Guard.allow(player, "Move") then
 			return
 		end
 		a.choice = index
+		a.acted = (a.acted or 0) + 1
 	end)
 	Players.PlayerRemoving:Connect(function(p)
 		lastBattle[p] = nil

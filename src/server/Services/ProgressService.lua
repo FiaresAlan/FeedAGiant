@@ -248,8 +248,8 @@ function ProgressService.addPending(userId: number, entry: Pending)
 end
 
 function ProgressService.claimPending(player: Player)
-	local profile = DataService.get(player)
-	if not profile then
+	local profile = DataService.waitFor(player, 45) -- perfil pode ainda estar carregando
+	if not profile or not player.Parent then
 		return
 	end
 	local ok, list = pcall(function()
@@ -287,8 +287,12 @@ function ProgressService.claimPending(player: Player)
 		end
 	end
 	DataService.markDirty(player)
-	-- salva agora (moedas + ids juntos) e só depois limpa a fila
-	DataService.saveNow(player)
+	-- salva agora (moedas + ids juntos) e só depois limpa a fila. Se o save falhar, a fila fica:
+	-- os ids já pagos estão em bossClaimed e não pagam de novo; os não salvos voltam na próxima.
+	if not DataService.saveNow(player) then
+		PlotService.pushState(player)
+		return
+	end
 	pcall(function()
 		store():UpdateAsync(tostring(player.UserId), function(old: any): any
 			if type(old) ~= "table" then

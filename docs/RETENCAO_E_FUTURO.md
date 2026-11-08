@@ -45,3 +45,30 @@ Escrito depois de implementar os itens 1–16. Nada daqui foi implementado sem e
 | Público 16+ → todas as idades | Sem problema de conteúdo. A venda segue as regras de compra para menores (preço claro, sem pressão). |
 
 **Recomendação:** fazer depois do lançamento, começando com 3 auras ganhas por conquista e 2 pagas (só cosméticas). Preços e IDs são decisão do dono.
+
+---
+
+## 5. Ecossistema integrado (missão de 08/11/2026, noite) — o que foi IMPLEMENTADO
+
+> Encontrar comida → disputar → transportar → **alimentar** → crescer → colecionar criaturas → competir → conquistar recompensas → continuar alimentando.
+
+Tudo gira em torno de **alimentar**. Cada sistema novo devolve o jogador para o gigante:
+
+| Sistema | O que dá | Como volta para a alimentação |
+|---|---|---|
+| Sequência (4.1) | ×1,1 a ×1,5 de XP por alimentações seguidas (janela de 40 s) | Recompensa quem alimenta várias vezes; "Doce" estica a sequência |
+| Características (4.3) | Crescimento / Renda / Picante / Doce | Escolha real: comer (XP) ou expor (moedas); Picante procura a crítica |
+| Crítica (4.4) | ×2,5 de XP com festa visual | Momento de pico que o jogador quer repetir |
+| Animações (4.7, P1) | O gigante antecipa, morde quando a comida chega, mastiga, comemora, evolui e faz birra com fome | A fome vira um pedido visível ("me alimenta!") |
+| Carne Gigante (4.5) | Porção Rara de Crescimento para quem disputar | Carregar até a base → alimentar ou expor |
+| Coleção (Sistema 1) | Cada espécie com o próprio nível; nova espécie herda 30% | Dá motivo para alimentar várias criaturas |
+| Exposição (Sistema 2) | Vitrine na base + renda complementar (offline até 8 h) | A renda compra caixas → mais comida |
+| Turnos (Sistema 3) | Moedas e XP (teto diário) | Gigante mais alimentado = mais vida e força |
+| Ilha do Dragão (Sistema 4) | Participação, bônus pelo dano, caixa épica | XP e comida épica para alimentar |
+| Diário (P5) | 3 tarefas/dia + recordes | As tarefas pedem exatamente as ações acima |
+
+**Recordes pessoais** (salvos): maior gigante, mais níveis numa sessão, maior sequência, comidas entregues, maior alimentação.
+
+**O que observar com jogadores reais:** uso da exposição (renda offline não pode passar de ~20% da renda ativa), taxa de crítica percebida (6% pode parecer raro demais), quantos jogadores chegam à ilha (a ponte fica a φ 247,5°: pode precisar de uma seta na HUD), e se a Carne Gigante gera disputa ou só uma fila.
+
+**Próximos passos de retenção (não implementados):** PvP por turnos com o convite do boxe (a estrutura `resolve` já serve para dois lados), ranking de batalhas, recompensa por coleção completa, auras por conquista (§4).

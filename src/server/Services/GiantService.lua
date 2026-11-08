@@ -641,7 +641,12 @@ function GiantService.setSpecies(player: Player, speciesId: string): boolean
 	end
 	if profile.species ~= speciesId then
 		-- guarda o progresso do gigante que sai e carrega o do que entra
-		profile.giants[profile.species] = { level = profile.level, xp = profile.xp, inherited = true }
+		local prev = profile.giants[profile.species]
+		profile.giants[profile.species] = {
+			level = profile.level,
+			xp = profile.xp,
+			inherited = if prev then prev.inherited else true,
+		}
 		GiantService.grantSpecies(player, speciesId)
 		local rec = profile.giants[speciesId]
 		profile.species = speciesId

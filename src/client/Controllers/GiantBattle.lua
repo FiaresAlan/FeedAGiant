@@ -204,9 +204,10 @@ function GiantBattle.init(gui: ScreenGui)
 	-- Placar da luta (topo)
 	hud = UI.panel(gui, {
 		Name = "GiantBattleHud",
-		Size = UDim2.fromOffset(660, 132),
+		Size = UDim2.fromOffset(700, 136),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 80),
+		-- abaixo das faixas do tutorial e do selo de evento (revisão das fotos de 08/11 noite)
+		Position = UDim2.new(0.5, 0, 0, 200),
 		Visible = false,
 	})
 	UI.autoScale(hud)
@@ -242,7 +243,7 @@ function GiantBattle.init(gui: ScreenGui)
 	-- Golpes (embaixo, grandes para o polegar)
 	movesBar = UI.panel(gui, {
 		Name = "GiantBattleMoves",
-		Size = UDim2.fromOffset(700, 150),
+		Size = UDim2.fromOffset(820, 184),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -16),
 		Visible = false,
@@ -259,33 +260,37 @@ function GiantBattle.init(gui: ScreenGui)
 	local colors = { UI.Colors.Green, UI.Colors.Blue, UI.Colors.Orange }
 	for i = 1, 3 do
 		local b = UI.button(movesBar, "", colors[i], {
-			Size = UDim2.fromOffset(214, 116),
-			Position = UDim2.fromOffset(14 + (i - 1) * 228, 24),
+			Size = UDim2.fromOffset(256, 148),
+			Position = UDim2.fromOffset(14 + (i - 1) * 268, 26),
 		})
 		local name = UI.label(b, "", {
 			Name = "MoveName",
-			Size = UDim2.new(1, -12, 0, 34),
+			Size = UDim2.new(1, -12, 0, 40),
 			Position = UDim2.fromOffset(6, 4),
 			ZIndex = b.ZIndex + 1,
 		})
 		local info = UI.label(b, "", {
 			Name = "MoveInfo",
-			Size = UDim2.new(1, -12, 0, 24),
-			Position = UDim2.fromOffset(6, 40),
-			TextScaled = false,
-			TextSize = 20,
+			Size = UDim2.new(1, -12, 0, 30),
+			Position = UDim2.fromOffset(6, 46),
+			TextScaled = true,
 			ZIndex = b.ZIndex + 1,
 		})
 		local desc = UI.label(b, "", {
 			Name = "MoveDesc",
-			Size = UDim2.new(1, -12, 0, 44),
-			Position = UDim2.fromOffset(6, 66),
-			TextScaled = false,
-			TextSize = 16,
+			Size = UDim2.new(1, -12, 0, 62),
+			Position = UDim2.fromOffset(6, 80),
+			TextScaled = true,
 			TextWrapped = true,
 			Font = UI.FontBody,
 			ZIndex = b.ZIndex + 1,
 		})
+		local cap = Instance.new("UITextSizeConstraint")
+		cap.MaxTextSize = 24
+		cap.Parent = desc
+		local cap2 = Instance.new("UITextSizeConstraint")
+		cap2.MaxTextSize = 26
+		cap2.Parent = info
 		moveLabels[i] = { name = name, info = info, desc = desc }
 		b.Activated:Connect(function()
 			choose(i)

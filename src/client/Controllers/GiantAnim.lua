@@ -57,9 +57,24 @@ type Track = {
 	twitchAt: number,
 	twitchSign: number,
 	steam: ParticleEmitter?,
+	dust: ParticleEmitter?,
+	-- follow-through: mola atrasada (~0,08 s) sobre a inclinação/balanço da pose
+	springX: number,
+	springZ: number,
+	velX: number,
+	velZ: number,
+	lastNow: number,
+	landedAt: number, -- última poeira (para emitir 1 vez por aterrissagem)
 }
 
 local tracks: { [Model]: Track } = {}
+-- Gigantes no Workspace (mantido por ChildAdded/ChildRemoved: nada de varrer o Workspace a 30 Hz).
+local candidates: { [Model]: boolean } = {}
+local function watchChild(m: Instance)
+	if m:IsA("Model") and string.match(m.Name, "^Giant_") then
+		candidates[m] = true
+	end
+end
 
 local function targetOf(giant: Model): PVInstance
 	local mesh = giant:FindFirstChild("CreatureMesh")
@@ -124,6 +139,13 @@ local function newTrack(giant: Model): Track
 		twitchAt = -10,
 		twitchSign = 1,
 		steam = nil,
+		dust = nil,
+		springX = 0,
+		springZ = 0,
+		velX = 0,
+		velZ = 0,
+		lastNow = os.clock(),
+		landedAt = 0,
 	}
 	capture(t)
 	return t
@@ -191,6 +213,38 @@ local function steamOf(t: Track): ParticleEmitter?
 	pe.Parent = att
 	t.steam = pe
 	return pe
+end
+
+-- Poeira no chão (aterrissagem de comemoração/evolução e pisão da birra): peso de contato.
+local function dust(t: Track, now: number, amount: number)
+	if now - t.landedAt < 0.3 then
+		return
+	end
+	t.landedAt = now
+	if not (t.dust and t.dust.Parent) then
+		local first = t.parts[1]
+		if not first then
+			return
+		end
+		local att = Instance.new("Attachment")
+		att.Name = "LandDust"
+		att.Position = Vector3.new(0, -first.size.Y * 0.48, 0)
+		att.Parent = first.part
+		local pe = Instance.new("ParticleEmitter")
+		pe.Rate = 0
+		pe.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		pe.Color = ColorSequence.new(Color3.fromRGB(214, 190, 150))
+		pe.Transparency = NumberSequence.new(0.35, 1)
+		pe.Size = NumberSequence.new(math.clamp(t.height * 0.1, 0.8, 10), math.clamp(t.height * 0.25, 2, 24))
+		pe.Lifetime = NumberRange.new(0.5, 0.9)
+		pe.Speed = NumberRange.new(6, 14)
+		pe.SpreadAngle = Vector2.new(180, 8)
+		pe.EmissionDirection = Enum.NormalId.Top
+		pe.LightInfluence = 0.6
+		pe.Parent = att
+		t.dust = pe
+	end
+	(t.dust :: ParticleEmitter):Emit(amount)
 end
 
 -- Pose de uma ação. Devolve (pose no espaço dos pés, squash horizontal, squash vertical).
@@ -267,6 +321,7 @@ local function actionPose(t: Track, act: Action, now: number, P: GiantPersonalit
 			local yaw = if style == "spin" then ease(k) * 360 else 0
 			return CFrame.new(0, y, 0) * CFrame.Angles(0, math.rad(yaw), 0), 0.96, 1.08
 		elseif u < 0.82 then
+			dust(t, now, 10)
 			local k = (u - 0.7) / 0.12
 			return CFrame.identity, 1 + 0.07 * math.sin(k * math.pi), 1 - 0.14 * math.sin(k * math.pi)
 		end
@@ -281,6 +336,7 @@ local function actionPose(t: Track, act: Action, now: number, P: GiantPersonalit
 			local y = math.sin(k * math.pi) * 0.45 * h
 			return CFrame.new(0, y, 0) * CFrame.Angles(0, math.rad(ease(k) * 360), 0), 0.93, 1.12
 		elseif u < 0.53 then -- aterrissa amassando
+			dust(t, now, 24)
 			local k = (u - 0.45) / 0.08
 			return CFrame.identity, 1 + 0.11 * math.sin(k * math.pi), 1 - 0.22 * math.sin(k * math.pi)
 		elseif u < 0.88 then -- RUGIDO: peito para trás e tremida
@@ -294,6 +350,9 @@ local function actionPose(t: Track, act: Action, now: number, P: GiantPersonalit
 		local u = a / act.dur
 		local y = if u < 0.3 then math.sin(u / 0.3 * math.pi * 0.5) * 0.06 * h else 0
 		local slam = if u >= 0.3 and u < 0.45 then math.sin((u - 0.3) / 0.15 * math.pi) else 0
+		if slam > 0.9 then
+			dust(t, now, 8)
+		end
 		local shake = if u >= 0.35 then math.sin(u * math.pi * 14) * 9 * (1 - u) else 0
 		return CFrame.new(0, y, 0) * CFrame.Angles(math.rad(-6 * slam), math.rad(shake), 0),
 			1 + P.squash * 0.6 * slam,
@@ -376,6 +435,27 @@ local function pose(t: Track, now: number): (CFrame, number, number)
 	return idle, sxz, sy
 end
 
+-- Follow-through / overlap: uma mola subamortecida persegue a inclinação (X) e o balanço (Z) da
+-- pose; a diferença entra como um pequeno "atraso" extra. Movimentos rápidos (mordida, pouso)
+-- ganham um balanço que assenta sozinho, como cabeça/corpo atrasados (sem esqueleto).
+local SPRING_K = 140 -- rigidez
+local SPRING_D = 11 -- amortecimento (subamortecido: ~1 balanço visível)
+local FOLLOW = 0.55
+local function followThrough(t: Track, cf: CFrame, now: number): CFrame
+	local dt = math.clamp(now - t.lastNow, 0, 0.1)
+	t.lastNow = now
+	local rx, _, rz = cf:ToEulerAnglesXYZ()
+	local ax = SPRING_K * (rx - t.springX) - SPRING_D * t.velX
+	local az = SPRING_K * (rz - t.springZ) - SPRING_D * t.velZ
+	t.velX += ax * dt
+	t.velZ += az * dt
+	t.springX += t.velX * dt
+	t.springZ += t.velZ * dt
+	local lagX = math.clamp((t.springX - rx) * FOLLOW, -0.2, 0.2)
+	local lagZ = math.clamp((t.springZ - rz) * FOLLOW, -0.2, 0.2)
+	return cf * CFrame.Angles(lagX, 0, lagZ)
+end
+
 local function apply(t: Track, cf: CFrame, sxz: number, sy: number)
 	if t.squashable then
 		local scale = Vector3.new(sxz, sy, sxz)
@@ -441,8 +521,8 @@ end
 local function step(now: number)
 	local cam = Workspace.CurrentCamera
 	local camPos = if cam then cam.CFrame.Position else Vector3.zero
-	for _, m in Workspace:GetChildren() do
-		if m:IsA("Model") and m:GetAttribute("OwnerUserId") ~= nil and m.Name:match("^Giant_") then
+	for m in candidates do
+		if m.Parent == Workspace and m:GetAttribute("OwnerUserId") ~= nil then
 			local t = getTrack(m)
 			if serverMoved(t) then
 				capture(t)
@@ -450,7 +530,7 @@ local function step(now: number)
 			local near = (t.base.Position - camPos).Magnitude <= MAX_DIST * math.max(1, t.height / 30)
 			if near then
 				local cf, sxz, sy = pose(t, now)
-				apply(t, cf, sxz, sy)
+				apply(t, followThrough(t, cf, now), sxz, sy)
 			else
 				restore(t)
 			end
@@ -481,6 +561,15 @@ function GiantAnim.play(userId: number, kind: string)
 end
 
 function GiantAnim.init()
+	for _, c in Workspace:GetChildren() do
+		watchChild(c)
+	end
+	Workspace.ChildAdded:Connect(watchChild)
+	Workspace.ChildRemoved:Connect(function(c)
+		if c:IsA("Model") then
+			candidates[c] = nil
+		end
+	end)
 	local acc = 0
 	RunService.RenderStepped:Connect(function(dt)
 		acc += dt
@@ -519,7 +608,7 @@ function GiantAnim.init()
 		-- A mordida acontece quando a comida chega à boca (mesmo tempo do FeedFx). Sem comida voando
 		-- (XP de batalha/objetivo), morde na hora.
 		local impact = if e.foodId ~= nil then GameRules.Feed.FlightSeconds else 0.12
-		t.after = {}
+		-- (a fila de reações já marcadas — vitória, recorde — continua; só entra a mordida agora)
 		startAction(t, if e.crit then "crit" else "feed", now, impact)
 		if pendingEvolve[e.userId] then
 			pendingEvolve[e.userId] = nil
