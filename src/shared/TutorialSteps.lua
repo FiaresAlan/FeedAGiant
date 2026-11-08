@@ -45,14 +45,18 @@ local steps: { any } = {
 			any = "Siga a trilha até a loja ou abra LOJA",
 		},
 		hintAfter = 10,
+		reward = "BonusApple", -- comida extra: o passo seguinte pede 3 alimentações
 	},
 	{
+		-- Teste de 08/11: "chegar ao nível 3" pedia ~18 comidas (181 XP) e estourava os 3 minutos.
+		-- 3 alimentações cabem com a comida da caixa + a do pátio.
 		id = "grow",
-		objective = "Faça seu Gigante chegar ao nível 3",
-		signal = "Leveled",
+		objective = "Alimente seu Gigante mais 3 vezes",
+		signal = "Fed",
+		goal = 3,
 		requires = { "box" },
 		guide = "none",
-		hint = { any = "Alimente com as comidas da caixa e do pátio" },
+		hint = { any = "Use ALIMENTAR! com a comida da caixa e do pátio" },
 		hintAfter = 15,
 		reward = "FirstGrowth",
 	},

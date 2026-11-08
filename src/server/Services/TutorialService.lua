@@ -14,7 +14,7 @@ local TutorialService = {}
 
 local tutorial: any = nil
 local FIRST_BOX_PRICE = (Config.LunchboxById["common"] :: any).price
-local GROW_LEVEL = 3
+local GROW_LEVEL = 5 -- quem já está no nível 5 pula o último passo
 
 -- Recompensas (pagas uma vez, também ao pular). Nunca dão mais que o necessário para o próximo passo.
 local REWARDS: { [string]: (Player) -> () } = {
@@ -29,6 +29,13 @@ local REWARDS: { [string]: (Player) -> () } = {
 		local profile = DataService.get(player)
 		if profile and profile.coins < FIRST_BOX_PRICE then
 			profile.coins = FIRST_BOX_PRICE
+			DataService.markDirty(player)
+		end
+	end,
+	BonusApple = function(player: Player)
+		local profile = DataService.get(player)
+		if profile then
+			table.insert(profile.inventory, { id = "apple", uid = DataService.newUid() })
 			DataService.markDirty(player)
 		end
 	end,
@@ -63,7 +70,7 @@ function TutorialService.init()
 		if step.id == "grow" then
 			step.isComplete = function(player: Player): boolean
 				local profile = DataService.get(player)
-				return profile ~= nil and (profile.level >= GROW_LEVEL or profile.rebirths > 0)
+				return profile ~= nil and (profile.level >= GROW_LEVEL or profile.rebirths > 0) -- veterano
 			end
 		elseif step.id == "feed" then
 			step.isComplete = function(player: Player): boolean
