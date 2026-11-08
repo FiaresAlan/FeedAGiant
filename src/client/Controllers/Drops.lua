@@ -27,16 +27,19 @@ local function rebuildCard(d: any)
 		UI.stroke(card, Config.Rarities[d.rarity].color, 2)
 		local title = UI.label(card, "", {
 			Name = "Title",
-			Size = UDim2.new(1, -12, 0, 26),
+			Size = UDim2.new(1, -12, 0, 48),
 			Position = UDim2.fromOffset(6, 2),
 			TextXAlignment = Enum.TextXAlignment.Left,
+			TextScaled = false,
+			TextSize = 20,
+			TextWrapped = true,
 			TextColor3 = Config.Rarities[d.rarity].color,
 		})
 		title.Text = Locale.fmt("drop_card", nil, { f = d.name, r = Locale.rarity(d.rarity), n = d.holdTime })
 		local rows = UI.frame(card, {
 			Name = "Rows",
-			Size = UDim2.new(1, -12, 1, -32),
-			Position = UDim2.fromOffset(6, 30),
+			Size = UDim2.new(1, -12, 1, -54),
+			Position = UDim2.fromOffset(6, 52),
 			BackgroundTransparency = 1,
 		})
 		local lay = Instance.new("UIListLayout")
@@ -84,7 +87,7 @@ local function rebuildCard(d: any)
 		)
 		n = 1
 	end
-	card.Size = UDim2.new(1, 0, 0, 36 + n * 26)
+	card.Size = UDim2.new(1, 0, 0, 58 + n * 26)
 end
 
 local function refreshPanel()

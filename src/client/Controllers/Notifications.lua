@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local Config = require(game.ReplicatedStorage.Shared.Config)
 
 local Notifications = {}
 
@@ -138,7 +139,12 @@ function Notifications.init(parentGui: ScreenGui)
 			return
 		end
 		if type(data.key) == "string" then
-			pushToast(Locale.fmt(data.key, nil, data.params), data.color)
+			-- Raridade chega como ID interno ("Epic"): mostra no idioma do jogador ("Épico").
+			local params: { [string]: any } = if type(data.params) == "table" then table.clone(data.params) else {}
+			if type(params.r) == "string" and Config.Rarities[params.r] then
+				params.r = Locale.rarity(params.r)
+			end
+			pushToast(Locale.fmt(data.key, nil, params), data.color)
 		elseif type(data.text) == "string" then
 			pushToast(Locale.t(data.text), data.color)
 		end

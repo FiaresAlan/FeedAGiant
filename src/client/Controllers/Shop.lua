@@ -70,7 +70,7 @@ local function oddsSummary(boxId: string, minRarity: string?): string
 	local Odds = require(ReplicatedStorage:WaitForChild("fwjelaa"):WaitForChild("Odds"))
 	local parts = {}
 	for _, e in ordered do
-		table.insert(parts, string.format("%s %s", e.r, Odds.Format(e.p)))
+		table.insert(parts, string.format("%s %s", Locale.rarity(e.r), Odds.Format(e.p)))
 	end
 	return table.concat(parts, "  ·  ")
 end
@@ -98,7 +98,7 @@ local function renderOdds()
 	local rows = LunchboxOdds.rows(shown.boxId, luck, shown.minRarity)
 	for i, row in rows do
 		local color = Config.Rarities[row.rarity].color
-		UI.label(oddsList, string.format("%s  [%s]   %s", row.name, row.rarity, row.text), {
+		UI.label(oddsList, string.format("%s  [%s]   %s", row.name, Locale.rarity(row.rarity), row.text), {
 			Size = UDim2.new(1, -10, 0, 28),
 			LayoutOrder = i,
 			TextXAlignment = Enum.TextXAlignment.Left,

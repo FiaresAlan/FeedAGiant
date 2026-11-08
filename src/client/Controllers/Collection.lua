@@ -126,7 +126,7 @@ function Collection.init(gui: ScreenGui)
 	-- O texto começa abaixo da faixa dourada do painel (teste de 08/11: ficava em cima dela).
 	countLabel = UI.label(body, "", {
 		Size = UDim2.new(1, 0, 0, 30),
-		Position = UDim2.fromOffset(0, 24),
+		Position = UDim2.fromOffset(0, 44),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
 		TextSize = 24,
@@ -134,8 +134,8 @@ function Collection.init(gui: ScreenGui)
 
 	foodGrid = Instance.new("ScrollingFrame")
 	foodGrid.Name = "List"
-	foodGrid.Size = UDim2.new(1, 0, 1, -60)
-	foodGrid.Position = UDim2.fromOffset(0, 60)
+	foodGrid.Size = UDim2.new(1, 0, 1, -80)
+	foodGrid.Position = UDim2.fromOffset(0, 80)
 	foodGrid.BackgroundColor3 = UI.Colors.Panel
 	foodGrid.BorderSizePixel = 0
 	foodGrid.ScrollBarThickness = 8
@@ -167,6 +167,7 @@ function Collection.init(gui: ScreenGui)
 		gl.CellSize = UDim2.fromOffset(cell.X, cell.Y)
 		gl.CellPadding = UDim2.fromOffset(10, 10)
 		gl.SortOrder = Enum.SortOrder.LayoutOrder
+		gl.HorizontalAlignment = Enum.HorizontalAlignment.Center
 		gl.Parent = g
 		return g
 	end

@@ -139,20 +139,6 @@ function UI.glow(inst: GuiObject, color: Color3, spread: number?, transparency: 
 	return g
 end
 
--- Sombra "chunky" 3D por baixo (estilo botão de simulador)
-local function shadow(inst: GuiObject, color: Color3, depth: number)
-	local s = Instance.new("Frame")
-	s.Name = "Shadow"
-	s.BackgroundColor3 = color
-	s.BorderSizePixel = 0
-	s.Size = UDim2.fromScale(1, 1)
-	s.Position = UDim2.fromOffset(0, depth)
-	s.ZIndex = inst.ZIndex - 1
-	s.Parent = inst
-	UI.corner(s, 14)
-	return s
-end
-
 -- Painel: 9-slice se houver asset, senão gradiente + faixa dourada no topo + rebites
 function UI.panel(parent: Instance, props: { [string]: any }): Frame
 	local f = Instance.new("Frame")
@@ -316,7 +302,20 @@ function UI.button(parent: Instance, text: string, color: Color3, props: { [stri
 	local dark = Color3.fromHSV(h, math.min(1, s * 1.1), v * 0.55)
 	local light = Color3.fromHSV(h, s * 0.8, math.min(1, v * 1.15))
 	UI.gradient(b, light, color, 90)
-	local sh = shadow(b, dark, 6)
+	-- Borda escura ABAIXO do botão (efeito "pressionável"). Revisão de UI 08/11: antes era um filho
+	-- do tamanho do botão; com ZIndexBehavior Sibling os filhos ficam por cima do pai e cobriam o
+	-- texto do próprio botão (o "X" de fechar sumia). Agora só aparece embaixo, sem cobrir nada.
+	-- Coordenadas descontam o UIPadding do botão (10 nas laterais, 6 em cima e embaixo).
+	local DEPTH = 6
+	local sh = Instance.new("Frame")
+	sh.Name = "Shadow"
+	sh.BackgroundColor3 = dark
+	sh.BorderSizePixel = 0
+	sh.Size = UDim2.new(1, 12, 0, DEPTH + 4)
+	sh.Position = UDim2.new(0, -6, 1, 2)
+	sh.ZIndex = b.ZIndex
+	sh.Parent = b
+	UI.corner(sh, 10)
 	local shine = Instance.new("Frame")
 	shine.BackgroundColor3 = Color3.new(1, 1, 1)
 	shine.BackgroundTransparency = 0.75
@@ -341,12 +340,12 @@ function UI.button(parent: Instance, text: string, color: Color3, props: { [stri
 	end)
 	b.MouseButton1Down:Connect(function()
 		TweenService:Create(b, TweenInfo.new(0.06), { Position = basePos + UDim2.fromOffset(0, 5) }):Play()
-		sh.Position = UDim2.fromOffset(0, 1)
+		sh.Size = UDim2.new(1, 12, 0, 5)
 		UI.sfx("Click", 0.5)
 	end)
 	b.MouseButton1Up:Connect(function()
 		TweenService:Create(b, TweenInfo.new(0.1), { Position = basePos }):Play()
-		sh.Position = UDim2.fromOffset(0, 6)
+		sh.Size = UDim2.new(1, 12, 0, DEPTH + 4)
 	end)
 	return b
 end
