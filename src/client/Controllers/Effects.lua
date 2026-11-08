@@ -211,7 +211,7 @@ local function rocket(from: Vector3, color: Color3)
 		burst.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
 		burst.LightEmission = 1
 		burst.LightInfluence = 0
-		burst.Size = NumberSequence.new(2.2, 0)
+		burst.Size = NumberSequence.new(4, 0)
 		burst.Lifetime = NumberRange.new(1.2, 1.8)
 		burst.Speed = NumberRange.new(30, 45)
 		burst.SpreadAngle = Vector2.new(180, 180)
@@ -219,7 +219,7 @@ local function rocket(from: Vector3, color: Color3)
 		burst.Acceleration = Vector3.new(0, -12, 0)
 		burst.Rate = 0
 		burst.Parent = p
-		burst:Emit(70)
+		burst:Emit(110)
 		local light = Instance.new("PointLight")
 		light.Color = color
 		light.Range = 60

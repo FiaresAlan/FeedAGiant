@@ -11,6 +11,29 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A00. Teste do usuário em 08/11/2026 (tarde) e o que foi corrigido
+
+O usuário jogou e apontou problemas. Todos foram tratados e testados na cópia `scratchpad/studio/FeedAGiant-boss1.rbxl` (fotos em `docs/qa/shots/fase5/`):
+
+| Pedido / bug | Solução | Onde |
+|---|---|---|
+| **Nenhum botão da HUD abria nada** | A janela nascia `Visible = true` com o fundo escondido; `if not win.Visible then UI.pop(win)` nunca rodava. Agora nasce escondida | `UI.window` |
+| Alimentava do outro lado do mapa | Servidor exige estar perto do próprio gigante (`PlotService.nearGiant`, borda + 28 studs); o botão ALIMENTAR só aparece perto | `PlotService`, `HUD.buildFeedButton` |
+| Soco no vento o tempo todo | **Modo de luta**: botão LUTAR/SAIR (canto inferior direito), Q no teclado, Y no controle. Luvas, socos e bloqueio só nele; arena e dragão ligam sozinhos | `CombatService.setFightMode`, `Combat.lua`, remote `RequestFightMode` |
+| HUD do topo tampando a tela | Botão ▲/▼ encolhe o painel (fica só moedas + "Nv."). Em telas baixas (< 560 px) já começa encolhido | `HUD.buildTopBar` |
+| "Sombra branca rolando" nas barras | Brilho virou reflexo parado | `UI.bar` |
+| Boss sem sentido (bloco + bola) | **Dragão Faminto** na arena (malha `crystal-dragon`), barra de vida, pisão com círculo vermelho, prêmio 2x/dia e castigo (come 1 comida). Regras no GAME_BRIEF | `BossService.lua`, `Config.Boss`, `EventService` |
+| Sem expectativa de evento | Chip "Próximo evento: X 3:21" no canto superior esquerdo; pisca no último minuto; vira "EVENTO AGORA" | `EventService` (remote `EventSchedule`), `Notifications.lua` |
+| Lago e mar geométricos | Água de terreno (lagos + anel de mar) | `src/server/WorldFx.lua` |
+| Panela com "fumaça" de peças | Fogo (10 focos), faíscas e vapor de partículas; crescem no evento e o vapor ganha a cor do evento | `WorldFx` (`setEventBoost`) |
+| Fogos no servidor para item de valor | Comida Épica+ solta fogos para todos (perto de quem achou e na frente da câmera de cada um) | `ShopService`, `Effects.fireworks`, remote `Fireworks` |
+| Progressão pouco clara | Estátuas das 12 espécies em volta da praça com placa de preço; chip "META: virar CRIANÇA no Nv. 10 (faltam 9)" | `WorldFx.statues`, `HUD` |
+| Áudios aprovados | 27 sons enviados (`tools/upload_audio.py` → `AudioAssets.lua`) e ligados | `Config.Sounds` |
+| Raridade em inglês nos drops | `Locale.rarity` | `DropService` |
+
+**Não testado:** dragão com 2+ jogadores; castigo do dragão (nocaute → comer comida) só pelo código; celular de verdade. O pedido "baú físico" ficou como está: a abertura de caixa atual foi aprovada ("acho muito válido").
+
+
 ## A0. Sessão de 08/11/2026 (autônoma; o usuário dormiu e deu autorização total)
 
 O usuário mandou seguir todas as fases até o fim sem perguntar nada. Ele autorizou o uso da API Key e do Chrome, e pediu git push e backup antes de cada mudança importante (ver A5c).

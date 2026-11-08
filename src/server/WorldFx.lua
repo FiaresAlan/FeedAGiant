@@ -42,8 +42,8 @@ local function water(map: Instance)
 	terrain.WaterReflectance = 0.6
 	terrain.WaterWaveSize = 0.12
 	terrain.WaterWaveSpeed = 8
-	-- Mar: anel de água entre a praia e ~150 studs para fora. Topo em -1,6 (abaixo da praia, -0,6).
-	local outer = ISLAND_R + BEACH_W + 150
+	-- Mar: anel de água entre a praia e ~260 studs para fora. Topo em -1,6 (abaixo da praia, -0,6).
+	local outer = ISLAND_R + BEACH_W + 260
 	terrain:FillCylinder(CFrame.new(0, -4.4, 0), 5.6, outer, Enum.Material.Water)
 	terrain:FillCylinder(CFrame.new(0, -4.4, 0), 6, ISLAND_R - 20, Enum.Material.Air)
 	-- Lagos: água com topo 0,4 acima do chão (o aro de areia fica em volta); a peça azul some.
@@ -59,9 +59,11 @@ local function water(map: Instance)
 	-- O mar distante (peça) fica com a mesma cor da água e um pouco de brilho.
 	local far = map:FindFirstChild("FarSea", true)
 	if far and far:IsA("BasePart") then
-		far.Color = Color3.fromRGB(30, 120, 180)
-		far.Material = Enum.Material.Glass
-		far.Transparency = 0.1
+		-- Mesma cor da água vista de longe (a neblina esconde a emenda no horizonte).
+		far.Color = Color3.fromRGB(78, 178, 205)
+		far.Material = Enum.Material.SmoothPlastic
+		far.Reflectance = 0.2
+		far.Transparency = 0
 	end
 end
 
