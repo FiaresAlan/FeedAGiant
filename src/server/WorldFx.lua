@@ -502,7 +502,7 @@ local function statues(map: Instance, template: (string) -> Model?)
 			local bottom = cf * CFrame.new(0, -size.Y / 2, 0)
 			local offset = s:GetPivot():ToObjectSpace(bottom)
 			local yaw = math.rad((entry :: any).yaw or 0)
-			s:PivotTo(face * CFrame.new(0, topY, 0) * CFrame.Angles(0, math.pi + yaw, 0) * offset:Inverse())
+			s:PivotTo(face * CFrame.new(0, topY, 0) * CFrame.Angles(0, yaw, 0) * offset:Inverse()) -- medido: sem o giro de 180° a criatura olha para a praça
 			for _, d in s:GetDescendants() do
 				if d:IsA("BasePart") then
 					d.Anchored = true

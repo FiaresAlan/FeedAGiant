@@ -79,7 +79,7 @@ local function makeSide(speciesId: string, level: number, rebirths: number, home
 	local bottom = cf * CFrame.new(0, -size.Y / 2, 0)
 	local offset = model:GetPivot():ToObjectSpace(bottom)
 	model.PrimaryPart = nil
-	model:PivotTo(home * CFrame.Angles(0, math.rad((entry :: any).yaw or 0) + math.pi, 0) * offset:Inverse())
+	model:PivotTo(home * CFrame.Angles(0, math.rad((entry :: any).yaw or 0), 0) * offset:Inverse()) -- frente do modelo = -Z (medido nas estátuas)
 	model.WorldPivot = home
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
