@@ -28,6 +28,37 @@ end
 local LightingRecipes = {}
 
 LightingRecipes.Recipes = {
+	-- Fim de tarde (decisão do usuário, 07/11/2026). Base: vault "Stylized Lighting Recipes" §3.3
+	-- Golden hour (ClockTime 17,6; ambiente 90/70/70 e 130/100/90). Ajustes deste jogo (regra prática):
+	-- ClockTime 16,8 em vez de 17,6 e ambiente ~20% mais alto, para o estilo cartoon nunca ficar escuro e
+	-- quem olha contra o sol não ver tudo em contraluz (o "Breaks when" da própria receita).
+	GoldenAfternoon = {
+		lighting = {
+			Ambient = rgb(110, 90, 90),
+			OutdoorAmbient = rgb(155, 125, 112),
+			Brightness = 2.3,
+			ColorShift_Top = rgb(255, 190, 120),
+			ColorShift_Bottom = rgb(60, 40, 80),
+			EnvironmentDiffuseScale = 0.4,
+			EnvironmentSpecularScale = 0,
+			ClockTime = 16.8,
+			GeographicLatitude = 30,
+			GlobalShadows = true,
+		},
+		atmosphere = {
+			Density = 0.35,
+			Offset = 0.2,
+			Color = rgb(255, 200, 160),
+			Decay = rgb(200, 120, 110),
+			Glare = 0.4,
+			Haze = 1.5,
+		},
+		bloom = { Intensity = 0.7, Size = 32, Threshold = 1.1 },
+		grade = { Brightness = 0.02, Contrast = 0.1, Saturation = 0.1, TintColor = rgb(255, 245, 235) },
+		sunRays = { Intensity = 0.06, Spread = 0.6 },
+		sky = { SunAngularSize = 16, MoonAngularSize = 11, CelestialBodiesShown = true },
+		clouds = { Cover = 0.5, Density = 0.5, Color = rgb(255, 236, 220) },
+	} :: Recipe,
 	BrightCartoon = {
 		lighting = {
 			Ambient = rgb(110, 110, 125),

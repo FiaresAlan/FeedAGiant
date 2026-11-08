@@ -25,8 +25,8 @@ local hex = Color3.fromHex
 
 -- Paleta (cores oficiais BrickColor do guia simulator, zona Meadow/spawn)
 World.Palette = {
-	grass = "#5B9A4C",
-	grassDark = "#4B974B",
+	grass = "#7FA34E", -- fim de tarde: verde-amarelado e menos saturado (era #5B9A4C)
+	grassDark = "#6A8F45",
 	sand = "#F0D5A0",
 	sandDark = "#D7C59A",
 	path = "#D7C59A",
@@ -589,14 +589,14 @@ function World.lamp(cf: CFrame, parent: Instance)
 		Name = "Post",
 		Size = Vector3.new(1, 11, 1),
 		CFrame = cf * CFrame.new(0, 5.5, 0),
-		Color = hex("#4A4749"),
+		Color = hex("#694028"),
 	})
 	post.Parent = m
 	local cap = Build.decor(Build.part({
 		Name = "Cap",
 		Size = Vector3.new(2.4, 0.6, 2.4),
 		CFrame = cf * CFrame.new(0, 11.2, 0),
-		Color = hex("#4A4749"),
+		Color = hex("#4A2C1A"),
 	}))
 	cap.Parent = m
 	local bulb = Build.decor(Build.part({
@@ -604,7 +604,8 @@ function World.lamp(cf: CFrame, parent: Instance)
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.new(2.2, 2.2, 2.2),
 		CFrame = cf * CFrame.new(0, 12.4, 0),
-		Color = hex("#FFE08A"),
+		Color = hex("#FFD27A"),
+		Material = Enum.Material.Neon, -- lâmpada acesa: pequena, passa do limiar do Bloom (1,1)
 	}))
 	bulb.Parent = m
 	m.Parent = parent
@@ -699,7 +700,7 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(0.1, r * 2, r * 2),
 				CFrame = CFrame.new(cf.Position + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-				Color = hex(if rng:NextNumber() < 0.5 then "#6FB25A" else "#4E8F42"),
+				Color = hex(if rng:NextNumber() < 0.5 then "#93B55E" else "#6C9146"),
 				CastShadow = false,
 			}))
 			return patch

@@ -32,7 +32,7 @@
 
 ## 5. Direção de arte
 - **Estilo:** **cartoon pintado (stylised PBR)**, escolhido pelo usuário em 07/11/2026. Formas estilizadas com texturas pintadas simples (cor, mais normal opcional, rugosidade alta, metalness 0) e iluminação trabalhada. Superfícies grandes e repetidas usam a camada barata "cartoon liso" (cor + SmoothPlastic). Criaturas: reduzidas para no máximo 20 mil triângulos e repintadas em toon, mantendo a silhueta.
-- **Paleta e clima:** diurno e saturado; a paleta é definida na Fase 1 (`src/shared/Palette.lua`) e precisa passar no teste em tons de cinza. Neon só com orçamento (destaques de raridade e de interação).
+- **Paleta e clima:** **fim de tarde** (sol baixo e quente, horizonte alaranjado, grama menos saturada), escolhido pelo usuário em 07/11/2026 depois do painel da Fase 1. Antes era diurno e saturado; a paleta fica em `World.Palette` (`src/server/World.lua`) e precisa passar no teste em tons de cinza. Neon só com orçamento (destaques de raridade e de interação).
 - **Assets existentes:**
   - `assets/ui` (logo, ícones, painel, já enviados ao Roblox);
   - `assets/Personagens (goblin, dragao)`, só local: 185k a 800k triângulos, precisam ser otimizados para no máximo 20 mil.
@@ -94,3 +94,4 @@
 | 07/11/2026 | Formatação StyLua aplicada num commit separado, sem mudar lógica | Formatar junto com as correções | Deixa os diffs das correções legíveis | — |
 | 07/11/2026 | Checagem de distância no servidor para ClickDetector | Confiar em MaxActivationDistance | O vault (Roblox docs) diz que não é validado no servidor; o revisor discordou; a checagem é barata | Clickable and Interactive Parts |
 | 07/11/2026 | Estilo de arte: cartoon pintado (stylised PBR); confirmado pelo usuário | Cartoon liso (só cor); semi-realista | Realismo não é o atrativo; maioria no celular (realismo fica chapado e pesa na memória); simuladores têm convenção estilizada (thumbnail e descoberta); combina com avatares | Stylised vs Realistic Material Pipelines; Stylized Lighting Recipes; Art Budgets - Triangles Draw Calls Memory; Mesh Optimization for Mobile |
+| 07/11/2026 | Clima: fim de tarde (receita GoldenAfternoon), confirmado pelo usuário | Manter o "Bright cartoon" de meio-dia | Os 3 revisores da Fase 1 (nota 7,9) apontaram W4 "dia padrão"; ajustes sutis não mudaram a nota; o usuário escolheu um clima mais marcante | Stylized Lighting Recipes §3.3 Golden hour; Lighting Mood and Time of Day |

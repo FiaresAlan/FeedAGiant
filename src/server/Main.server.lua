@@ -22,7 +22,7 @@ local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
 print("[FeedAGiant] Iniciando servidor...")
 
-LightingRecipes.apply("BrightCartoon") -- Fase 1: luz, céu e nuvens (um único dono: o servidor)
+LightingRecipes.apply("GoldenAfternoon") -- Fase 1: luz, céu e nuvens (um único dono: o servidor)
 MapService.init()
 DataService.init()
 GiantService.init()
