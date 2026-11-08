@@ -60,9 +60,11 @@ foram desligados **só no cliente da foto**. As versões anteriores estão em `r
 | 1 | primeira versão + ajustes (borda, pedras, cores, caldeirão 1,7×, placares, faixas, slots, placa nos 2 lados) | [1,1,1,1,1,1] | 5,0 |
 | 2 | placa para os fundos; pedestal e bandeiras; banquete; postes; lagos; névoa; mar sem água de terreno; fotos com avatar | [2,2,1,1,1,2] | 7,9 |
 | 3 | sol de tarde e mais quente, correção de cor quente, raios de sol, fogo Neon com luz; placares de madeira; evento dourado; contorno no texto das placas; manchas de grama; arbustos nos caminhos | [2,2,1,1,1,2] | 7,9 (máx. de rodadas atingido) |
-| 4 (decisão do usuário) | **clima de fim de tarde** (receita GoldenAfternoon: vault §3.3 Golden hour com ClockTime 16,8 e ambiente mais alto), grama verde-amarelada menos saturada, postes de madeira com lâmpada Neon | (este painel) | |
+| 4 (decisão do usuário) | **clima de fim de tarde** (receita GoldenAfternoon: vault §3.3 Golden hour com ClockTime 16,8 e ambiente mais alto), grama verde-amarelada menos saturada, postes de madeira com lâmpada Neon | [2,2,1,1,1,2] | 7,9 |
 
 ## Não feito / limites
+- **Céu:** os 3 revisores da rodada 4 apontam que o céu de cima continua azul de meio-dia (o céu padrão do Roblox não muda de cor).
+  Correção: caixa de céu de entardecer (6 imagens de 512², kit `run.py sky` com HDRI CC0). Isso exige **upload**, que precisa de autorização do usuário.
 - O marco e os props são primitivas, sem textura pintada. A textura pintada entra com os modelos da Fase 2.
 - Desempenho medido só no PC, com a qualidade fixada em 5 e 10. Falta o teste em celular de verdade.
 - Com pouca memória no PC, a qualidade automática do Studio encurtou a distância de desenho e escondeu o marco na vista

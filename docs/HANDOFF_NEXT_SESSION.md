@@ -70,6 +70,34 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 - [ ] 0.7 Criar `leaderArena` (placar da Arena morto). Enviar ao cliente só o que mudou, em vez do estado inteiro a cada segundo. Guardar o resultado de `IsInGroup` em cache na entrada.
 - [ ] 0.8 Verificador Luau com **overall PASS**, teste com 2 a 3 jogadores no Studio, revisão independente (anti-exploit e dados), nota ≥ 8,5 na rubrica `system`, registro no ledger
 
+## 2a. Atualização de 07/11/2026 (madrugada): fim de tarde aplicado; Fase 2 iniciada
+
+**O que o usuário decidiu:** clima de **fim de tarde** e, ao terminar, seguir **direto para a Fase 2**.
+
+**O que foi feito:**
+- Receita `GoldenAfternoon` em `src/shared/LightingRecipes.lua`. Base: vault §3.3 Golden hour, com ClockTime 16,8 e ambiente ~20% mais alto para não escurecer.
+- O `Main.server.lua` aplica essa receita.
+- Grama #7FA34E, menos saturada; postes de madeira com lâmpada Neon.
+- Decisão registrada no GAME_BRIEF (§5 e tabela de decisões).
+
+**Resultado medido:**
+- Painel world: **7,9** de novo, mediana [2,2,1,1,1,2].
+- Orçamento: 176k a 466k triângulos e 23 a 38 draw calls por vista.
+- Gates OK: 24/24 rotas, 0/285 props flutuando.
+- Fotos em `docs/qa/shots/fase1/`; as versões anteriores estão em `rodada1..3/`.
+
+**Bloqueador consensual (W4):** o **céu de cima continua azul**, porque o céu padrão do Roblox não muda de cor. A solução é uma caixa de céu de entardecer (`make-map` `run.py sky` com HDRI CC0, 6 faces de 512²). Isso precisa de **upload de 6 imagens**, que depende de autorização do usuário. O W3 (sem texturas pintadas) se resolve com os assets da Fase 2.
+
+**Fato novo:** existe um place publicado **"Alimente um Gigante" (placeId 115578986093768)**. Ele esteve aberto no Studio em 07/11/2026 (aberto pelo usuário) e fechou em seguida. Nenhuma ferramenta escreveu nele. Atualize "Fatos do projeto" no CLAUDE.md quando o usuário confirmar que é este jogo.
+
+**Novos assets do usuário em `assets/` (fora do Git até decidir):**
+- `Caldeirão FeedAGiant sem cor.glb`: 769 mil triângulos, versão-fonte sem material.
+- `Caldeirão com textura basica + fogo.obj` + `.mtl` + `Geometry01_diff.png` (1024²): **20.000 triângulos exatos**, cerca de 21 × 19 × 13 de tamanho.
+- `Caldeirão FeedAGiant referencia textura e cor.png`: cobre com rachaduras e alças de argola.
+- Esses arquivos são o candidato para substituir o caldeirão de primitivas. Usá-los **exige upload do modelo**, que precisa de autorização.
+
+**Fase 2 (em andamento):** veja §2-F2 logo abaixo.
+
 ## 2b. Atualização de 07/11/2026 (noite): FASE 1, MUNDO NOVO (7,9; abaixo de 8,5)
 
 - **Estilo de arte decidido pelo usuário:** cartoon pintado (stylised PBR). Está registrado no GAME_BRIEF §5 e no CLAUDE.md.
