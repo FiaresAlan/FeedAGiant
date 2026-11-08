@@ -158,6 +158,21 @@ Aprovadas em 07/11/2026 e ampliadas depois:
   - Verificador: `python "C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\tools\luau_check.py" --project .`. Meta: **overall PASS**; hoje está PASS com 47 arquivos.
 - Ruído conhecido no console: `rbxassetid://203785492` e `81504106` vêm do plugin "Ecos Tools", não do jogo. O aviso "Tecnologia de migração de iluminação" ao dar Play é do Studio (o projeto não usa mais `Technology`).
 
+## A5b. Item A — céu de fim de tarde (08/11/2026, em andamento)
+
+- **Pronto no código, falta o upload.**
+  - Ferramenta: `tools/make_sky.py`. Ela reaproveita só as funções de geometria do `sky.py` do kit make-map e grava em `assets/sky/<nome>/`; o pack do fwjelaa fica intocado.
+  - Céu **`dourado`**: HDRI CC0 `qwantani_sunset_puresky` (Poly Haven), recolorido com um degradê pintado por altura (horizonte dourado → coral → lilás → azul-lavanda no topo). O sol e os realces mantêm a cor original.
+  - Faces de 512² com o sol girado para o azimute do sol da receita: **−96,83°** (oeste), medido no Studio com `GetSunDirection`, ClockTime 16,8 e latitude 30.
+  - Prévia: `assets/sky/dourado_preview.jpg`.
+  - Para refazer: o campo `remake` em `assets/sky/dourado/sky.json`.
+- **Envio:** `python -I tools/upload_sky.py dourado` (6 imagens) e depois `python -I tools/gen_sky_assets.py`, que gera `src/shared/SkyAssets.lua`.
+  - **Na 1ª tentativa (08/11) o envio foi BLOQUEADO pelo classificador do modo automático ("External System Writes")**, como aconteceu com os modelos. Não contornar: o usuário roda os comandos no terminal ou libera a permissão.
+- **Código:** `LightingRecipes.GoldenAfternoon.skybox = "dourado"`.
+  - Com as 6 faces em `SkyAssets`, `apply()` põe as faces no `RecipeSky`, desliga o disco do sol do Roblox (ficaria a 18° de altura, longe do sol pintado a 2,7°; seriam dois sóis) e afina as nuvens 3D (Cover 0,32).
+  - **Sem IDs, nada muda** (céu padrão). O atributo `RecipeSky.Skybox` diz qual céu está ativo.
+- Depois do upload: testar numa cópia, tirar as fotos do painel world (as mesmas vistas de `docs/qa/shots/fase1/`), conferir que o sol pintado bate com a direção das sombras, e chamar um painel de 3 revisores.
+
 ## A6. PRÓXIMOS PASSOS (em ordem)
 
 O usuário pediu (08/11): "te permito seguir a fase". Antes disso ele quis o conserto do chão (feito) e perguntou o que mais você planeja para o visual, que "ainda está bem fraco". A lista abaixo foi apresentada a ele. **A última pergunta, "visual primeiro (A–C) ou seguir a Fase 2", ficou sem resposta.** Pergunte no início da sessão, ou siga a ordem abaixo se ele disser para seguir.

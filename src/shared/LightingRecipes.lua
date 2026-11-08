@@ -11,6 +11,8 @@
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 
+local SkyAssets = require(script.Parent.SkyAssets)
+
 export type Recipe = {
 	lighting: { [string]: any },
 	atmosphere: { [string]: any },
@@ -19,6 +21,12 @@ export type Recipe = {
 	sky: { [string]: any },
 	clouds: { [string]: any },
 	sunRays: { [string]: any },
+	-- Fase 1, item A: céu de 6 faces (SkyAssets). Só vale se as 6 faces tiverem ID;
+	-- sem IDs, fica o céu padrão do Roblox (nada quebra).
+	skybox: string?,
+	-- Ajustes aplicados SÓ quando o skybox está ativo.
+	skyboxSky: { [string]: any }?,
+	skyboxClouds: { [string]: any }?,
 }
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -58,6 +66,14 @@ LightingRecipes.Recipes = {
 		sunRays = { Intensity = 0.06, Spread = 0.6 },
 		sky = { SunAngularSize = 16, MoonAngularSize = 11, CelestialBodiesShown = true },
 		clouds = { Cover = 0.5, Density = 0.5, Color = rgb(255, 236, 220) },
+		-- Céu pintado "dourado" (assets/sky/dourado): HDRI CC0 qwantani_sunset_puresky recolorido
+		-- (horizonte dourado → coral → lilás). O sol do céu foi girado para o azimute do sol da luz
+		-- (−96,8°, medido no Studio com ClockTime 16,8 e latitude 30). O disco do sol do Roblox fica
+		-- desligado: ele ficaria a 18° de altura, longe do sol pintado (2,7°), e apareceriam dois sóis.
+		skybox = "dourado",
+		skyboxSky = { CelestialBodiesShown = false },
+		-- Nuvens 3D mais ralas para não esconder o degradê pintado (regra prática).
+		skyboxClouds = { Cover = 0.32, Density = 0.4 },
 	} :: Recipe,
 	BrightCartoon = {
 		lighting = {
@@ -125,11 +141,33 @@ function LightingRecipes.apply(name: string)
 		end
 	end
 	assign(owned(Lighting, "Atmosphere", "RecipeAtmosphere"), recipe.atmosphere)
-	assign(owned(Lighting, "Sky", "RecipeSky"), recipe.sky)
+	local sky = owned(Lighting, "Sky", "RecipeSky")
+	assign(sky, recipe.sky)
 	assign(owned(Lighting, "BloomEffect", "RecipeBloom"), recipe.bloom)
 	assign(owned(Lighting, "ColorCorrectionEffect", "RecipeGrade"), recipe.grade)
 	assign(owned(Lighting, "SunRaysEffect", "RecipeSunRays"), recipe.sunRays)
-	assign(owned(Workspace.Terrain, "Clouds", "RecipeClouds"), recipe.clouds)
+	local clouds = owned(Workspace.Terrain, "Clouds", "RecipeClouds")
+	assign(clouds, recipe.clouds)
+
+	local faces = if recipe.skybox then SkyAssets[recipe.skybox] else nil
+	if faces then
+		local s = sky :: Sky
+		s.SkyboxBk = faces.Bk
+		s.SkyboxDn = faces.Dn
+		s.SkyboxFt = faces.Ft
+		s.SkyboxLf = faces.Lf
+		s.SkyboxRt = faces.Rt
+		s.SkyboxUp = faces.Up
+		assign(sky, recipe.skyboxSky or {})
+		assign(clouds, recipe.skyboxClouds or {})
+	end
+	sky:SetAttribute("Skybox", if faces then recipe.skybox else "padrão")
+end
+
+-- O céu de 6 faces desta receita está disponível (IDs enviados)?
+function LightingRecipes.hasSkybox(name: string): boolean
+	local recipe = (LightingRecipes.Recipes :: { [string]: Recipe })[name]
+	return recipe ~= nil and recipe.skybox ~= nil and SkyAssets[recipe.skybox :: string] ~= nil
 end
 
 return LightingRecipes
