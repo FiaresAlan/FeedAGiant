@@ -124,6 +124,25 @@ Aprovadas em 07/11/2026 e ampliadas depois:
 
   Atributos no GAME_BRIEF. A loja lista as espécies automaticamente.
 
+## A4b. Mapa "assado" — o mundo aparece no modo edição (08/11/2026)
+
+**Pedido do usuário:** ver e editar o mundo no Studio **sem dar Play**, no place oficial.
+
+**Como funciona:**
+- `MapService.bake()` gera o mundo inteiro no **modo edição**, como pasta `Workspace.Map` com os atributos `Baked = true`, `MapVersion` e `BakedAt`. Também guarda o `Baseplate` antigo em `ServerStorage.LegacyMap` e aplica a luz `GoldenAfternoon`.
+- Para assar ou re-assar, na barra de comandos do Studio ou pelo MCP (`execute_luau`, modo Edit):
+  `require(game.ServerScriptService.Server.Services.MapService).bake()`
+- **Ao rodar** (`MapService.init`):
+  - se existir `Workspace.Map` assado com `MapVersion == MAP_VERSION` e completo (ShopPad + Base1..8 com Floor, Zone, GiantAnchor, Sign, Slot1..16), o jogo **reaproveita** esse mapa e não gera outro. O console mostra "[MapService] usando o mapa assado do place (versão N)";
+  - se a versão for diferente ou faltar algo, o mapa é descartado **só na execução** e o jogo gera de novo pelo código. O place salvo não muda.
+- **REGRA:** sempre que mudar a geometria em `World.lua` ou `MapService` (posições, peças, natureza), **aumente `MAP_VERSION`** (em `MapService.lua`) e re-asse no place oficial. Sem isso, o mapa antigo continua aparecendo.
+- **Mudanças feitas à mão** pelo usuário dentro de `Workspace.Map` ficam no place, mas **somem se alguém re-assar**. Para mudanças permanentes, altere `World.lua`. Avise o usuário antes de re-assar se ele tiver editado o mapa.
+- Testado numa cópia: assou em 0,4 s com 4.851 peças. Ao rodar, 1 mapa só, o jogador pega a base, o gigante nasce, a placa mostra o nome e a comida vai para o pátio.
+- **Assado no place oficial** em 08/11/2026 pelo MCP, a pedido explícito do usuário ("quero isso no oficial"). Foi feito dentro de uma gravação de desfazer ("Assar mapa Feed a Giant"), então dá para usar Ctrl+Z.
+  - **O place NÃO foi salvo nem publicado pelo Claude.** O usuário precisa salvar ou publicar (Ctrl+S / Arquivo → Publicar no Roblox).
+  - Foto: `docs/qa/shots/fase1/07_oficial_modo_edicao.jpg`.
+- O código chegou ao place oficial pelo `rojo serve` do usuário. Conferido só por leitura: as fontes de MapService, World e CreatureAssets estavam atualizadas.
+
 ## A5. Fatos importantes do ambiente
 
 - **Place oficial:** "Alimente um Gigante", **placeId 115578986093768** (publicado). O usuário o mantém aberto no Studio e sincroniza com **`rojo serve`**: apareceu o aviso "Project 'FeedAGiant' is serving at localhost". **Nunca escreva nesse place pelo MCP.** Inspeção só de leitura, quando o usuário pedir.
