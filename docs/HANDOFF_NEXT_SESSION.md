@@ -135,7 +135,19 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
   - O `GiantService` carrega o Model com `InsertService:LoadAsset` (com cache em `ServerStorage.CreatureTemplates`), esconde o corpo de blocos e coloca a malha sobre o pedestal.
   - **Sem ID, nada muda** (testado).
 
-**Bloqueado: upload.** `python -I tools/upload_models.py` foi **negado pelo classificador do modo automático** do Claude Code ("Public Data-Sharing Upload"). Para seguir, há dois caminhos:
+**Atualização (madrugada de 08/11/2026): upload FEITO e testado no Studio.**
+- O usuário disse "pode fazer, você tem a key", e o upload rodou com a autorização explícita dele. Os 11 IDs estão em `assets/optimized/assets.json` e `src/shared/CreatureAssets.lua`.
+- **Testado (place de teste 14 e 15):** as 8 espécies com modelo trocam para a malha 3D em ~0,5 s, sem nenhum bloco visível.
+  - O dragão usa o bebê-dragão no nível 1 e o dragão adulto a partir do estágio seguinte.
+  - A escala por nível funciona: a hidra no nível 40 fica com 90 studs.
+  - O console não mostra erros.
+- **Bug corrigido:** o "piscar" dos olhos (loop no fim do GiantService) re-mostrava os olhos de bloco por cima do modelo 3D. Agora ele não pisca quando há `CreatureMesh`, nem no meio de uma piscada.
+- **O caldeirão do usuário virou o marco:** `World.buildCauldron` carrega `cauldron` (InsertService) e substitui pernas, corpo, faixas, borda e alças. A largura é a mesma (38 × 1,7) e a base apoia na fogueira. Sopa, comidas, concha e vapor acompanham a borda nova. Sem ID, o caldeirão volta a ser de primitivas.
+- O `yaw` 0 dos dragões ficou bom no jogo: o dragão olha para quem chega pela praça.
+- Fotos em `docs/qa/shots/fase2/`.
+- **Fato:** apareceu no Studio um aviso de que um projeto Rojo "FeedAGiant" está sendo servido em localhost (provavelmente o usuário sincronizando um place). Nada foi conectado.
+
+**Histórico — o bloqueio do upload:** `python -I tools/upload_models.py` foi **negado pelo classificador do modo automático** do Claude Code ("Public Data-Sharing Upload"). Para seguir, há dois caminhos:
 - o usuário roda os dois comandos no terminal: `python -I tools/upload_models.py` e depois `python -I tools/gen_creature_assets.py`;
 - ou o usuário adiciona uma regra de permissão para esse comando.
 

@@ -18,6 +18,39 @@ local MapKit = game:GetService("ServerScriptService"):WaitForChild("fwjelaa"):Wa
 local Build = require(MapKit:WaitForChild("Build")) :: any
 local Props = require(MapKit:WaitForChild("Props")) :: any
 local Scatter = require(MapKit:WaitForChild("Scatter")) :: any
+local CreatureAssets = require(game.ReplicatedStorage.Shared.CreatureAssets)
+local InsertService = game:GetService("InsertService")
+
+-- Caldeirão 3D do usuário (assets/optimized/cauldron.glb, enviado na Fase 2). nil se não houver ID
+-- ou se o carregamento falhar: aí fica o caldeirão de primitivas.
+local function loadCauldronMesh(): Model?
+	local id = CreatureAssets["cauldron"]
+	local numeric = id and tonumber(string.match(id, "%d+"))
+	if not numeric then
+		return nil
+	end
+	local ok, loaded = pcall(function()
+		return InsertService:LoadAsset(numeric)
+	end)
+	if not ok or not loaded then
+		warn("[World] caldeirão 3D não carregou:", loaded)
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = "CauldronMesh"
+	for _, child in (loaded :: Instance):GetChildren() do
+		child.Parent = model
+	end
+	(loaded :: Instance):Destroy()
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = true -- é o corpo do marco: ninguém atravessa
+			d.CanTouch = false
+		end
+	end
+	return model
+end
 
 local World = {}
 
@@ -258,7 +291,29 @@ local function buildCauldron(parent: Instance)
 	end
 	-- Sopa
 	local soupTop = bodyBottom + potH + 1.6 * S
-	cyl("Soup", 36 * S, 1, CFrame.new(0, soupTop - 0.5, 0), "#FF8C1A", true)
+	local soupD = 36 * S
+	-- Fase 2: com o caldeirão 3D do usuário, ele substitui pernas, corpo, faixas, borda e alças;
+	-- a largura fica igual à do caldeirão de primitivas (38 * S) e a base apoia na fogueira.
+	local meshPot = loadCauldronMesh()
+	if meshPot then
+		local _, size0 = meshPot:GetBoundingBox()
+		meshPot:ScaleTo(meshPot:GetScale() * (38 * S) / math.max(size0.X, size0.Z))
+		local cf, size = meshPot:GetBoundingBox()
+		local bottom = cf * CFrame.new(0, -size.Y / 2, 0)
+		local offset = meshPot:GetPivot():ToObjectSpace(bottom)
+		meshPot:PivotTo(CFrame.new(0, hearthTop, 0) * offset:Inverse())
+		meshPot.Parent = m
+		for _, name in { "Leg", "Pot", "PotBand", "PotBand2", "Rim", "Handle" } do
+			for _, part in m:GetChildren() do
+				if part.Name == name and part:IsA("BasePart") then
+					part:Destroy()
+				end
+			end
+		end
+		soupTop = hearthTop + size.Y - 2.5
+		soupD = math.max(size.X, size.Z) * 0.72
+	end
+	cyl("Soup", soupD, 1, CFrame.new(0, soupTop - 0.5, 0), "#FF8C1A", true)
 	local rng = Random.new(SEED)
 	for _ = 1, 10 do
 		local a, r = rng:NextNumber(0, math.pi * 2), rng:NextNumber(2, 14) * S

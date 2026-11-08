@@ -593,10 +593,14 @@ function GiantService.init()
 			for _, model in giants do
 				local eyeL = model:FindFirstChild("EyeL") :: Part?
 				local eyeR = model:FindFirstChild("EyeR") :: Part?
-				if eyeL and eyeR then
+				-- com modelo 3D os olhos de bloco ficam escondidos: piscar os mostraria de novo
+				if eyeL and eyeR and not model:FindFirstChild("CreatureMesh") then
 					eyeL.Transparency = 1
 					eyeR.Transparency = 1
 					task.delay(0.12, function()
+						if model:FindFirstChild("CreatureMesh") then
+							return -- o modelo 3D entrou durante a piscada: olhos ficam escondidos
+						end
 						eyeL.Transparency = 0
 						eyeR.Transparency = 0
 					end)
