@@ -42,10 +42,9 @@ local function buildBase(index: number, root: Folder): BaseInfo
 		Size = Vector3.new(size, 2, size),
 		CFrame = origin * CFrame.new(0, 1, 0),
 		Color = Color3.fromHex(theme.light),
-		Material = Enum.Material.SmoothPlastic,
+		Material = Enum.Material.WoodPlanks,
 		Parent = model,
 	})
-	floor.TopSurface = Enum.SurfaceType.Studs
 	local zone = Util.makePart({
 		Name = "Zone",
 		Size = Vector3.new(size, 20, size),
@@ -150,6 +149,15 @@ local function buildBase(index: number, root: Folder): BaseInfo
 end
 
 function MapService.init()
+	-- Places antigos (ex.: o place oficial) ainda têm o Baseplate de 1200x4 com topo em y=2, acima do chão
+	-- novo (topo em 0): árvores, estrada e bases ficavam "enterradas". Move para o ServerStorage (não apaga).
+	local legacy = Workspace:FindFirstChild("Baseplate")
+	if legacy then
+		local stash = game:GetService("ServerStorage"):FindFirstChild("LegacyMap") or Instance.new("Folder")
+		stash.Name = "LegacyMap"
+		stash.Parent = game:GetService("ServerStorage")
+		legacy.Parent = stash
+	end
 	local root = Instance.new("Folder")
 	root.Name = "Map"
 	-- Chão primeiro e sem pcall: sem ele os jogadores cairiam no vazio.

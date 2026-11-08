@@ -117,7 +117,8 @@ local function disc(
 	thickness: number,
 	color: string,
 	parent: Instance,
-	copies: number?
+	copies: number?,
+	material: Enum.Material?
 ): Part
 	local n = copies or 1
 	local first: Part? = nil
@@ -130,6 +131,7 @@ local function disc(
 				* CFrame.Angles(0, i * math.rad(360 / 24) / n, 0)
 				* CFrame.Angles(0, 0, math.rad(90)),
 			Color = hex(color),
+			Material = material or Enum.Material.SmoothPlastic,
 			CastShadow = false,
 		})
 		p.Parent = parent
@@ -145,8 +147,9 @@ function World.buildGround(root: Instance)
 	local P = World.Palette
 	local ground = Instance.new("Folder")
 	ground.Name = "Ground"
-	disc("Island", ISLAND_R, 0, 10, P.grass, ground, 4)
-	disc("Beach", ISLAND_R + BEACH_W, -0.6, 10, P.sand, ground, 4)
+	-- Materiais com textura do Roblox (sem upload): pedido do usuário de chão natural, não liso.
+	disc("Island", ISLAND_R, 0, 10, P.grass, ground, 4, Enum.Material.Grass)
+	disc("Beach", ISLAND_R + BEACH_W, -0.6, 10, P.sand, ground, 4, Enum.Material.Sand)
 	-- Mar só de peça (sem água de terreno). Medido na Fase 1: a água de terreno em 1.400 studs
 	-- custava ~290 mil triângulos por vista (mais da metade do orçamento de celular).
 	-- Faixa clara rasa perto da praia + mar azul até o horizonte (estilo cartoon).
@@ -207,7 +210,8 @@ local function buildCauldron(parent: Instance)
 		{ r = 23, h = 3, color = P.stone },
 	}
 	for i, step in steps do
-		cyl("Plinth" .. i, step.r * 2, step.h, CFrame.new(0, plinthTop + step.h / 2, 0), step.color)
+		cyl("Plinth" .. i, step.r * 2, step.h, CFrame.new(0, plinthTop + step.h / 2, 0), step.color).Material =
+			Enum.Material.Slate
 		plinthTop += step.h
 	end
 	-- Quatro bandeiras altas nas diagonais, com as cores das bases (leem de longe).
@@ -237,7 +241,7 @@ local function buildCauldron(parent: Instance)
 	end
 	local floor = plinthTop -- topo do pedestal
 	-- Fogueira de pedra (raio máximo = CAULDRON_RADIUS: a faixa de drops começa depois dele)
-	cyl("Hearth", 34 * S, 4 * S, CFrame.new(0, floor + 2 * S, 0), P.stone)
+	cyl("Hearth", 34 * S, 4 * S, CFrame.new(0, floor + 2 * S, 0), P.stone).Material = Enum.Material.Slate
 	local hearthTopPart = cyl("HearthTop", 30 * S, 0.6, CFrame.new(0, floor + 4 * S + 0.3, 0), P.stoneDark, true)
 	-- Uma única luz quente no fogo (sem sombra: barata no celular)
 	local glow = Instance.new("PointLight")
@@ -431,10 +435,10 @@ function World.buildHub(root: Instance): Part
 	local P = World.Palette
 	local hub = Instance.new("Folder")
 	hub.Name = "Hub"
-	disc("PlazaOuter", PLAZA_OUTER_R, 1, 3, P.sandDark, hub, 3)
-	disc("PlazaInner", PLAZA_INNER_R, 2, 3, P.plaza, hub)
+	disc("PlazaOuter", PLAZA_OUTER_R, 1, 3, P.sandDark, hub, 3, Enum.Material.Pavement)
+	disc("PlazaInner", PLAZA_INNER_R, 2, 3, P.plaza, hub, nil, Enum.Material.Pavement)
 	disc("PlazaRing", PLAZA_INNER_R - 22, 2.05, 0.2, P.plazaRing, hub) -- anel de desenho no piso
-	disc("PlazaCore", PLAZA_INNER_R - 25, 2.1, 0.2, P.plaza, hub)
+	disc("PlazaCore", PLAZA_INNER_R - 25, 2.1, 0.2, P.plaza, hub, nil, Enum.Material.Pavement)
 	buildCauldron(hub)
 	-- Faixas no piso: continuam cada caminho até o caldeirão (linhas-guia; só decoração)
 	for k = 0, 7 do
@@ -605,6 +609,7 @@ function World.buildPath(origin: CFrame, parent: Instance)
 		Size = Vector3.new(PATH_W, 1, len),
 		CFrame = CFrame.lookAt(mid, Vector3.new(0, mid.Y, 0)) * CFrame.new(0, 0.5, 0),
 		Color = hex(P.path),
+		Material = Enum.Material.Cobblestone,
 	})
 	-- Bordas mais escuras (o caminho precisa ter brilho diferente do chão: guia simulator)
 	for _, side in { -1, 1 } do
@@ -613,6 +618,7 @@ function World.buildPath(origin: CFrame, parent: Instance)
 			Size = Vector3.new(1.2, 1.1, len),
 			CFrame = CFrame.lookAt(mid, Vector3.new(0, mid.Y, 0)) * CFrame.new(side * (PATH_W / 2 + 0.6), 0.55, 0),
 			Color = hex(P.pathEdge),
+			Material = Enum.Material.Slate,
 		}))
 		edge.Parent = path
 	end
@@ -692,6 +698,7 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 			Size = Vector3.new(0.4, (pr + 4) * 2, (pr + 4) * 2),
 			CFrame = CFrame.new(c + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = hex(World.Palette.sand),
+			Material = Enum.Material.Sand,
 			CastShadow = false,
 		})
 		rim.Parent = nature
@@ -756,6 +763,7 @@ function World.buildNature(root: Instance, baseOrigins: { CFrame })
 				Size = Vector3.new(0.1, r * 2, r * 2),
 				CFrame = CFrame.new(cf.Position + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 				Color = hex(if rng:NextNumber() < 0.5 then "#93B55E" else "#6C9146"),
+				Material = Enum.Material.Grass,
 				CastShadow = false,
 			}))
 			return patch

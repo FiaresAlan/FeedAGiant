@@ -98,6 +98,22 @@ O usuário é **leigo** em programação: explicar resultados em linguagem simpl
 
 **Fase 2 (em andamento):** veja §2-F2 logo abaixo.
 
+### §2-F1b. Correção no place oficial + texturas (08/11/2026)
+- **Bug relatado pelo usuário no place oficial "Alimente um Gigante":** árvores e estrada "enterradas", estrada se fundindo com a grama.
+  - **Causa (inspeção só leitura no place oficial):** o place guarda o `Baseplate` antigo, 1200 × 4 centrado em y = 0, com topo em **y = 2**. O mundo novo tem o chão em y = 0, então tudo ficava 2 studs abaixo.
+  - O place de teste não mostrava isso porque o Baseplate saiu do `*.project.json`.
+  - **Correção em código** (`MapService.init`): ao iniciar, um `Workspace.Baseplate` existente vai para `ServerStorage.LegacyMap`; nada é apagado. Testado reproduzindo o Baseplate oficial numa cópia: saiu, e o chão volta a ser a ilha.
+  - **O place oficial não foi alterado pelo Claude.** O usuário sincroniza com `rojo serve`.
+- **Texturas** (pedido do usuário: "grama natural, não liso"), com materiais do próprio Roblox, sem upload:
+  - ilha `Grass`, praia `Sand`;
+  - estrada `Cobblestone` com borda de `Slate`;
+  - praça `Pavement`;
+  - piso das bases `WoodPlanks` (sem studs);
+  - pedestal e fogueira do caldeirão `Slate`;
+  - manchas de grama `Grass`, borda dos lagos `Sand`.
+
+  Foto: `docs/qa/shots/fase1/06_texturas_grama_pedra.jpg`.
+
 ### §2-F2. Fase 2 — criaturas (07/11/2026, madrugada)
 
 **Aprovação do usuário:** "pode seguir, tem total aprovação". Vale para as espécies novas e os preços.
