@@ -225,6 +225,9 @@ function GiantBattle.init(gui: ScreenGui)
 			specialReadyAt = 0
 			hud.Visible = true
 			UI.pop(hud)
+			if GiantBattle.OnFight then
+				GiantBattle.OnFight(true)
+			end
 			UI.sfx("Bell", 0.8)
 			UI.sfx("VO_Fight", 1)
 		elseif e.kind == "Tick" then
@@ -233,6 +236,9 @@ function GiantBattle.init(gui: ScreenGui)
 		elseif e.kind == "End" then
 			fighting = false
 			hud.Visible = false
+			if GiantBattle.OnFight then
+				GiantBattle.OnFight(false)
+			end
 			if e.won then
 				result.Text = if (e.coins or 0) > 0
 					then string.format("VITÓRIA! +%s moedas  +%d XP", Util.formatNumber(e.coins), e.xp or 0)
@@ -259,5 +265,6 @@ function GiantBattle.init(gui: ScreenGui)
 end
 
 GiantBattle.OnVictory = nil :: (() -> ())?
+GiantBattle.OnFight = nil :: ((started: boolean) -> ())?
 
 return GiantBattle

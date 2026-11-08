@@ -34,6 +34,10 @@ local function playSound(id: string, volume: number?)
 	local s = Instance.new("Sound")
 	s.SoundId = id
 	s.Volume = volume or 0.6
+	local g = SoundService:FindFirstChild("Efeitos")
+	if g and g:IsA("SoundGroup") then
+		s.SoundGroup = g
+	end
 	s.Parent = SoundService
 	s:Play()
 	s.Ended:Connect(function()

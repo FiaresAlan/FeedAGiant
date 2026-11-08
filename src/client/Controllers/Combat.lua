@@ -91,6 +91,10 @@ local function sound(key: string, volume: number?)
 		local created = Instance.new("Sound")
 		created.SoundId = id
 		created.Volume = volume or 0.6
+		local g = SoundService:FindFirstChild("Efeitos")
+		if g and g:IsA("SoundGroup") then
+			created.SoundGroup = g
+		end
 		created.Parent = SoundService
 		sounds[key] = created
 		created:Play()

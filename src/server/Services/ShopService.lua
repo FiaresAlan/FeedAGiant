@@ -88,7 +88,8 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 	-- Pedido do usuário (08/11): comida Épica ou melhor = fogos de artifício no servidor inteiro.
 	if Config.Rarities[food.rarity].order >= 4 then
 		local now = os.clock()
-		if now - lastFireworks >= FIREWORKS_GAP then
+		-- Lendária ou melhor anuncia SEMPRE (uma vez por conquista: fanfarra global); Épica respeita o intervalo.
+		if now - lastFireworks >= FIREWORKS_GAP or Config.Rarities[food.rarity].order >= 5 then
 			lastFireworks = now
 			local char = player.Character
 			Remotes.Fireworks:FireAllClients({

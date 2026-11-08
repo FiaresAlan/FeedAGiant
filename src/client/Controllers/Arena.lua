@@ -32,6 +32,8 @@ local fightTitle: TextLabel
 local pendingFrom = 0
 Arena.playSound = nil :: ((string, number?) -> ())?
 Arena.OnOpenGiantBattle = nil :: (() -> ())?
+-- Música: luta começou (true) / acabou (false, venceu?)
+Arena.OnFight = nil :: ((started: boolean, won: boolean?) -> ())?
 Arena.shake = nil :: ((number, number) -> ())?
 
 local function sfx(k: string, v: number?)
@@ -316,6 +318,9 @@ function Arena.init(gui: ScreenGui)
 			realFight = e.real == true
 			timerLabel.Text = if realFight then tostring(e.seconds or "") else ""
 			sfx("Bell", if involved then 1 else 0.5)
+			if involved and Arena.OnFight then
+				Arena.OnFight(true, nil)
+			end
 			if involved then
 				win.Visible = false
 			end
@@ -370,6 +375,9 @@ function Arena.init(gui: ScreenGui)
 					end
 				end)
 				return
+			end
+			if Arena.OnFight and (curA == player.UserId or curB == player.UserId) then
+				Arena.OnFight(false, e.winner == player.UserId)
 			end
 			if e.winner == player.UserId then
 				fightTitle.Text = Locale.fmt("fight_won", nil, {

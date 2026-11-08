@@ -636,6 +636,11 @@ function UI.sfx(key: string, volume: number?)
 	else
 		s = Instance.new("Sound")
 		s.SoundId = if type(id) == "number" then assetId(id) else id
+		-- Canais de volume (Music.lua cria os SoundGroups): narrador em Vozes, o resto em Efeitos.
+		local g = SoundService:FindFirstChild(if string.sub(key, 1, 3) == "VO_" then "Vozes" else "Efeitos")
+		if g and g:IsA("SoundGroup") then
+			s.SoundGroup = g
+		end
 		s.Parent = SoundService
 		sounds[key] = s
 	end

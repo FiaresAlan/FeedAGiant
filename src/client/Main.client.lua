@@ -22,6 +22,7 @@ local FeedFx = require(Controllers.FeedFx)
 local Tutorial = require(Controllers.Tutorial)
 local Collection = require(Controllers.Collection)
 local GiantBattle = require(Controllers.GiantBattle)
+local Music = require(Controllers.Music)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -40,6 +41,7 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
 
 State.init()
+Music.init()
 Notifications.init(gui)
 HUD.init(gui)
 Shop.init(gui)
@@ -55,6 +57,19 @@ Tutorial.init()
 Arena.init(gui)
 GiantBattle.init(gui)
 Arena.OnOpenGiantBattle = GiantBattle.open
+-- Música: trilha mais baixa durante as lutas; fanfarra de vitória só no fim (item 3, regra 9)
+Arena.OnFight = function(started: boolean, won: boolean?)
+	Music.setFighting(started)
+	if not started and won then
+		Music.fanfare("music_arena_victory", 1)
+	end
+end
+GiantBattle.OnFight = function(started: boolean)
+	Music.setFighting(started)
+end
+GiantBattle.OnVictory = function()
+	Music.fanfare("music_arena_victory", 1)
+end
 Arena.playSound = Combat.sound
 Arena.shake = Combat.shake
 Effects.playSound = Combat.sound
