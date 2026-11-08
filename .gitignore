@@ -5,6 +5,8 @@
 # Modelos 3D brutos (550 MB, 185k–800k triângulos, inutilizáveis no Roblox sem otimização).
 # Ficam só na máquina local; ver docs/HANDOFF_NEXT_SESSION.md §7.
 assets/Personagens (goblin, dragao)/
+# Fonte do caldeirão do usuário (769 mil triângulos, 18 MB). As versões leves (.obj de 20k + textura) entram no Git.
+assets/Caldeirão FeedAGiant sem cor.glb
 
 # Saídas de build e temporários
 art/out/
