@@ -224,8 +224,18 @@ end
 ---------------------------------------------------------------------------
 -- v3 (Features): limites éticos do roubo e proteção da sequência diária
 ---------------------------------------------------------------------------
+-- Nível que conta para a proteção de novato: quem já renasceu nunca é novato (o rebirth volta o
+-- nível para 1; revisão cega 08/11), e vale o MAIOR nível já alcançado (peakLevel).
+function GameLogic.victimProgress(level: number, peakLevel: number?, rebirths: number?): number
+	if (rebirths or 0) > 0 then
+		return math.huge
+	end
+	return math.max(level, peakLevel or 0)
+end
+
 -- Pode tentar roubar? Devolve (ok, motivo). `day` = dia UTC (os.time() // 86400).
--- Motivos: "newbie" (vítima com nível baixo) ou "daily" (ladrão já fez o máximo hoje).
+-- `victimLevel` = GameLogic.victimProgress(...) da vítima.
+-- Motivos: "newbie" (vítima nova) ou "daily" (ladrão já fez o máximo hoje).
 function GameLogic.stealAllowed(
 	thiefStealDay: number,
 	thiefStealsToday: number,

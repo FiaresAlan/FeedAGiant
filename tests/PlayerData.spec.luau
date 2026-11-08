@@ -63,9 +63,11 @@ return function()
 		end)
 		it("a failing migration refuses the load", function()
 			local raw = { Schema = 1, Data = {} }
-			local record, reason = PlayerData.prepare(raw, 2, { [2] = function()
-				error("bad")
-			end }, makeData)
+			local record, reason = PlayerData.prepare(raw, 2, {
+				[2] = function()
+					error("bad")
+				end,
+			}, makeData)
 			expect(record).to.equal(nil)
 			expect(string.find(reason, "migration:2", 1, true) ~= nil).to.equal(true)
 		end)

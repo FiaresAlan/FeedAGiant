@@ -178,7 +178,12 @@ return function()
 	describe("Sistema 4: recompensas do Dragão", function()
 		it("2 jogadores: confere os números medidos no teste real", function()
 			-- Player1 (-1) 93,6% do dano; Player2 (-2) 6,4%; os dois nível 1
-			local r = GameLogic.bossRewards({ [-1] = 936, [-2] = 64 }, { [-1] = 20, [-2] = 8 }, { [-1] = 1, [-2] = 1 }, true)
+			local r = GameLogic.bossRewards(
+				{ [-1] = 936, [-2] = 64 },
+				{ [-1] = 20, [-2] = 8 },
+				{ [-1] = 1, [-2] = 1 },
+				true
+			)
 			expect(#r).to.equal(2)
 			local byUid = {}
 			for _, x in r do

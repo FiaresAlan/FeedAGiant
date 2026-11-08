@@ -11,6 +11,22 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A00000. Especificação v3 (08/11/2026, fim da noite) — parte 1 entregue
+O usuário mandou a "Especificação Final v2.1 → v3.0" (com esqueletos em `src/shared/Config/`) e pediu: validar e implementar.
+- **Validação completa, item por item:** `docs/VALIDACAO_ESPEC_V3.md` (aprovado / adaptado / adiado / conflito, com motivos).
+- Os esqueletos foram para `docs/propostas/onboarding_v2/`: uma pasta `Config` ao lado de `Config.lua` quebraria o `require`.
+- **Ligado:** a janela não escurece mais o mundo (`UI.window`, `Hatch`); porção da Carne Gigante virou pernil (`DropService.dressMeatPortion`).
+- **Desligado em `src/shared/Features.lua`** (no Studio: atributo `Feature_<Nome>` no ReplicatedStorage):
+  - `LunchboxPity` (50 caixas pagas → Épica garantida, chance exibida = sorteada);
+  - `StreakBackup` (1 proteção por ciclo de 7 dias, máx. 2);
+  - `ObjectiveHints` (1 dica na linha de META);
+  - `OnboardingV2` (câmera de chegada, 1ª alimentação 2x, presente guardado);
+  - `StealProtection` (nível < 5 protegido, 3 roubos/dia).
+- Métricas: `src/server/Analytics.lua`. Testes: `tests/V3.spec.luau`; suíte no Play **88/88**. Evidências: `docs/qa/FASE8_EVIDENCIAS.md`.
+- **ATENÇÃO:** o Studio aberto é o place "Alimente um Gigante" **placeId 115578986093768** (já publicado?) com `rojo serve`. Testar só em Play; nunca salvar. Confirmar com o usuário se é o oficial.
+- Comando do Studio não compartilha módulos com o jogo: para ler o estado real, crie um `Script` temporário no servidor do Play (técnica usada nas evidências).
+- **Próximo:** o usuário decide quais flags ligar; depois Boss Raid ("Fase 1: alimentar enfraquece" no Dragão), missão semanal 1-de-3 no Diário, revanche do roubo, teste com 2 jogadores e com conta nova (câmera de chegada).
+
 ## A0000. Missão "evolução integrada" (08/11/2026, noite) — ESTADO EXATO
 
 Pedido: alimentação com mais impacto + coleção + competição, tudo ligado ao gigante. Cópia de teste: `scratchpad/studio/FeedAGiant-s1.rbxl`

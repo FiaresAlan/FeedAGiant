@@ -28,6 +28,12 @@ local function isNewPlayer(profile: any): boolean
 	return profile.onboardingAt == 0 and profile.totalFeeds == 0 and profile.totalBoxes == 0
 end
 
+-- Pode ganhar o presente? Só quem foi marcado como novato na 1ª entrada (onboardingAt == -1) e
+-- ainda não ganhou. Função pura (testada em tests/V3.spec.luau).
+function OnboardingService.giftEligible(onboardingAt: number, welcomeGiven: boolean, skipped: boolean): boolean
+	return onboardingAt == -1 and not welcomeGiven and not skipped
+end
+
 -- Chamado pelo Main depois que a base e o gigante existem.
 function OnboardingService.onJoin(player: Player)
 	if not Features.on("OnboardingV2") then
@@ -38,6 +44,10 @@ function OnboardingService.onJoin(player: Player)
 		return
 	end
 	firstFeedPending[player] = true
+	-- Marca a conta como "começou como novata" (-1). Só ela pode ganhar o presente no fim do tutorial:
+	-- veterano que refaz o tutorial não ganha (revisão cega 08/11). Vira os.time() ao terminar.
+	profile.onboardingAt = -1
+	DataService.markDirty(player)
 	Analytics.event(player, "onboarding_phase_started", 1, { "arrival" })
 	-- espera o personagem existir para a câmera ter onde focar
 	task.delay(1.5, function()
@@ -56,13 +66,17 @@ function OnboardingService.onTutorialFinished(player: Player, skipped: boolean)
 	if not profile or profile.welcomeGiven then
 		return
 	end
-	profile.welcomeGiven = true
-	profile.onboardingAt = os.time()
-	if skipped then
-		DataService.markDirty(player)
-		Analytics.event(player, "onboarding_finished", 0, { "skipped" })
+	if not OnboardingService.giftEligible(profile.onboardingAt, profile.welcomeGiven, skipped) then
+		if profile.onboardingAt == -1 then -- novato que pulou: encerra sem presente
+			profile.onboardingAt = os.time()
+			profile.welcomeGiven = true
+			DataService.markDirty(player)
+			Analytics.event(player, "onboarding_finished", 0, { "skipped" })
+		end
 		return
 	end
+	profile.welcomeGiven = true
+	profile.onboardingAt = os.time()
 	local pending = profile.pendingBoxes
 	table.insert(pending, GameRules.Onboarding.WelcomeBox)
 	DataService.markDirty(player)

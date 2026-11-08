@@ -186,7 +186,7 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 		local okSteal, why = GameLogic.stealAllowed(
 			thiefProfile.stealDay,
 			thiefProfile.stealsToday,
-			ownerProfile.level,
+			GameLogic.victimProgress(ownerProfile.level, ownerProfile.peakLevel, ownerProfile.rebirths),
 			os.time() // 86400
 		)
 		if not okSteal then

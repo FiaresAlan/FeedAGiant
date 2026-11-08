@@ -183,7 +183,7 @@ local function dressMeatPortion(holder: BasePart)
 		w.Parent = p
 		return p
 	end
-	local meat = piece("Meat", Enum.PartType.Ball, Vector3.new(3, 3, 3), Color3.fromRGB(176, 72, 52), CFrame.new())
+	local meat = piece("Meat", Enum.PartType.Ball, Vector3.new(3, 3, 3), Color3.fromRGB(150, 78, 52), CFrame.new())
 	local m = Instance.new("SpecialMesh")
 	m.MeshType = Enum.MeshType.Sphere
 	m.Scale = Vector3.new(1.3, 0.85, 1)
@@ -193,7 +193,7 @@ local function dressMeatPortion(holder: BasePart)
 		Enum.PartType.Ball,
 		Vector3.new(3.1, 3.1, 3.1),
 		Color3.fromRGB(240, 196, 160),
-		CFrame.new(0, 0.35, 0)
+		CFrame.new(0, 0.6, 0)
 	)
 	local fm = Instance.new("SpecialMesh")
 	fm.MeshType = Enum.MeshType.Sphere
@@ -251,7 +251,8 @@ local function buildHolder(it: Item, at: Vector3): Part
 		end
 	end
 	local light = Instance.new("PointLight")
-	light.Color = rarColor
+	-- a carne usa luz branca-quente: a luz da própria cor deixava o pernil vermelho-vivo (foto fase8)
+	light.Color = if it.foodId == "giantmeat" then Color3.fromRGB(255, 225, 190) else rarColor
 	light.Range = 10
 	light.Brightness = 1
 	light.Shadows = false

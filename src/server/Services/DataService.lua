@@ -97,7 +97,7 @@ export type Profile = {
 	streakBackups: number, -- proteções da sequência diária (GameRules.StreakBackup)
 	stealDay: number, -- dia UTC do contador de roubos
 	stealsToday: number, -- roubos bem-sucedidos nesse dia (GameRules.StealLimits)
-	onboardingAt: number, -- os.time() em que o primeiro acesso v3 terminou (0 = ainda não)
+	onboardingAt: number, -- 0 = nunca marcado; -1 = entrou como novato (v3); >0 = os.time() do fim
 	welcomeGiven: boolean, -- presente de boas-vindas já entregue (fica guardado até abrir)
 }
 

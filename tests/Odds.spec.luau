@@ -9,7 +9,12 @@ local Odds = require(Shared.Odds)
 local TIERS = {
 	{ name = "Common", weight = 70, items = { { id = "A", weight = 1 }, { id = "B", weight = 1 } } },
 	{ name = "Rare", weight = 25, lucky = true, items = { { id = "C", weight = 1 } } },
-	{ name = "Mythic", weight = 5, lucky = true, items = { { id = "D", weight = 3 }, { id = "E", weight = 1, once = true } } },
+	{
+		name = "Mythic",
+		weight = 5,
+		lucky = true,
+		items = { { id = "D", weight = 3 }, { id = "E", weight = 1, once = true } },
+	},
 }
 
 local function sum(finals)
@@ -52,7 +57,10 @@ return function()
 			local finals, total = Odds.Flatten(TIERS, { excluded = { E = true } })
 			expect(find(finals, "E")).to.equal(0)
 			expect(sum(finals)).to.be.near(1, 1e-12)
-			local _, emptyTotal = Odds.Flatten({ { name = "Only", weight = 1, items = { { id = "X", weight = 1 } } } }, { excluded = { X = true } })
+			local _, emptyTotal = Odds.Flatten(
+				{ { name = "Only", weight = 1, items = { { id = "X", weight = 1 } } } },
+				{ excluded = { X = true } }
+			)
 			expect(emptyTotal).to.equal(0)
 			expect(total > 0).to.equal(true)
 		end)
@@ -102,7 +110,10 @@ return function()
 	describe("Odds.Validate", function()
 		it("rejects duplicate ids and bad weights", function()
 			expect(function()
-				Odds.Validate("dup", { { name = "T", weight = 1, items = { { id = "A", weight = 1 }, { id = "A", weight = 1 } } } })
+				Odds.Validate(
+					"dup",
+					{ { name = "T", weight = 1, items = { { id = "A", weight = 1 }, { id = "A", weight = 1 } } } }
+				)
 			end).to.throw("appears twice")
 			expect(function()
 				Odds.Validate("nan", { { name = "T", weight = 0 / 0, items = { { id = "A", weight = 1 } } } })

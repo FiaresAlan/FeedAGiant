@@ -37,7 +37,10 @@ local function makeExpectation(value: any, negated: boolean)
 	end
 	function e.near(expected: number, limit: number?)
 		local tolerance = limit or 1e-7
-		check(type(value) == "number" and math.abs(value - expected) <= tolerance, `expected {expected} +/- {tolerance}, got {tostring(value)}`)
+		check(
+			type(value) == "number" and math.abs(value - expected) <= tolerance,
+			`expected {expected} +/- {tolerance}, got {tostring(value)}`
+		)
 	end
 	function e.a(typeName: string)
 		check(typeof(value) == typeName, `expected a {typeName}, got {typeof(value)}`)
@@ -74,13 +77,19 @@ local function runSpec(module: ModuleScript, results: { any })
 		table.insert(path, name)
 		local ok, err = pcall(fn)
 		if not ok then
-			table.insert(results, { name = table.concat(path, " > ") .. " (describe)", ok = false, err = tostring(err) })
+			table.insert(
+				results,
+				{ name = table.concat(path, " > ") .. " (describe)", ok = false, err = tostring(err) }
+			)
 		end
 		table.remove(path)
 	end
 	function env.it(name: string, fn: () -> ())
 		local ok, err = pcall(fn)
-		table.insert(results, { name = table.concat(path, " > ") .. " > " .. name, ok = ok, err = if ok then nil else tostring(err) })
+		table.insert(
+			results,
+			{ name = table.concat(path, " > ") .. " > " .. name, ok = ok, err = if ok then nil else tostring(err) }
+		)
 	end
 	env.expect = expect
 	setmetatable(env, { __index = getfenv(specFn) })
