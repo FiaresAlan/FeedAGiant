@@ -32,6 +32,11 @@ O usuário mandou seguir todas as fases até o fim sem perguntar nada. Ele autor
 | Comida voa até a boca do gigante, com +XP | `FeedFx.lua`; `GiantFed` leva `foodId` e `from` | Voo confirmado no cliente |
 | **Fase 4: tutorial do primeiro minuto** (alimentar → pátio → loja → 3 alimentações), com dicas quando o jogador trava, trilha até a loja, Pular com confirmação, progresso salvo e funil `Tutorial_v1` | `src/vendor/shared/FwjelaaTutorial.luau`, `TutorialSteps.lua`, `TutorialService.lua`, `Controllers/Tutorial.lua`; sinais em PlotService e ShopService | Os 3 primeiros passos avançam numa cópia; o último e o novo layout (faixa abaixo da HUD, Pular embaixo à esquerda) **ainda não foram vistos** |
 | **Fase 4: fim do encolhimento** (o gigante só fica faminto, nunca perde nível) e produtos FreezeDecay7d/RestoreLevels aposentados (`retired = true`, recusados no servidor) | `GiantService.applyDecay`, `Config.DevProducts`, `MonetizationService.canPrompt`, textos e CSVs | Verificador PASS; **não visto em jogo** |
+| **Fase 4: índice de coleção** (17 comidas em 3D, silhueta para as que faltam; espécies tem/falta; selo "!" com comida nova) | `Controllers/Collection.lua`; `profile.discovered` marcado em `PlotService.pushState`; azulejo COLEÇÃO na HUD | Fotos 01 e 02 em `docs/qa/shots/fase4/` |
+| **Miniaturas 3D das comidas** (caixa aberta girando, mochila, azulejo, faixa rara) | `src/client/FoodView.lua` (usa `ReplicatedStorage.FoodTemplates`) | Fotos 04 e 07 |
+| **Celular:** janelas encolhem para caber (`UI.window` com `FitScale`); a coluna de botões vira grade quando falta altura; faixa do tutorial abaixo do escudo e por baixo das janelas | `UI.lua`, `HUD.buildSideButtons`, `Tutorial.lua` | Foto 01 e 03 (viewport 1690×635, escala 0,6). **Falta celular de verdade** |
+| **Juice:** moedas voando até o contador (só ganhos reais, nunca a renda de cada segundo; respeita "movimento reduzido"); faixa "comida rara" com 3D para o servidor (1 a cada 6 s, remote `RareFound`); raridades em português com acento | `HUD.flyCoins`, `Effects.lua`, `ShopService`, `Locale.rarity`/`Locale.upper` | Fotos 05 a 07 |
+| **Fase 5: checklist de pré-lançamento** | `docs/PRE_LANCAMENTO.md` | — |
 | **Fase 4: luta justa na arena** (150 de vida e força 1 para os dois; compras não pesam no duelo) | `CombatService` (gancho `FairFight`), `ArenaService` | Verificador PASS; **não testada com 2 jogadores** |
 
 **Pendências desta sessão:**
@@ -85,8 +90,8 @@ Aprovadas em 07/11/2026 e ampliadas depois:
 | **1 — Mundo bonito** | 🟨 Céu de entardecer feito (08/11); falta o novo painel | **7,9** antes do céu |
 | **2 — Criaturas de verdade** | 🟩 Modelos de todas as espécies + comidas 3D + animação procedural; falta o painel `model` | não avaliada ainda |
 | 3 — Efeitos e juice | 🟧 HUD nova, arena e luta real, boxe, voo da comida (08/11); faltam música, abertura de caixa 3D e o teste com 2 jogadores | não avaliada ainda |
-| 4 — Primeiro minuto e retenção | 🟧 Tutorial, fim do encolhimento, luta justa (08/11); falta índice de coleção e teste no celular | não avaliada ainda |
-| 5 — Pré-lançamento | ⬜ | — |
+| 4 — Primeiro minuto e retenção | 🟩 Tutorial, fim do encolhimento, luta justa, índice de coleção, telas que cabem no celular (08/11); falta celular de verdade | UI: ver ledger |
+| 5 — Pré-lançamento | 🟨 Checklist em `docs/PRE_LANCAMENTO.md`; o resto depende do dono da conta (IDs, questionário, publicação) | — |
 
 ## A4. O que existe hoje (resumo técnico)
 
@@ -270,6 +275,11 @@ O usuário pediu (08/11): "te permito seguir a fase". Antes disso ele quis o con
   - **Feche cada cópia ao terminar:** Arquivo → Fechar local → **Não salvar**.
   - `Stop-Process` em processos do Studio é **bloqueado** pelo classificador. `CloseMainWindow` funciona, mas abre o diálogo "Salvar alterações?".
 - Abrir um `.rbxl` (`Invoke-Item`) pode carregar dentro de uma janela vazia existente.
+- **Atualizar o código de uma cópia JÁ ABERTA sem abrir janela nova (08/11, funciona):**
+  1. `rojo build <projeto com uma Folder raiz: Shared=src/shared, Server=src/server, Client=src/client, fwjelaaShared=src/vendor/shared, fwjelaaServer=src/vendor/server> -o "C:/Program Files/Roblox/Versions/<versão do Studio>/content/fagsync/fagsync.rbxmx"` (a pasta `content` do Studio é gravável nesta máquina);
+  2. no `execute_luau` (Edit): `game:GetObjects("rbxasset://fagsync/fagsync.rbxmx")[1]` e copiar o `Source` de cada script para o lugar certo (criar os que faltam);
+  3. Play. O `HttpService` do assistente **não** acessa o GitHub (lista de domínios), por isso este caminho.
+- Para fotografar algo que dura poucos segundos (abertura de caixa, faixa): disparar o remote no `execute_luau` do Server com `task.wait(≈2)` no fim e chamar `screen_capture` logo depois.
 - **Teste com 2 jogadores:** seletor de modo no topo à esquerda → "Servidor e clientes", contador de jogadores → 2, Play. O MCP lista servidor e clientes como instâncias separadas (o id do servidor descobre-se testando `datamodel_type: Server`). Os jogadores de teste têm **UserId negativo**.
 - `require` pelo `execute_luau` usa um **cache de módulos separado** do jogo. Para ler ou mudar o estado real, **injete um `Script`** no `ServerScriptService` da cópia e devolva o resultado por atributo.
 - Chamadas MCP demoram segundos. Testes que dependem de tempo (anti-teletransporte, por exemplo) devem rodar **dentro de um único script** no servidor.
