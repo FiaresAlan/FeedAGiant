@@ -90,7 +90,7 @@ function Tutorial.init()
 				Position = UDim2.new(0, 12, 1, -12),
 				Size = UDim2.fromOffset(170, 46),
 				TextScaled = false,
-				TextSize = 18,
+				TextSize = 20,
 				Visible = false,
 			})
 			skip = b

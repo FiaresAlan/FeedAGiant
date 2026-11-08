@@ -81,7 +81,7 @@ local function foodRow(
 		Position = UDim2.fromOffset(56, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 18,
+		TextSize = 20,
 		TextColor3 = rar.color,
 	})
 	for i, a in actions do

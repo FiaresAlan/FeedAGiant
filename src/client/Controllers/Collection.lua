@@ -15,6 +15,7 @@ local Collection = {}
 local win: Frame
 local foodGrid: ScrollingFrame
 local countLabel: TextLabel
+local progressFill: Frame
 local cards: { [string]: { card: Frame, view: Frame, name: TextLabel, shown: string? } } = {}
 local speciesCards: { [string]: { card: Frame, state: TextLabel } } = {}
 local lastSeenCount = -1
@@ -91,6 +92,7 @@ local function refresh(s: State.PlayerState)
 		return
 	end
 	countLabel.Text = Locale.fmt("collection_count", nil, { n = n, m = total })
+	UI.setBar(progressFill, if total > 0 then n / total else 0)
 	for _, def in Config.Foods do
 		paintCard(def, found[def.id] == true)
 	end
@@ -123,19 +125,24 @@ function Collection.init(gui: ScreenGui)
 	local body: Frame
 	win, body = UI.window(gui, "COLEÇÃO", UDim2.fromOffset(900, 580))
 
-	-- O texto começa abaixo da faixa dourada do painel (teste de 08/11: ficava em cima dela).
-	countLabel = UI.label(body, "", {
-		Size = UDim2.new(1, 0, 0, 30),
-		Position = UDim2.fromOffset(0, 44),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextScaled = false,
-		TextSize = 24,
+	-- Cabeçalho = barra de progresso real em cima da faixa dourada do painel (revisões de 08/11:
+	-- a faixa vazia parecia uma barra sem preenchimento e o texto encostava nela).
+	local progressBg
+	progressBg, progressFill = UI.bar(body, UI.Colors.Green, {
+		Size = UDim2.new(1, 0, 0, 40),
+		Position = UDim2.fromOffset(0, 2),
+		ZIndex = 13,
 	})
-
+	countLabel = UI.label(progressBg, "", {
+		Size = UDim2.fromScale(1, 1),
+		TextScaled = false,
+		TextSize = 22,
+		ZIndex = 17,
+	})
 	foodGrid = Instance.new("ScrollingFrame")
 	foodGrid.Name = "List"
-	foodGrid.Size = UDim2.new(1, 0, 1, -80)
-	foodGrid.Position = UDim2.fromOffset(0, 80)
+	foodGrid.Size = UDim2.new(1, 0, 1, -54)
+	foodGrid.Position = UDim2.fromOffset(0, 54)
 	foodGrid.BackgroundColor3 = UI.Colors.Panel
 	foodGrid.BorderSizePixel = 0
 	foodGrid.ScrollBarThickness = 8
@@ -196,7 +203,7 @@ function Collection.init(gui: ScreenGui)
 			Size = UDim2.new(1, -8, 0, 22),
 			Position = UDim2.fromOffset(4, 138),
 			TextScaled = false,
-			TextSize = 18,
+			TextSize = 20,
 			TextColor3 = rar.color,
 			ZIndex = 14,
 		})
@@ -228,7 +235,7 @@ function Collection.init(gui: ScreenGui)
 			Position = UDim2.fromOffset(60, 46),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextScaled = false,
-			TextSize = 18,
+			TextSize = 20,
 			ZIndex = 14,
 		})
 		speciesCards[sp.id] = { card = card, state = state }

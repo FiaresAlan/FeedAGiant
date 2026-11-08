@@ -63,7 +63,7 @@ local function rebuildList()
 			UI.Colors.Red,
 			{ Size = UDim2.fromOffset(150, 40), Position = UDim2.new(1, -158, 0.5, -20) }
 		)
-		b.MouseButton1Click:Connect(function()
+		b.Activated:Connect(function()
 			Remotes.RequestDuel:FireServer(p.UserId)
 		end)
 	end
@@ -162,11 +162,11 @@ local function buildPopup(gui: ScreenGui)
 		Color3.fromRGB(110, 110, 130),
 		{ Size = UDim2.fromOffset(180, 48), Position = UDim2.fromOffset(220, 90) }
 	)
-	acc.MouseButton1Click:Connect(function()
+	acc.Activated:Connect(function()
 		Remotes.RequestDuelAnswer:FireServer(pendingFrom, true)
 		challengePopup.Visible = false
 	end)
-	dec.MouseButton1Click:Connect(function()
+	dec.Activated:Connect(function()
 		Remotes.RequestDuelAnswer:FireServer(pendingFrom, false)
 		challengePopup.Visible = false
 	end)

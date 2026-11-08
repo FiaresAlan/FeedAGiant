@@ -267,12 +267,13 @@ local function buildBars(gui: ScreenGui)
 		TextColor3 = UI.Colors.Accent,
 		ZIndex = 3,
 	})
+	-- Rótulos com coluna própria (90..146) e barras a partir de 154: nada encosta (revisão 08/11).
 	UI.label(box, "HP", {
 		TextScaled = false,
-		TextSize = 24,
-		Size = UDim2.fromOffset(50, 28),
-		Position = UDim2.fromOffset(96, 20),
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextSize = 22,
+		Size = UDim2.fromOffset(56, 28),
+		Position = UDim2.fromOffset(90, 20),
+		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = UI.Colors.Red,
 		ZIndex = 3,
 	})
@@ -280,7 +281,7 @@ local function buildBars(gui: ScreenGui)
 	hpBg, hpFill = UI.bar(
 		box,
 		UI.Colors.Red,
-		{ Size = UDim2.fromOffset(240, 28), Position = UDim2.fromOffset(148, 20), ZIndex = 3 }
+		{ Size = UDim2.fromOffset(232, 28), Position = UDim2.fromOffset(156, 20), ZIndex = 3 }
 	)
 	local hpText = UI.label(
 		hpBg,
@@ -290,10 +291,10 @@ local function buildBars(gui: ScreenGui)
 	hpText.Name = "HpText"
 	UI.label(box, "STA", {
 		TextScaled = false,
-		TextSize = 24,
-		Size = UDim2.fromOffset(50, 28),
-		Position = UDim2.fromOffset(96, 60),
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextSize = 22,
+		Size = UDim2.fromOffset(56, 28),
+		Position = UDim2.fromOffset(90, 60),
+		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = UI.Colors.Accent,
 		ZIndex = 3,
 	})
@@ -301,11 +302,11 @@ local function buildBars(gui: ScreenGui)
 	_stBg, staminaFill = UI.bar(
 		box,
 		UI.Colors.Accent,
-		{ Size = UDim2.fromOffset(240, 28), Position = UDim2.fromOffset(148, 60), ZIndex = 3 }
+		{ Size = UDim2.fromOffset(232, 28), Position = UDim2.fromOffset(156, 60), ZIndex = 3 }
 	)
 	blockBadge = UI.label(box, "🛡 BLOQUEANDO", {
-		Size = UDim2.fromOffset(240, 24),
-		Position = UDim2.fromOffset(148, 96),
+		Size = UDim2.fromOffset(232, 24),
+		Position = UDim2.fromOffset(156, 96),
 		TextColor3 = UI.Colors.Blue,
 		TextScaled = false,
 		TextSize = 20,

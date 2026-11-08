@@ -44,6 +44,7 @@ Locale.Exact = {
 	["FECHAR"] = { en = "CLOSE", es = "CERRAR" },
 	["RESGATAR"] = { en = "REDEEM", es = "CANJEAR" },
 	["LOJA"] = { en = "SHOP", es = "TIENDA" },
+	["CAIXAS"] = { en = "BOXES", es = "CAJAS" },
 	["ARENA"] = { en = "ARENA", es = "ARENA" },
 	["INVENTÁRIO"] = { en = "INVENTORY", es = "INVENTARIO" },
 	["REBIRTH"] = { en = "REBIRTH", es = "REBIRTH" },

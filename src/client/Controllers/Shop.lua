@@ -178,11 +178,11 @@ local function buildBoxesTab(parent: Frame)
 	layout.Parent = scroll
 
 	for i, box in Config.Lunchboxes do
-		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 110), LayoutOrder = i })
+		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 128), LayoutOrder = i })
 		UI.stroke(card, box.color, 3)
 		local icon = UI.frame(
 			card,
-			{ Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(12, 15), BackgroundColor3 = box.color }
+			{ Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(12, 24), BackgroundColor3 = box.color }
 		)
 		UI.label(icon, "?", { Size = UDim2.fromScale(1, 1), TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.3 })
 		UI.label(card, box.name, {
@@ -192,7 +192,7 @@ local function buildBoxesTab(parent: Frame)
 			TextColor3 = box.color,
 		})
 		summaryLabels[box.id] = UI.label(card, oddsSummary(box.id, nil), {
-			Size = UDim2.new(1, -260, 0, 58),
+			Size = UDim2.new(1, -260, 0, 76),
 			Position = UDim2.fromOffset(104, 44),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
@@ -202,17 +202,17 @@ local function buildBoxesTab(parent: Frame)
 			TextTransparency = 0.2,
 		})
 		local btn = UI.button(card, Util.formatNumber(box.price) .. " $", UI.Colors.Green, {
-			Size = UDim2.fromOffset(140, 52),
-			Position = UDim2.new(1, -152, 0.5, -34),
+			Size = UDim2.fromOffset(140, 50),
+			Position = UDim2.new(1, -152, 0.5, -52),
 		})
 		local oddsBtn = UI.button(card, "CHANCES", UI.Colors.Blue, {
-			Size = UDim2.fromOffset(140, 28),
-			Position = UDim2.new(1, -152, 0.5, 22),
+			Size = UDim2.fromOffset(140, 44),
+			Position = UDim2.new(1, -152, 0.5, 8),
 		})
-		oddsBtn.MouseButton1Click:Connect(function()
+		oddsBtn.Activated:Connect(function()
 			Shop.showOdds(box.id, nil, box.name)
 		end)
-		btn.MouseButton1Click:Connect(function()
+		btn.Activated:Connect(function()
 			Remotes.RequestBuyBox:FireServer(box.id)
 		end)
 		boxButtons[box.id] = btn
@@ -259,7 +259,7 @@ local function buildRobuxTab(parent: Frame)
 			color,
 			{ Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) }
 		)
-		btn.MouseButton1Click:Connect(cb)
+		btn.Activated:Connect(cb)
 		return btn
 	end
 
@@ -297,10 +297,10 @@ local function buildRobuxTab(parent: Frame)
 			btn.Position = UDim2.new(1, -172, 0.5, -32)
 			local card = btn.Parent :: GuiObject
 			local oddsBtn = UI.button(card, "CHANCES", UI.Colors.Accent, {
-				Size = UDim2.fromOffset(160, 26),
+				Size = UDim2.fromOffset(160, 40),
 				Position = UDim2.new(1, -172, 0.5, 4),
 			})
-			oddsBtn.MouseButton1Click:Connect(function()
+			oddsBtn.Activated:Connect(function()
 				Shop.showOdds("rare", "Rare", p.name .. " (Lunchbox Rara, mínimo Rare)")
 			end)
 		end
@@ -387,7 +387,7 @@ local function buildSpeciesTab(parent: Frame)
 		)
 		local btn =
 			UI.button(card, "", sp.color, { Size = UDim2.fromOffset(160, 48), Position = UDim2.new(1, -172, 0.5, -24) })
-		btn.MouseButton1Click:Connect(function()
+		btn.Activated:Connect(function()
 			local s = State.current :: any
 			local owned = s.ownedSpecies and s.ownedSpecies[sp.id]
 			if owned then
@@ -459,7 +459,7 @@ local function buildCodes(gui: ScreenGui)
 		UI.Colors.Green,
 		{ Size = UDim2.new(1, 0, 0, 48), Position = UDim2.fromOffset(0, 96) }
 	)
-	redeem.MouseButton1Click:Connect(function()
+	redeem.Activated:Connect(function()
 		local code = string.upper((string.gsub(input.Text, "%s", "")))
 		if #code > 0 then
 			Remotes.RequestRedeemCode:FireServer(code)
@@ -497,7 +497,7 @@ end
 
 function Shop.init(gui: ScreenGui)
 	local body: Frame
-	win, body = UI.window(gui, "LUNCHBOX SHOP", UDim2.fromOffset(640, 540))
+	win, body = UI.window(gui, "LOJA", UDim2.fromOffset(640, 540))
 
 	local tabs = UI.frame(body, { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1 })
 	local pages = UI.frame(
@@ -511,8 +511,8 @@ function Shop.init(gui: ScreenGui)
 	buildSpeciesTab(speciesPage)
 	buildRobuxTab(robuxPage)
 
-	local inactive = Color3.fromRGB(90, 90, 110)
-	local tabBoxes = UI.button(tabs, "LUNCHBOXES", UI.Colors.Accent, { Size = UDim2.new(1 / 3, -4, 1, 0) })
+	local inactive = Color3.fromRGB(118, 122, 160) -- clara o bastante para o texto branco ler (revisão 08/11)
+	local tabBoxes = UI.button(tabs, "CAIXAS", UI.Colors.Accent, { Size = UDim2.new(1 / 3, -4, 1, 0) })
 	local tabSpecies = UI.button(
 		tabs,
 		"ESPÉCIES",
@@ -530,13 +530,13 @@ function Shop.init(gui: ScreenGui)
 		tabRobux.BackgroundColor3 = inactive
 		btn.BackgroundColor3 = color
 	end
-	tabBoxes.MouseButton1Click:Connect(function()
+	tabBoxes.Activated:Connect(function()
 		show(boxesPage, tabBoxes, UI.Colors.Accent)
 	end)
-	tabSpecies.MouseButton1Click:Connect(function()
+	tabSpecies.Activated:Connect(function()
 		show(speciesPage, tabSpecies, UI.Colors.Green)
 	end)
-	tabRobux.MouseButton1Click:Connect(function()
+	tabRobux.Activated:Connect(function()
 		show(robuxPage, tabRobux, UI.Colors.Blue)
 	end)
 
