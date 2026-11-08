@@ -98,7 +98,9 @@ function PlotService.coinsPerSecond(player: Player): number
 	return math.floor(total * mult * globalCoinMultiplier)
 end
 
-local PLOT_FOOD_SIZE = 3.6 -- maior dimensão da comida 3D no pátio (vaga de 6x6 studs)
+local PLOT_FOOD_SIZE = 4.4 -- maior dimensão da comida 3D no pátio (vaga de 6x6 studs)
+-- Letreiro da comida só de perto (antes: 400 studs; 16 nomes por base poluíam a tela).
+local FOOD_LABEL_DISTANCE = 30
 
 local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 	local model = Instance.new("Model")
@@ -136,13 +138,15 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 	end
 	model.PrimaryPart = p
 	local rc = Config.Rarities[def.rarity].color
-	Util.makeBillboard(
+	local label = Util.makeBillboard(
 		p,
-		def.name .. "\n" .. def.rarity,
-		UDim2.fromOffset(140, 50),
-		Vector3.new(0, p.Size.Y / 2 + 1.6, 0),
+		if bounds then def.name else def.name .. "\n" .. def.rarity,
+		UDim2.fromOffset(120, 28),
+		Vector3.new(0, p.Size.Y / 2 + 1.2, 0),
 		rc
 	)
+	local board = label.Parent :: BillboardGui
+	board.MaxDistance = FOOD_LABEL_DISTANCE
 	local click = Instance.new("ClickDetector")
 	click.MaxActivationDistance = 25
 	click.Parent = p

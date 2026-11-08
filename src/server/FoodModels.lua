@@ -6,7 +6,7 @@
 -- Carregamento: InsertService uma vez por arquivo, em segundo plano no início do servidor
 -- (preload). Quem monta comida usa só o cache (nunca cede/yield no meio da montagem).
 local InsertService = game:GetService("InsertService")
-local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local FoodAssets = require(game.ReplicatedStorage.Shared.FoodAssets)
@@ -19,11 +19,13 @@ local templates: { [string]: Model | false } = {} -- arquivo -> modelo (false = 
 local onReady: { () -> () } = {}
 local ready = false
 
+-- Os modelos ficam em ReplicatedStorage.FoodTemplates para o cliente usar em ViewportFrames
+-- (abertura de caixa, inventário, loja). São só malhas com textura: nada de lógica.
 local function templateFolder(): Folder
 	if not folder then
 		local f = Instance.new("Folder")
 		f.Name = "FoodTemplates"
-		f.Parent = ServerStorage
+		f.Parent = ReplicatedStorage
 		folder = f
 	end
 	return folder :: Folder
@@ -161,7 +163,7 @@ local function addEffects(holder: BasePart, def: Config.FoodDef, visual: FoodVis
 			light.Name = "FoodLight"
 			light.Color = rar.color
 			light.Brightness = glow.light
-			light.Range = 6 + rar.order
+			light.Range = 3 + rar.order * 0.5
 			light.Shadows = false
 			light.Parent = holder
 		end

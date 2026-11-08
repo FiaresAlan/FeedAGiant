@@ -43,11 +43,12 @@ FoodVisuals.Styles = {
 -- Brilho por raridade (order em Config.Rarities). Celular primeiro: poucas partículas por comida
 -- (vault "Juice on a Budget": até 100 partículas/s por emissor no celular; aqui no máximo 8/s).
 FoodVisuals.Glow = {
+	-- luz reduzida pela metade após o teste de 08/11 (a fileira de trás "estourava")
 	[3] = { sparkles = 2, light = 0 },
-	[4] = { sparkles = 4, light = 1.2 },
-	[5] = { sparkles = 6, light = 1.6 },
-	[6] = { sparkles = 8, light = 2.2 },
-	[7] = { sparkles = 8, light = 2.6 },
+	[4] = { sparkles = 4, light = 0.5 },
+	[5] = { sparkles = 6, light = 0.7 },
+	[6] = { sparkles = 8, light = 0.9 },
+	[7] = { sparkles = 8, light = 1.1 },
 } :: { [number]: { sparkles: number, light: number } }
 
 function FoodVisuals.get(foodId: string): Visual?

@@ -173,6 +173,29 @@ Aprovadas em 07/11/2026 e ampliadas depois:
   - **Sem IDs, nada muda** (céu padrão). O atributo `RecipeSky.Skybox` diz qual céu está ativo.
 - Depois do upload: testar numa cópia, tirar as fotos do painel world (as mesmas vistas de `docs/qa/shots/fase1/`), conferir que o sol pintado bate com a direção das sombras, e chamar um painel de 3 revisores.
 
+## A5c. Autorizações e pedidos do usuário (08/11/2026, noite)
+
+**Autorização ampliada** (palavras do usuário):
+- "sobre as imagens de agora e as próximas pode enviar eu permito";
+- "siga todas as fases até o final, sem perguntar-me nada. Você tem autorização total de usar API Key do creator hub roblox e usar chrome; caso vá fazer alguma mudança importante, faça git push e backup";
+- "não quero mais que você me chame, nem peço opinião alguma".
+
+Continua proibido **publicar o jogo e gastar Robux**, porque isso não foi pedido.
+
+**Pedidos novos, encaixados nas fases:**
+1. **HUD bonita, "mega importante".** As imagens de referência estão em `assets/` (ui/logo, icons_sheet, panel_9slice e outras do usuário). Vai para o **início da Fase 3**, antes dos efeitos. Use as skills `fwjelaa-ui-builder` e `quality-score` (rubrica `ui`).
+2. **Mecânica de boxe do personagem + luta de verdade nas arenas.** Hoje o duelo da arena é **encenado**: o servidor calcula o vencedor e manda os ticks. O pedido é luta real com os socos do CombatService dentro de uma arena física. Vai para a **Fase 3**, junto com os VFX de golpe (skills `fwjelaa-system-builder`, `fwjelaa-vfx`, `make-anim`).
+3. **Arena física, a partir da referência que o usuário mandou** (imagem no chat em 08/11; descrição aqui porque o arquivo não ficou salvo):
+   - coliseu redondo de **pedra lilás-acinzentada** em blocos, muro externo com painéis;
+   - **arquibancadas de madeira** em 3 a 4 degraus por setor, com escadas entre os setores;
+   - **8 braseiros de bronze com fogo** sobre pilares de pedra;
+   - **bandeiras altas** alternando vermelho e azul, com coroa dourada, também penduradas no muro externo;
+   - **camarote real** no fundo (painel azul com coroa dourada grande);
+   - **portão principal** com arco de madeira e coroa dourada, e rampa de pedra na frente;
+   - **chão de areia/terracota** com anéis concêntricos e uma **coroa grande pintada** no centro.
+
+   A versão cinza (sem textura) mostra a forma: anel externo baixo, 8 pilares, 2 portões em arco opostos, arquibancadas em leque e chão com 2 anéis.
+
 ## A6. PRÓXIMOS PASSOS (em ordem)
 
 O usuário pediu (08/11): "te permito seguir a fase". Antes disso ele quis o conserto do chão (feito) e perguntou o que mais você planeja para o visual, que "ainda está bem fraco". A lista abaixo foi apresentada a ele. **A última pergunta, "visual primeiro (A–C) ou seguir a Fase 2", ficou sem resposta.** Pergunte no início da sessão, ou siga a ordem abaixo se ele disser para seguir.

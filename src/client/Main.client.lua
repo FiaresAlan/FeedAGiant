@@ -17,6 +17,7 @@ local Combat = require(Controllers.Combat)
 local Drops = require(Controllers.Drops)
 local Arena = require(Controllers.Arena)
 local Effects = require(Controllers.Effects)
+local GiantAnim = require(Controllers.GiantAnim)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -39,6 +40,7 @@ Hatch.init(gui)
 Combat.init(gui)
 Drops.init(gui)
 Effects.init(gui)
+GiantAnim.init()
 Arena.init(gui)
 Arena.playSound = Combat.sound
 Arena.shake = Combat.shake
