@@ -70,6 +70,7 @@ Arena.OnFight = function(started: boolean, won: boolean?)
 end
 GiantBattle.OnFight = function(started: boolean)
 	Music.setFighting(started)
+	HUD.setBattleMode(started)
 end
 GiantBattle.OnVictory = function()
 	Music.fanfare("music_arena_victory", 1)

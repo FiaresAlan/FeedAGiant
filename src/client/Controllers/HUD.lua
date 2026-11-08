@@ -110,6 +110,24 @@ local menuOpen = false
 local menuBadge: Frame
 local wasCompact: boolean? = nil
 local gridShop: GuiObject? = nil -- LOJA da grade (no compacto ela já está na barra)
+local battleMode = false
+-- Batalha por turnos no celular (revisão cega de UI): o placar e os golpes ocupam a tela; a META,
+-- o escudo, a gaveta e o botão LUTAR saem do caminho até a luta acabar.
+function HUD.setBattleMode(on: boolean)
+	battleMode = on
+	if on then
+		menuOpen = false
+	end
+	local gui = hudGui
+	local fight = gui and gui:FindFirstChild("FightToggle")
+	if fight and fight:IsA("GuiObject") then
+		fight.Visible = not on
+	end
+	if shieldChip and on then
+		shieldChip.Visible = false
+	end
+	layout()
+end
 
 HUD.goalCard = nil :: Frame?
 HUD.goalObjective = nil :: TextLabel?
@@ -577,7 +595,7 @@ local function buildSideButtons(gui: ScreenGui)
 			goalCard.AnchorPoint = Vector2.new(0, 0)
 			goalCard.Size = UDim2.fromOffset(330, 40)
 			goalCard.Position = UDim2.fromOffset(12 + TILE * 2 + TILE_GAP * 2, y)
-			goalCard.Visible = not menuOpen
+			goalCard.Visible = not menuOpen and not battleMode
 			-- escudo embaixo de LOJA/MENU (ao lado das moedas ele encostava no aviso de evento)
 			shieldChip.Position = UDim2.fromOffset(12, y + TILE + 10)
 			if menuOpen then
@@ -897,7 +915,7 @@ local function shieldLoop()
 	while true do
 		local left = State.current.shieldUntil - os.time()
 		if left > 0 then
-			shieldChip.Visible = not (HUD.compact and menuOpen) -- a gaveta aberta ocupa esse lugar
+			shieldChip.Visible = not (HUD.compact and (menuOpen or battleMode)) -- gaveta aberta ou luta ocupam esse lugar
 			shieldLabel.Text = Locale.fmt("shield_active", nil, { t = string.format("%d:%02d", left // 60, left % 60) })
 		else
 			shieldChip.Visible = false

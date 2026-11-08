@@ -140,3 +140,10 @@ Medido no iPhone 17 Pro emulado (tela útil 750×323): moedas 7–187 × 3–53;
 LUTAR 558–738 × 145–205 (acima do pulo); centro e base da tela livres. Telas altas (iPad 10ª geração, console 1080p) continuam com a
 HUD completa (fotos 12 e a de console não guardada). Fotos 09 (fechada), 10 (gaveta aberta), 11 (Diário aberto pela gaveta).
 Ainda não resolvido: textos dentro das janelas (ex.: Diário) ficam pequenos no celular, porque a janela encolhe para caber.
+
+## 13. Revisão cega da HUD no celular e "modo luta"
+1 revisor cego (rubrica ui): **5,0** (12/24, travado pelo gate de sobreposição). A foto de batalha avaliada (08) é de ANTES do
+modo compacto. Corrigido: durante a batalha por turnos a HUD entra em "modo luta" (`HUD.setBattleMode`): o botão LUTAR, a META,
+o escudo e a gaveta saem do caminho. Medido: `LUTAR antes=true durante=false depois=true`.
+Pendente: foto nova da batalha no iPhone emulado (o emulador ficou no Meta Quest e não voltou pelos cliques automáticos),
+textos pequenos dentro das janelas no celular e um novo painel de UI com fotos atuais.

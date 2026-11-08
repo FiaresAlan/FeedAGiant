@@ -65,6 +65,13 @@ câmera do jogador.
 - As faixas do TUTORIAL antigo aparecem por cima das janelas novas (foto 02) — problema anterior, não corrigido.
 - O botão "GOLPE FORTE" e o remote `RequestGiantSpecial` não são mais usados (o remote ficou na lista só por compatibilidade).
 
+### HUD do celular (08/11/2026, fim da noite)
+- **Modo compacto** (`HUD.compact`, tela útil < 500 px de altura): LOJA + MENU com gaveta ao lado; nível recolhido; META no alto;
+  escudo embaixo do LOJA/MENU; faixa duplicada do tutorial desligada; LUTAR acima do pulo em tela de toque; **modo luta** na batalha
+  por turnos. Evidências §11–§13. Painel de UI: 5,0 (foto de batalha antiga); falta foto nova e painel novo.
+- Emulador do Studio: para trocar de aparelho use a lista "Dispositivo" do viewport; os cliques automáticos nos ícones de categoria
+  não funcionaram nesta sessão (ficou em Meta Quest 3).
+
 ### PRÓXIMA TAREFA PRIORITÁRIA
 1. ~~Teste com 2 jogadores~~ FEITO (evidências §9); painel final 7,5. Specs FEITAS: `tests/GameLogic.spec.luau` (33 testes do `src/server/GameLogic.lua`, 72/72 passando; evidências §10). Próximo: medir a ilha e a animação no emulador de celular e um novo painel de 3 revisores.
 2. **Testes automáticos** dos sistemas novos em `tests/` (sequência, transferência 30%, renda offline com teto, pendências idempotentes).
