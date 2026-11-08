@@ -11,6 +11,32 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A0. Sessão de 08/11/2026 (autônoma; o usuário dormiu e deu autorização total)
+
+O usuário mandou seguir todas as fases até o fim sem perguntar nada. Ele autorizou o uso da API Key e do Chrome, e pediu git push e backup antes de cada mudança importante (ver A5c).
+
+**Feito e testado nesta sessão** (cada item tem commit no GitHub):
+
+| Item | Onde | Teste |
+|---|---|---|
+| Céu "dourado" (6 faces enviadas) | `tools/make_sky.py`, `upload_sky.py`, `gen_sky_assets.py`, `SkyAssets.lua`, `LightingRecipes` | Cópia no Studio; fotos em `docs/qa/shots/fase1/ceu/` |
+| 16 comidas 3D CC0 (Grab3D), com variações de ouro, cristal, galáxia e cósmica, mais brilho por raridade | `tools/fetch_foods.py`, `prep_foods.py`, `gen_food_assets.py`, `FoodAssets`, `FoodVisuals`, `src/server/FoodModels.lua` (pátio, drops, chuva, comida roubada) | Pátio com 16 comidas; fotos em `docs/qa/shots/fase2/comidas/` |
+| Animação procedural dos gigantes (respirar, morder, comemorar) | `src/client/Controllers/GiantAnim.lua` | Medido no cliente: a mordida inclina ~9° |
+| Espécies humano (bebê e adulto), jacaré, águia e slime em 3D | Malhas da **IA do Roblox Studio** (`generate_mesh`), IDs em `assets/optimized/assets.json` (`gen-*`); o carregador aceita `mesh:<malha>|<textura>` | 5 modelos trocam sem erro |
+| **Bug do gigante afundando ao crescer** (pivô no tronco) | `GiantService.buildGiantModel`: `torso.PivotOffset` nos pés | Pés = topo do pedestal na escala 5,2 |
+| HUD nova (pedido "mega importante") | `HUD.lua`, `UI.lua` (`autoScale`/`deviceScale`, ícones de `UIAssets`, 9-slice com `SliceScale`), `Main.client` (área segura) | Fotos em `docs/qa/shots/fase3/` |
+| 8 ícones recortados da folha e enviados (fim dos ícones vazios) | `tools/slice_icons.py`, `upload_ui.py`, `UIAssets.lua` | Aparecem na HUD |
+| Arena física (coliseu da referência) | `World.buildArena` (φ 22,5°, r 235), **MAP_VERSION 2** | Assada numa cópia; fotos 03 e 04 |
+| Luta de boxe **de verdade** na arena | `ArenaService` (`fight`, `duelBody`, `runDuel`), `CombatService` (`HitFilter`, `IgnoreSafeZone`, `CanPunch`, `NoRegen`, `resetFighter`, `hpFraction`) | **Não testada com 2 jogadores** (o controle de tela foi negado: o usuário estava ausente). Revisão independente feita e 11 achados corrigidos |
+| Boxe do personagem: luvas (douradas com Boxer Pro) e animações R15 de jab, direto, pesado e reação | `CombatService.equipGloves`; kit make-anim; `assets/anims/*.rbxmx`; `tools/upload_anims.py`; `AnimationIds.lua`; `Combat.lua` (`playAnim`) | Luvas e soco tocando; foto 06 |
+| Comida voa até a boca do gigante, com +XP | `FeedFx.lua`; `GiantFed` leva `foodId` e `from` | Voo confirmado no cliente |
+
+**Pendências desta sessão:**
+- **Teste com 2 jogadores** da luta real, do soco no ladrão com animação e do empurrão (`AssemblyLinearVelocity` em personagem do cliente pode não funcionar: confirmar).
+- Re-assar o mapa no place oficial (`MapService.bake()`), porque o MAP_VERSION subiu para 2. Isso cabe ao usuário, ou ao Claude se ele pedir.
+- O place oficial ainda não tem o código novo: o usuário sincroniza com `rojo serve`.
+- Painéis de 3 revisores (rubricas world, model, ui, system) para dar nota às Fases 1, 2 e 3.
+
 ## A1. Papel e procedimento (obrigatório)
 
 - Você é o **diretor técnico**. Carregue a skill `roblox-director` antes de qualquer trabalho Roblox. Se ela não estiver listada, leia `C:\Users\Administrador\Desktop\Roblox Claude Work\studio-kit\skill\SKILL.md`.
@@ -53,9 +79,9 @@ Aprovadas em 07/11/2026 e ampliadas depois:
 |---|---|---|
 | Diagnóstico e plano | ✅ | — |
 | **0 — Fundação segura** | ✅ **Concluída** | **8,75** (system, 3 revisores) |
-| **1 — Mundo bonito** | 🟨 Construída, abaixo da meta | **7,9** (world, 3 revisores; 4 painéis) |
-| **2 — Criaturas de verdade** | 🟧 **Em andamento** (modelos no jogo; faltam animações, comidas 3D e revisão) | não avaliada ainda |
-| 3 — Efeitos e juice | ⬜ | — |
+| **1 — Mundo bonito** | 🟨 Céu de entardecer feito (08/11); falta o novo painel | **7,9** antes do céu |
+| **2 — Criaturas de verdade** | 🟩 Modelos de todas as espécies + comidas 3D + animação procedural; falta o painel `model` | não avaliada ainda |
+| 3 — Efeitos e juice | 🟧 HUD nova, arena e luta real, boxe, voo da comida (08/11); faltam música, abertura de caixa 3D e o teste com 2 jogadores | não avaliada ainda |
 | 4 — Primeiro minuto e retenção | ⬜ | — |
 | 5 — Pré-lançamento | ⬜ | — |
 
