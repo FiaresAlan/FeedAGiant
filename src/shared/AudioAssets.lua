@@ -2,6 +2,14 @@
 -- AudioAssets — GERADO por tools/upload_audio.py a partir de assets/audio/audio_assets.json.
 -- Não editar à mão. Sons aprovados pelo usuário em 08/11/2026.
 return {
+	["music_arena_victory"] = "rbxassetid://121880877594284",
+	["music_creature_discovery"] = "rbxassetid://78195107754319",
+	["music_event_feast"] = "rbxassetid://84233489755770",
+	["music_giant_evolution"] = "rbxassetid://93428809727112",
+	["music_giant_milestone"] = "rbxassetid://137706815163652",
+	["music_legendary_fanfare"] = "rbxassetid://118148302635864",
+	["music_main_island"] = "rbxassetid://82452493138549",
+	["music_mythic_fanfare"] = "rbxassetid://74619592621097",
 	["sfx_bell"] = "rbxassetid://111472603332044",
 	["sfx_block"] = "rbxassetid://72931332968465",
 	["sfx_click"] = "rbxassetid://95908432445361",

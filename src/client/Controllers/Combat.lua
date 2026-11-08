@@ -359,19 +359,20 @@ local function buildBars(gui: ScreenGui)
 	holder.Name = "FightToggle"
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(1, 1)
-	holder.Size = UDim2.fromOffset(210, 72)
+	holder.Size = UDim2.fromOffset(300, 100)
 	holder.Position = UDim2.new(1, -12, 1, -16)
 	holder.Parent = gui
 	UI.autoScale(holder)
-	fightBtn = UI.button(holder, "", UI.Colors.Red, { Name = "FightButton", Size = UDim2.fromOffset(210, 64) })
-	UI.icon(fightBtn, "glove", {
-		Size = UDim2.fromOffset(54, 54),
-		Position = UDim2.fromOffset(6, 4),
+	-- Botão grande da referência (luva + LUTAR); continua com Q no teclado e Y no controle.
+	fightBtn = UI.button(holder, "", UI.Colors.Red, { Name = "FightButton", Size = UDim2.fromOffset(300, 92) })
+	UI.icon(fightBtn, "hud2_fistglove", {
+		Size = UDim2.fromOffset(80, 84),
+		Position = UDim2.fromOffset(2, -6),
 		ZIndex = fightBtn.ZIndex + 1,
 	})
 	fightCaption = UI.label(fightBtn, "LUTAR", {
-		Size = UDim2.fromOffset(132, 52),
-		Position = UDim2.fromOffset(64, 4),
+		Size = UDim2.fromOffset(180, 70),
+		Position = UDim2.fromOffset(92, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = fightBtn.ZIndex + 1,
 	})
@@ -381,8 +382,8 @@ local function buildBars(gui: ScreenGui)
 
 	layoutCombat = function()
 		local k = UI.deviceScale()
-		box.Position = UDim2.new(1, -12, 1, -math.floor(16 + 80 * k))
-		hint.Position = UDim2.new(1, -12, 1, -math.floor(16 + 80 * k + 128 * k + 8))
+		box.Position = UDim2.new(1, -12, 1, -math.floor(16 + 112 * k))
+		hint.Position = UDim2.new(1, -12, 1, -math.floor(16 + 112 * k + 128 * k + 8))
 	end
 	layoutCombat()
 	local cam = Workspace.CurrentCamera

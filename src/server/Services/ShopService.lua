@@ -83,7 +83,7 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
 	Remotes.HatchResult:FireClient(
 		player,
-		{ foodId = food.id, rarity = food.rarity, name = food.name, color = food.color }
+		{ foodId = food.id, rarity = food.rarity, name = food.name, color = food.color, boxId = boxId }
 	)
 	-- Pedido do usuário (08/11): comida Épica ou melhor = fogos de artifício no servidor inteiro.
 	if Config.Rarities[food.rarity].order >= 4 then

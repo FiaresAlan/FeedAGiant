@@ -15,11 +15,14 @@ local UI = {}
 UI.Font = Enum.Font.FredokaOne
 -- Gotham foi aposentada pela Roblox (renderiza como Montserrat): fonte de corpo pesada da Builder.
 UI.FontBody = Enum.Font.BuilderSansExtraBold
+-- HUD nova (referência do usuário de 08/11, assets/HUD nova referencia): painéis GRAFITE, botões,
+-- ícones e destaques coloridos (moeda dourada, laranja de destaque, verde progresso, vermelho combate).
 UI.Colors = {
-	Bg = Color3.fromRGB(22, 24, 44),
-	Panel = Color3.fromRGB(36, 40, 72),
-	Panel2 = Color3.fromRGB(48, 54, 96),
-	Outline = Color3.fromRGB(14, 15, 30),
+	Bg = Color3.fromRGB(24, 26, 30),
+	Panel = Color3.fromRGB(38, 41, 48),
+	Panel2 = Color3.fromRGB(56, 60, 70),
+	Outline = Color3.fromRGB(14, 15, 18),
+	Edge = Color3.fromRGB(88, 94, 108), -- borda clara e fina dos painéis grafite
 	Accent = Color3.fromRGB(255, 210, 63), -- dourado
 	Accent2 = Color3.fromRGB(255, 150, 30),
 	Green = Color3.fromRGB(80, 230, 130),
@@ -27,7 +30,8 @@ UI.Colors = {
 	Blue = Color3.fromRGB(90, 180, 255),
 	Purple = Color3.fromRGB(190, 110, 255),
 	Text = Color3.fromRGB(255, 250, 235),
-	Muted = Color3.fromRGB(170, 176, 210),
+	Muted = Color3.fromRGB(175, 180, 192),
+	Orange = Color3.fromRGB(255, 140, 30),
 }
 
 -- Sprite sheet 4x2 (assets/ui/icons_sheet.png, 1536x1024)
@@ -141,6 +145,8 @@ end
 
 -- Painel: 9-slice se houver asset, senão gradiente + faixa dourada no topo + rebites
 function UI.panel(parent: Instance, props: { [string]: any }): Frame
+	-- Painel grafite liso com degradê suave, borda clara fina e cantos arredondados (HUD nova).
+	-- O painel 9-slice azul-marinho/dourado da Fase 3 saiu: a referência nova pede bordas mais leves.
 	local f = Instance.new("Frame")
 	f.BackgroundColor3 = UI.Colors.Panel
 	f.BorderSizePixel = 0
@@ -148,48 +154,9 @@ function UI.panel(parent: Instance, props: { [string]: any }): Frame
 		(f :: any)[k] = v
 	end
 	f.Parent = parent
-	UI.corner(f, 16)
-	UI.stroke(f, UI.Colors.Outline, 3.5)
-	if Config.Assets.Panel ~= 0 then
-		local img = Instance.new("ImageLabel")
-		img.Name = "Skin"
-		img.BackgroundTransparency = 1
-		img.Image = assetId(Config.Assets.Panel)
-		img.ScaleType = Enum.ScaleType.Slice
-		img.SliceCenter = Rect.new(140, 160, 884, 884)
-		-- Os cantos da arte têm 140-160 px: sem reduzir, painéis pequenos (< 320 px) amassavam a faixa
-		-- dourada e os rebites ("ilustração estranha" vista no diagnóstico). 0,35 = cantos de ~50 px.
-		img.SliceScale = 0.35
-		img.Size = UDim2.fromScale(1, 1)
-		img.ZIndex = f.ZIndex
-		img.Parent = f
-		f.BackgroundTransparency = 1
-	else
-		UI.gradient(f, UI.Colors.Panel2, UI.Colors.Panel, 90)
-		local bar = Instance.new("Frame")
-		bar.Name = "TopBar"
-		bar.BackgroundColor3 = UI.Colors.Accent
-		bar.BorderSizePixel = 0
-		bar.Size = UDim2.new(1, -24, 0, 5)
-		bar.Position = UDim2.fromOffset(12, 0)
-		bar.ZIndex = f.ZIndex + 1
-		bar.Parent = f
-		UI.corner(bar, 3)
-		UI.gradient(bar, UI.Colors.Accent, UI.Colors.Accent2, 0)
-		for _, pos in
-			{ UDim2.fromOffset(8, 8), UDim2.new(1, -14, 0, 8), UDim2.new(0, 8, 1, -14), UDim2.new(1, -14, 1, -14) }
-		do
-			local r = Instance.new("Frame")
-			r.Size = UDim2.fromOffset(6, 6)
-			r.Position = pos
-			r.BackgroundColor3 = UI.Colors.Muted
-			r.BackgroundTransparency = 0.5
-			r.BorderSizePixel = 0
-			r.ZIndex = f.ZIndex + 1
-			r.Parent = f
-			UI.corner(r, 3)
-		end
-	end
+	UI.corner(f, 18)
+	UI.stroke(f, UI.Colors.Edge, 2)
+	UI.gradient(f, UI.Colors.Panel2, UI.Colors.Panel, 90)
 	return f
 end
 
@@ -242,7 +209,8 @@ end
 function UI.icon(parent: Instance, name: string, props: { [string]: any }?): GuiObject
 	-- Fase 3 (HUD): ícone recortado e enviado individualmente (UIAssets). A folha 4x2 só serve de
 	-- reserva: o Roblox reduz a folha para 1024x683 e o recorte em pixels apontava para o lugar errado.
-	local single = (UIAssets :: { [string]: string })[name]
+	local assets = UIAssets :: { [string]: string }
+	local single = assets[name] or assets["extra_" .. name]
 	if single then
 		local img = Instance.new("ImageLabel")
 		img.BackgroundTransparency = 1
@@ -297,7 +265,7 @@ function UI.button(parent: Instance, text: string, color: Color3, props: { [stri
 	end
 	b.Parent = parent
 	UI.corner(b, 14)
-	UI.stroke(b, UI.Colors.Outline, 3)
+	UI.stroke(b, UI.Colors.Outline, 2.5)
 	local h, s, v = color:ToHSV()
 	local dark = Color3.fromHSV(h, math.min(1, s * 1.1), v * 0.55)
 	local light = Color3.fromHSV(h, s * 0.8, math.min(1, v * 1.15))
@@ -502,7 +470,7 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 		-- `if not win.Visible then UI.pop(win)` nunca rodava e NENHUM botão da HUD abria nada.
 		Visible = false,
 	})
-	UI.glow(win, UI.Colors.Accent, 22, 0.7)
+	UI.glow(win, UI.Colors.Orange, 22, 0.82)
 	local header = Instance.new("Frame")
 	header.BackgroundColor3 = UI.Colors.Accent
 	header.BorderSizePixel = 0
@@ -512,14 +480,20 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	header.Parent = win
 	UI.corner(header, 14)
 	UI.stroke(header, UI.Colors.Outline, 3)
-	UI.gradient(header, UI.Colors.Accent, UI.Colors.Accent2, 90)
-	UI.label(header, titleText, {
+	UI.gradient(header, Color3.fromRGB(255, 176, 40), UI.Colors.Orange, 90)
+	-- Título branco com contorno escuro sobre a faixa laranja (referência da HUD nova).
+	local ttl = UI.label(header, titleText, {
 		Size = UDim2.new(1, -20, 1, -8),
 		Position = UDim2.fromOffset(10, 4),
 		ZIndex = 14,
-		TextColor3 = UI.Colors.Outline,
+		TextColor3 = Color3.new(1, 1, 1),
 		TextStrokeTransparency = 1,
 	})
+	local tst = Instance.new("UIStroke")
+	tst.Color = UI.Colors.Outline
+	tst.Thickness = 2.5
+	tst.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	tst.Parent = ttl
 	local close = UI.button(
 		win,
 		"X",
@@ -628,6 +602,18 @@ end
 
 -- Logo (imagem se existir, senão título com gradiente)
 function UI.logo(parent: Instance, props: { [string]: any }): GuiObject
+	local hud2 = (UIAssets :: { [string]: string })["extra_hud2_logo"]
+	if hud2 then
+		local img = Instance.new("ImageLabel")
+		img.BackgroundTransparency = 1
+		img.Image = hud2
+		img.ScaleType = Enum.ScaleType.Fit
+		for k, v in props do
+			(img :: any)[k] = v
+		end
+		img.Parent = parent
+		return img
+	end
 	if Config.Assets.Logo ~= 0 then
 		local img = Instance.new("ImageLabel")
 		img.BackgroundTransparency = 1

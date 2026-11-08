@@ -178,22 +178,40 @@ local function buildBoxesTab(parent: Frame)
 	layout.Parent = scroll
 
 	for i, box in Config.Lunchboxes do
-		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 128), LayoutOrder = i })
+		local card = UI.frame(scroll, {
+			Size = UDim2.new(1, -10, 0, 136),
+			LayoutOrder = i,
+			BackgroundColor3 = UI.Colors.Panel2,
+		})
 		UI.stroke(card, box.color, 3)
-		local icon = UI.frame(
-			card,
-			{ Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(12, 24), BackgroundColor3 = box.color }
-		)
-		UI.label(icon, "?", { Size = UDim2.fromScale(1, 1), TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.3 })
+		-- Skin nova da caixa (arte do usuário, assets/HUD nova referencia/lunchbox_*.png); sem ela, o
+		-- quadrado colorido com "?" de antes.
+		local skin = UI.icon(card, "box_" .. box.id, {
+			Size = UDim2.fromOffset(112, 112),
+			Position = UDim2.fromOffset(8, 12),
+			ZIndex = card.ZIndex + 1,
+		})
+		if skin:IsA("TextLabel") then
+			skin:Destroy()
+			local icon = UI.frame(
+				card,
+				{ Size = UDim2.fromOffset(80, 80), Position = UDim2.fromOffset(20, 28), BackgroundColor3 = box.color }
+			)
+			UI.label(
+				icon,
+				"?",
+				{ Size = UDim2.fromScale(1, 1), TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.3 }
+			)
+		end
 		UI.label(card, box.name, {
-			Size = UDim2.new(1, -260, 0, 32),
-			Position = UDim2.fromOffset(104, 10),
+			Size = UDim2.new(1, -290, 0, 34),
+			Position = UDim2.fromOffset(128, 8),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = box.color,
 		})
 		summaryLabels[box.id] = UI.label(card, oddsSummary(box.id, nil), {
-			Size = UDim2.new(1, -260, 0, 76),
-			Position = UDim2.fromOffset(104, 44),
+			Size = UDim2.new(1, -290, 0, 82),
+			Position = UDim2.fromOffset(128, 46),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextScaled = false,
@@ -201,9 +219,10 @@ local function buildBoxesTab(parent: Frame)
 			TextWrapped = true,
 			TextTransparency = 0.2,
 		})
-		local btn = UI.button(card, Util.formatNumber(box.price) .. " $", UI.Colors.Green, {
+		local btn = UI.button(card, Util.formatNumber(box.price) .. " $", UI.Colors.Accent, {
 			Size = UDim2.fromOffset(140, 50),
 			Position = UDim2.new(1, -152, 0.5, -52),
+			TextColor3 = Color3.new(1, 1, 1),
 		})
 		local oddsBtn = UI.button(card, "CHANCES", UI.Colors.Blue, {
 			Size = UDim2.fromOffset(140, 44),
@@ -483,10 +502,32 @@ local function refresh(s: State.PlayerState)
 	end
 end
 
-function Shop.open()
-	if not win.Visible then
-		UI.pop(win)
+-- Pedido do usuário (item 7): três lojas separadas. LOJA = Lunchboxes (moedas); GIGANTES = espécies;
+-- LOJA ROBUX = passes e produtos, aberta de qualquer lugar pelo botão R$ da HUD.
+local speciesWin: Frame
+local robuxWin: Frame
+
+local function openWin(w: Frame)
+	for _, other in { win, speciesWin, robuxWin } do
+		if other ~= w and other.Visible then
+			other.Visible = false
+		end
 	end
+	if not w.Visible then
+		UI.pop(w)
+	end
+end
+
+function Shop.open()
+	openWin(win)
+end
+
+function Shop.openSpecies()
+	openWin(speciesWin)
+end
+
+function Shop.openRobux()
+	openWin(robuxWin)
 end
 
 function Shop.openCodes()
@@ -497,48 +538,14 @@ end
 
 function Shop.init(gui: ScreenGui)
 	local body: Frame
-	win, body = UI.window(gui, "LOJA", UDim2.fromOffset(640, 540))
-
-	local tabs = UI.frame(body, { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1 })
-	local pages = UI.frame(
-		body,
-		{ Size = UDim2.new(1, 0, 1, -52), Position = UDim2.fromOffset(0, 52), BackgroundTransparency = 1 }
-	)
-	local boxesPage = UI.frame(pages, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 })
-	local speciesPage = UI.frame(pages, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false })
-	local robuxPage = UI.frame(pages, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false })
-	buildBoxesTab(boxesPage)
-	buildSpeciesTab(speciesPage)
-	buildRobuxTab(robuxPage)
-
-	local inactive = Color3.fromRGB(118, 122, 160) -- clara o bastante para o texto branco ler (revisão 08/11)
-	local tabBoxes = UI.button(tabs, "CAIXAS", UI.Colors.Accent, { Size = UDim2.new(1 / 3, -4, 1, 0) })
-	local tabSpecies = UI.button(
-		tabs,
-		"ESPÉCIES",
-		inactive,
-		{ Size = UDim2.new(1 / 3, -4, 1, 0), Position = UDim2.new(1 / 3, 2, 0, 0) }
-	)
-	local tabRobux =
-		UI.button(tabs, "ROBUX", inactive, { Size = UDim2.new(1 / 3, -4, 1, 0), Position = UDim2.new(2 / 3, 4, 0, 0) })
-	local function show(page: Frame, btn: TextButton, color: Color3)
-		boxesPage.Visible = page == boxesPage
-		speciesPage.Visible = page == speciesPage
-		robuxPage.Visible = page == robuxPage
-		tabBoxes.BackgroundColor3 = inactive
-		tabSpecies.BackgroundColor3 = inactive
-		tabRobux.BackgroundColor3 = inactive
-		btn.BackgroundColor3 = color
-	end
-	tabBoxes.Activated:Connect(function()
-		show(boxesPage, tabBoxes, UI.Colors.Accent)
-	end)
-	tabSpecies.Activated:Connect(function()
-		show(speciesPage, tabSpecies, UI.Colors.Green)
-	end)
-	tabRobux.Activated:Connect(function()
-		show(robuxPage, tabRobux, UI.Colors.Blue)
-	end)
+	win, body = UI.window(gui, "LOJA DE LUNCHBOXES", UDim2.fromOffset(700, 560))
+	buildBoxesTab(body)
+	local sBody: Frame
+	speciesWin, sBody = UI.window(gui, "LOJA DE GIGANTES", UDim2.fromOffset(700, 560))
+	buildSpeciesTab(sBody)
+	local rBody: Frame
+	robuxWin, rBody = UI.window(gui, "LOJA ROBUX", UDim2.fromOffset(700, 560))
+	buildRobuxTab(rBody)
 
 	buildCodes(gui)
 	buildOddsWindow(gui)

@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Steps = require(game.ReplicatedStorage.Shared.TutorialSteps) :: { any }
 local UI = require(script.Parent.Parent.UI)
+local HUD = require(script.Parent.HUD)
 
 local Tutorial = {}
 
@@ -21,76 +22,38 @@ function Tutorial.init()
 		local ui = module.Client.DefaultUi()
 
 		local gui = player:WaitForChild("PlayerGui"):WaitForChild("FwjelaaTutorialUI", 10)
-		-- Objetivo e dica logo ABAIXO do painel do topo da HUD (teste de 08/11: ficavam por cima dele).
-		-- O painel ocupa ~160 px no desenho 1080p, na escala do aparelho.
-		local function placeBanners()
-			if not gui then
+		-- HUD nova (08/11): o objetivo e a dica aparecem DENTRO do cartão de META (embaixo à esquerda),
+		-- como na referência do usuário. As faixas próprias do módulo ficam desligadas; o texto delas é
+		-- espelhado no cartão (o módulo continua dono do progresso, das trilhas e dos destaques no mundo).
+		local card = HUD.goalCard
+		local function mirror(src: Instance?, dst: TextLabel?)
+			if not src or not src:IsA("TextLabel") or not dst then
 				return
 			end
-			-- abaixo também do chip do escudo (6 + 122 + 36 px no desenho; teste de 08/11)
-			local y = 8 + 168 * UI.deviceScale()
-			-- Por baixo da HUD do jogo: janelas abertas (loja, coleção) escurecem e cobrem a faixa.
-			if gui:IsA("ScreenGui") then
-				gui.DisplayOrder = -1
+			local srcLabel: TextLabel = src
+			local function sync()
+				dst.Text = srcLabel.Text
+				dst.Visible = srcLabel.Visible and srcLabel.Text ~= ""
 			end
-			local objective = gui:FindFirstChild("Objective")
-			local hint = gui:FindFirstChild("Hint")
-			if objective and objective:IsA("GuiObject") then
-				objective.Position = UDim2.new(0.5, 0, 0, y)
-				objective.ZIndex = 5
-			end
-			if hint and hint:IsA("GuiObject") then
-				hint.Position = UDim2.new(0.5, 0, 0, y + 46)
-				hint.ZIndex = 5
-			end
+			srcLabel:GetPropertyChangedSignal("Text"):Connect(sync)
+			srcLabel:GetPropertyChangedSignal("Visible"):Connect(sync)
+			sync()
 		end
-		placeBanners()
-		-- Revisão de UI (08/11): com uma janela ou a abertura de caixa na tela, as faixas do tutorial
-		-- somem (antes ficavam por trás, escurecidas, e pareciam sobrepostas). Voltam ao fechar.
-		local mainGui = player.PlayerGui:FindFirstChild("FeedAGiantGui")
-		if gui and gui:IsA("ScreenGui") and mainGui then
-			local tutorialGui: ScreenGui = gui
-			local modals: { GuiObject } = {}
-			local function update()
-				local blocked = false
-				for _, m in modals do
-					if m.Visible then
-						blocked = true
-						break
-					end
-				end
-				tutorialGui.Enabled = not blocked
-			end
-			local function watch(child: Instance)
-				if
-					child:IsA("GuiObject") and (child.Name == "HatchOverlay" or string.sub(child.Name, 1, 4) == "Dim_")
-				then
-					table.insert(modals, child)
-					child:GetPropertyChangedSignal("Visible"):Connect(update)
-				end
-			end
-			for _, child in mainGui:GetChildren() do
-				watch(child)
-			end
-			mainGui.ChildAdded:Connect(watch)
-			update()
-		end
-		local cam = workspace.CurrentCamera
-		if cam then
-			cam:GetPropertyChangedSignal("ViewportSize"):Connect(placeBanners)
+		if gui and gui:IsA("ScreenGui") then
+			gui.Enabled = false
+			mirror(gui:FindFirstChild("Objective", true), HUD.goalObjective)
+			mirror(gui:FindFirstChild("Hint", true), HUD.goalHint)
 		end
 
-		-- Botão Pular (46 px de toque, confirmação em 2 toques), no canto inferior esquerdo:
-		-- longe da HUD, do painel de disputa (canto superior direito) e do combate (inferior direito).
+		-- Botão Pular (46 px de toque, confirmação em 2 toques), dentro do cartão de META.
 		local skip: TextButton? = nil
-		if gui then
-			local b = UI.button(gui, "Pular tutorial", Color3.fromRGB(110, 110, 130), {
+		if card then
+			local b = UI.button(card, "Pular tutorial", Color3.fromRGB(96, 102, 118), {
 				Name = "TutorialSkip",
-				AnchorPoint = Vector2.new(0, 1),
-				Position = UDim2.new(0, 12, 1, -12),
-				Size = UDim2.fromOffset(170, 46),
+				Size = UDim2.fromOffset(240, 46),
 				TextScaled = false,
 				TextSize = 20,
+				LayoutOrder = 4,
 				Visible = false,
 			})
 			skip = b

@@ -153,8 +153,8 @@ function Notifications.init(parentGui: ScreenGui)
 	banner = UI.frame(gui, {
 		Name = "EventBanner",
 		Size = UDim2.fromOffset(400, 60),
-		Position = UDim2.fromOffset(12, 76),
-		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
 		Visible = false,
 	})
@@ -173,15 +173,7 @@ function Notifications.init(parentGui: ScreenGui)
 		Size = UDim2.fromOffset(96, 48),
 		Position = UDim2.new(1, -104, 0, 6),
 	})
-	local function placeBanner()
-		local cam = workspace.CurrentCamera
-		local wide = cam ~= nil and cam.ViewportSize.X >= 1280 -- logo só aparece em telas largas
-		banner.Position = UDim2.fromOffset(12, if wide then 76 else 8)
-	end
-	placeBanner()
-	if workspace.CurrentCamera then
-		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBanner)
-	end
+	-- HUD nova: a coluna da esquerda é das estatísticas; o chip do evento fica no meio do topo.
 	task.spawn(function()
 		while true do
 			tickBanner()

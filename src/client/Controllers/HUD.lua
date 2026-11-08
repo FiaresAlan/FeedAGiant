@@ -19,7 +19,6 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local State = require(script.Parent.Parent.State)
-local FoodView = require(script.Parent.Parent.FoodView)
 
 local HUD = {}
 
@@ -45,7 +44,6 @@ local hudGui: ScreenGui? = nil
 local coinIcon: GuiObject? = nil
 local miniLevel: TextLabel? = nil
 local goalLabel: TextLabel
-local goalChip: Frame
 
 HUD.OnOpenShop = nil :: (() -> ())?
 HUD.OnOpenInventory = nil :: (() -> ())?
@@ -74,69 +72,107 @@ local function moodName(h: number): string
 	return Locale.t("Feliz") .. "  x1.25"
 end
 
--- Cápsula escura dentro do painel (fundo das estatísticas).
-local function pill(parent: Instance, x: number, w: number, accent: Color3): Frame
-	local f = UI.frame(parent, {
-		Size = UDim2.fromOffset(w, 76),
-		Position = UDim2.fromOffset(x, 26),
-		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
-		ZIndex = 3,
-	})
-	UI.corner(f, 18)
-	UI.stroke(f, accent, 2.5)
-	return f
+-- HUD nova (referência do usuário de 08/11, assets/HUD nova referencia/feedagiant_hud_transparente.png):
+-- coluna à esquerda com logo, cartão de moedas, cartão de nível/XP/fome, grade de botões coloridos e,
+-- embaixo, o cartão de META + objetivo do tutorial + "Pular tutorial". Painéis grafite, cores nos botões.
+-- Tudo dentro de UM contêiner com o UIScale do aparelho; as posições são em pixels do desenho 1080p e
+-- `layout()` recalcula a grade quando a tela muda (celular deitado ganha mais colunas, nada se sobrepõe).
+local TILE, TILE_GAP = 104, 10
+local CARD_W = 300
+
+local leftRoot: Frame
+local logoImg: GuiObject
+local coinCard: Frame
+local levelCard: Frame
+local tileGrid: Frame
+local goalCard: Frame
+local collapsed = false
+local layout: () -> () = function() end
+
+HUD.goalCard = nil :: Frame?
+HUD.goalObjective = nil :: TextLabel?
+HUD.goalHint = nil :: TextLabel?
+HUD.OnOpenRobux = nil :: (() -> ())?
+
+local function card(parent: Instance, name: string, w: number, h: number): Frame
+	return UI.panel(parent, { Name = name, Size = UDim2.fromOffset(w, h), BackgroundTransparency = 0.08 })
 end
 
 local function buildTopBar(gui: ScreenGui)
-	-- O ScreenGui usa ScreenInsets = CoreUISafeInsets: a área já começa abaixo da barra do Roblox
-	-- (medido no teste de 08/11: somar TopbarInset de novo deixava o painel ~60 px baixo demais).
-	local top = Instance.new("Frame")
-	top.Name = "TopCluster"
-	top.BackgroundTransparency = 1
-	top.AnchorPoint = Vector2.new(0.5, 0)
-	top.Position = UDim2.new(0.5, 0, 0, 6)
-	top.Size = UDim2.fromOffset(900, 150)
-	top.Parent = gui
-	scaled(top)
+	leftRoot = Instance.new("Frame")
+	leftRoot.Name = "LeftColumn"
+	leftRoot.BackgroundTransparency = 1
+	leftRoot.Size = UDim2.fromOffset(640, 1080)
+	leftRoot.Parent = gui
+	scaled(leftRoot)
 
-	local panel = UI.panel(top, { Name = "Panel", Size = UDim2.fromOffset(900, 116), ZIndex = 2 })
-	UI.glow(panel, UI.Colors.Accent, 14, 0.82)
+	logoImg = UI.logo(leftRoot, { Name = "Logo", Size = UDim2.fromOffset(230, 74), Position = UDim2.fromOffset(18, 2) })
 
 	-- Moedas
-	local coin = pill(panel, 18, 300, UI.Colors.Accent)
-	coinIcon = UI.icon(coin, "coin", { Size = UDim2.fromOffset(64, 64), Position = UDim2.fromOffset(6, 6), ZIndex = 4 })
-	coinsLabel = UI.title(coin, "0", {
-		Size = UDim2.fromOffset(212, 44),
-		Position = UDim2.fromOffset(78, 2),
+	coinCard = card(leftRoot, "CoinCard", CARD_W, 84)
+	coinIcon = UI.icon(
+		coinCard,
+		"hud2_coins",
+		{ Size = UDim2.fromOffset(66, 66), Position = UDim2.fromOffset(10, 9), ZIndex = 3 }
+	)
+	coinsLabel = UI.title(coinCard, "0", {
+		Size = UDim2.fromOffset(150, 44),
+		Position = UDim2.fromOffset(86, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 4,
+		ZIndex = 3,
 	})
-	cpsLabel = UI.label(coin, "+0/s", {
-		Size = UDim2.fromOffset(110, 24),
-		Position = UDim2.fromOffset(80, 46),
+	cpsLabel = UI.label(coinCard, "+0/s", {
+		Size = UDim2.fromOffset(110, 26),
+		Position = UDim2.fromOffset(88, 50),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Green,
+		TextScaled = false,
+		TextSize = 22,
+		ZIndex = 3,
+	})
+	local mini = UI.label(coinCard, "", {
+		Name = "MiniLevel",
+		Size = UDim2.fromOffset(80, 26),
+		Position = UDim2.new(1, -132, 0, 50),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextScaled = false,
+		TextSize = 20,
+		TextColor3 = UI.Colors.Blue,
+		Visible = false,
+		ZIndex = 3,
+	})
+	miniLevel = mini
+	-- Encolher/expandir o cartão de nível (pedido do usuário: a HUD não pode tampar a tela).
+	local toggle = UI.button(coinCard, "▲", Color3.fromRGB(78, 84, 100), {
+		Name = "Collapse",
+		Size = UDim2.fromOffset(44, 44),
+		Position = UDim2.new(1, -50, 0, 6),
 		TextScaled = false,
 		TextSize = 22,
 		ZIndex = 4,
 	})
 
-	-- Nível + XP
-	local lvl = pill(panel, 330, 330, UI.Colors.Blue)
-	UI.icon(lvl, "crown", { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(8, 10), ZIndex = 4 })
-	levelLabel = UI.label(lvl, "Bebê • Nv. 1", {
-		Size = UDim2.fromOffset(250, 30),
-		Position = UDim2.fromOffset(70, 6),
+	-- Nível, XP e fome
+	levelCard = card(leftRoot, "LevelCard", CARD_W, 124)
+	UI.icon(
+		levelCard,
+		"hud2_crown",
+		{ Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(10, 8), ZIndex = 3 }
+	)
+	levelLabel = UI.label(levelCard, "Bebê • Nv. 1", {
+		Size = UDim2.fromOffset(222, 26),
+		Position = UDim2.fromOffset(64, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 24,
-		ZIndex = 4,
+		TextSize = 22,
+		TextColor3 = UI.Colors.Blue,
+		ZIndex = 3,
 	})
 	local xpBg
-	xpBg, xpFill = UI.bar(lvl, UI.Colors.Blue, {
-		Size = UDim2.fromOffset(246, 26),
-		Position = UDim2.fromOffset(70, 40),
-		ZIndex = 4,
+	xpBg, xpFill = UI.bar(levelCard, UI.Colors.Green, {
+		Size = UDim2.fromOffset(222, 26),
+		Position = UDim2.fromOffset(64, 36),
+		ZIndex = 3,
 	})
 	xpText = UI.label(xpBg, "0 / 50 XP", {
 		Size = UDim2.fromScale(1, 1),
@@ -145,58 +181,44 @@ local function buildTopBar(gui: ScreenGui)
 		Font = UI.FontBody,
 		ZIndex = 7,
 	})
-
-	-- Humor / fome
-	local mood = pill(panel, 672, 210, UI.Colors.Green)
-	hungerText = UI.label(mood, "Satisfeito", {
-		Size = UDim2.fromOffset(190, 30),
-		Position = UDim2.fromOffset(10, 6),
+	local div = Instance.new("Frame")
+	div.BackgroundColor3 = UI.Colors.Edge
+	div.BackgroundTransparency = 0.5
+	div.BorderSizePixel = 0
+	div.Size = UDim2.new(1, -24, 0, 2)
+	div.Position = UDim2.fromOffset(12, 72)
+	div.ZIndex = 3
+	div.Parent = levelCard
+	UI.icon(
+		levelCard,
+		"hud2_mood",
+		{ Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(14, 80), ZIndex = 3 }
+	)
+	hungerText = UI.label(levelCard, "Satisfeito", {
+		Size = UDim2.fromOffset(128, 30),
+		Position = UDim2.fromOffset(58, 82),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 22,
-		ZIndex = 4,
-	})
-	local _hBg
-	_hBg, hungerFill = UI.bar(mood, UI.Colors.Green, {
-		Size = UDim2.fromOffset(190, 26),
-		Position = UDim2.fromOffset(10, 40),
-		ZIndex = 4,
-	})
-
-	-- Escudo (chip abaixo do painel)
-	-- Meta da progressão (pedido do usuário: "não vejo a progressão clara"): próximo estágio do
-	-- gigante ou o rebirth, sempre visível logo abaixo do painel.
-	local goal = UI.frame(top, {
-		Name = "Goal",
-		Size = UDim2.fromOffset(520, 36),
-		Position = UDim2.new(0.5, 0, 0, 122),
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
-		BackgroundTransparency = 0.15,
-		ZIndex = 2,
-	})
-	UI.corner(goal, 12)
-	UI.stroke(goal, UI.Colors.Accent, 2)
-	goalLabel = UI.label(goal, "", {
-		Size = UDim2.new(1, -16, 1, 0),
-		Position = UDim2.fromOffset(8, 0),
-		TextScaled = false,
-		TextSize = 20,
-		TextColor3 = UI.Colors.Accent,
+		TextSize = 21,
 		ZIndex = 3,
 	})
-	goalChip = goal
-	shieldChip = UI.frame(top, {
+	local _hBg
+	_hBg, hungerFill = UI.bar(levelCard, UI.Colors.Green, {
+		Size = UDim2.fromOffset(96, 20),
+		Position = UDim2.fromOffset(190, 88),
+		ZIndex = 3,
+	})
+
+	-- Escudo: chip ao lado das moedas (só enquanto dura)
+	shieldChip = UI.frame(leftRoot, {
 		Name = "Shield",
-		Size = UDim2.fromOffset(260, 36),
-		Position = UDim2.new(0.5, 0, 0, 122),
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Color3.fromRGB(16, 20, 54),
+		Size = UDim2.fromOffset(230, 40),
+		BackgroundColor3 = UI.Colors.Panel,
 		Visible = false,
 		ZIndex = 2,
 	})
 	UI.stroke(shieldChip, UI.Colors.Blue, 2)
-	UI.icon(shieldChip, "shield", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(6, 3), ZIndex = 3 })
+	UI.icon(shieldChip, "shield", { Size = UDim2.fromOffset(32, 32), Position = UDim2.fromOffset(6, 4), ZIndex = 3 })
 	shieldLabel = UI.label(shieldChip, "", {
 		Size = UDim2.new(1, -46, 1, 0),
 		Position = UDim2.fromOffset(42, 0),
@@ -207,65 +229,80 @@ local function buildTopBar(gui: ScreenGui)
 		ZIndex = 3,
 	})
 
-	-- Pedido do usuário (08/11): o painel do topo tampava a tela. Botão para encolher: encolhido,
-	-- fica só a cápsula das moedas (o nível aparece num selo pequeno). No celular já começa encolhido.
-	local mini = UI.label(coin, "", {
-		Name = "MiniLevel",
-		Size = UDim2.fromOffset(110, 24),
-		Position = UDim2.new(1, -116, 0, 46),
-		TextXAlignment = Enum.TextXAlignment.Right,
+	-- Cartão de META + tutorial (embaixo à esquerda)
+	goalCard = card(leftRoot, "GoalCard", 450, 40)
+	goalCard.AutomaticSize = Enum.AutomaticSize.Y
+	goalCard.AnchorPoint = Vector2.new(0, 1)
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0, 10)
+	pad.PaddingBottom = UDim.new(0, 12)
+	pad.PaddingLeft = UDim.new(0, 14)
+	pad.PaddingRight = UDim.new(0, 14)
+	pad.Parent = goalCard
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 6)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = goalCard
+	goalLabel = UI.label(goalCard, "", {
+		Name = "Goal",
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextScaled = false,
+		TextSize = 22,
+		TextWrapped = true,
+		TextColor3 = UI.Colors.Accent,
+		LayoutOrder = 1,
+		ZIndex = 3,
+	})
+	local obj = UI.label(goalCard, "", {
+		Name = "Objective",
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextScaled = false,
+		TextSize = 22,
+		TextWrapped = true,
+		BackgroundTransparency = 0.35,
+		BackgroundColor3 = UI.Colors.Bg,
+		LayoutOrder = 2,
+		Visible = false,
+		ZIndex = 3,
+	})
+	UI.corner(obj, 10)
+	local objPad = Instance.new("UIPadding")
+	objPad.PaddingTop = UDim.new(0, 4)
+	objPad.PaddingBottom = UDim.new(0, 4)
+	objPad.Parent = obj
+	local hint = UI.label(goalCard, "", {
+		Name = "Hint",
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		TextScaled = false,
 		TextSize = 20,
-		TextColor3 = UI.Colors.Blue,
+		TextWrapped = true,
+		Font = UI.FontBody,
+		TextColor3 = UI.Colors.Accent,
+		LayoutOrder = 3,
 		Visible = false,
-		ZIndex = 4,
+		ZIndex = 3,
 	})
-	miniLevel = mini
-	local toggle = UI.button(top, "▲", Color3.fromRGB(70, 80, 140), {
-		Name = "Collapse",
-		Size = UDim2.fromOffset(48, 48),
-		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.new(1, 8, 0, 34),
-		TextScaled = false,
-		TextSize = 24,
-		ZIndex = 4,
-	})
-	local collapsed = false
-	local function apply()
-		lvl.Visible = not collapsed
-		mood.Visible = not collapsed
-		mini.Visible = collapsed
-		local w = if collapsed then 336 else 900
-		panel.Size = UDim2.fromOffset(w, 116)
-		top.Size = UDim2.fromOffset(w, 150)
-		toggle.Text = if collapsed then "▼" else "▲"
-	end
+	HUD.goalCard = goalCard
+	HUD.goalObjective = obj
+	HUD.goalHint = hint
+	goalCard:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		layout()
+	end)
+
 	toggle.Activated:Connect(function()
 		collapsed = not collapsed
-		apply()
+		toggle.Text = if collapsed then "▼" else "▲"
+		layout()
 	end)
 	local cam0 = Workspace.CurrentCamera
 	collapsed = cam0 ~= nil and cam0.ViewportSize.Y < 560
-	apply()
-
-	-- Logo no canto (só em telas largas: no celular a área é das estatísticas)
-	local logo = UI.logo(gui, {
-		Name = "Logo",
-		Size = UDim2.fromOffset(170, 64),
-		Position = UDim2.fromOffset(12, 4),
-		ZIndex = 3,
-	})
-	local function updateLogo()
-		local cam = Workspace.CurrentCamera
-		logo.Visible = cam ~= nil and cam.ViewportSize.X >= 1280
-	end
-	updateLogo()
-	if Workspace.CurrentCamera then
-		(Workspace.CurrentCamera :: Camera):GetPropertyChangedSignal("ViewportSize"):Connect(updateLogo)
-	end
+	toggle.Text = if collapsed then "▼" else "▲"
 end
 
--- Azulejo do menu lateral: ícone grande + legenda, botão "pressionável" com sombra.
+-- Botão colorido da grade: ícone recortado da referência + legenda desenhada pelo Roblox (traduzível).
 local function tile(
 	parent: Instance,
 	icon: string,
@@ -273,11 +310,11 @@ local function tile(
 	color: Color3,
 	order: number
 ): (TextButton, TextLabel)
-	local b = UI.button(parent, "", color, { Size = UDim2.fromOffset(104, 112), LayoutOrder = order })
-	UI.icon(b, icon, { Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(6, -2), ZIndex = b.ZIndex + 1 })
+	local b = UI.button(parent, "", color, { Size = UDim2.fromOffset(TILE, TILE), LayoutOrder = order })
+	UI.icon(b, icon, { Size = UDim2.fromOffset(72, 62), Position = UDim2.fromOffset(6, -2), ZIndex = b.ZIndex + 1 })
 	local cap = UI.label(b, caption, {
-		Size = UDim2.new(1, 8, 0, 24),
-		Position = UDim2.new(0, -4, 1, -22),
+		Size = UDim2.new(1, 12, 0, 24),
+		Position = UDim2.new(0, -6, 1, -22),
 		TextScaled = false,
 		TextSize = 20,
 		ZIndex = b.ZIndex + 1,
@@ -285,114 +322,46 @@ local function tile(
 	return b, cap
 end
 
-local TILE_W, TILE_H, TILE_GAP = 104, 112, 12
-local TILE_COUNT = 7
-local TOP_RESERVE = 164 -- altura do painel do topo + escudo, em pixels do desenho 1080p
-local BOTTOM_RESERVE = 70 -- espaço do botão "Pular tutorial" (canto inferior esquerdo)
+local TILE_COUNT = 8
 
 local function buildSideButtons(gui: ScreenGui)
-	local col = Instance.new("Frame")
-	col.Name = "SideCluster"
-	col.BackgroundTransparency = 1
-	col.AnchorPoint = Vector2.new(0, 0)
-	col.Parent = gui
-	scaled(col)
-	-- Fase 4 (celular primeiro): no celular deitado (844x390) a coluna única de 6 azulejos passava
-	-- da tela. Agora é uma grade que enche de cima para baixo e abre colunas quando falta altura.
-	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(TILE_W, TILE_H)
-	layout.CellPadding = UDim2.fromOffset(TILE_GAP, TILE_GAP)
-	layout.FillDirection = Enum.FillDirection.Vertical
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = col
-	local function fit()
-		local area = gui.AbsoluteSize
-		if area.Y <= 0 then
-			return
-		end
-		local k = UI.deviceScale()
-		local avail = area.Y / k - TOP_RESERVE - BOTTOM_RESERVE
-		local rows = math.clamp(math.floor((avail + TILE_GAP) / (TILE_H + TILE_GAP)), 1, TILE_COUNT)
-		local cols = math.ceil(TILE_COUNT / rows)
-		rows = math.ceil(TILE_COUNT / cols)
-		local h = rows * TILE_H + (rows - 1) * TILE_GAP
-		col.Size = UDim2.fromOffset(cols * TILE_W + (cols - 1) * TILE_GAP, h)
-		-- Centrada na altura quando cabe; senão logo abaixo do painel do topo.
-		local top = math.max(TOP_RESERVE, (area.Y / k - h) / 2 + 20)
-		col.Position = UDim2.fromOffset(14, top * k)
-	end
-	fit()
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	tileGrid = Instance.new("Frame")
+	tileGrid.Name = "SideCluster"
+	tileGrid.BackgroundTransparency = 1
+	tileGrid.Parent = leftRoot
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.fromOffset(TILE, TILE)
+	grid.CellPadding = UDim2.fromOffset(TILE_GAP, TILE_GAP + 4)
+	grid.FillDirection = Enum.FillDirection.Horizontal
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.Parent = tileGrid
 
-	local function open(cb: (() -> ())?)
-		return function()
-			if cb then
-				cb()
-			end
+	local function call(cb: (() -> ())?)
+		if cb then
+			cb()
 		end
 	end
-
-	local shop = tile(col, "lunchbox", "LOJA", UI.Colors.Accent, 1)
+	local shop = tile(tileGrid, "hud2_shop", "LOJA", UI.Colors.Accent, 1)
 	shop.Activated:Connect(function()
-		open(HUD.OnOpenShop)()
+		call(HUD.OnOpenShop)
 	end)
-	local inv = tile(col, "backpack", "ITENS", UI.Colors.Blue, 2)
+	local arena = tile(tileGrid, "hud2_arena", "ARENA", UI.Colors.Red, 2)
+	arena.Activated:Connect(function()
+		call(HUD.OnOpenArena)
+	end)
+	local inv = tile(tileGrid, "hud2_items", "ITENS", UI.Colors.Blue, 3)
 	inv.Activated:Connect(function()
-		open(HUD.OnOpenInventory)()
+		call(HUD.OnOpenInventory)
 	end)
-	rebirthTile, rebirthCaption = tile(col, "crown", "REBIRTH", UI.Colors.Purple, 3)
+	local codes = tile(tileGrid, "hud2_codes", "CÓDIGOS", Color3.fromRGB(96, 102, 118), 4)
+	codes.Activated:Connect(function()
+		call(HUD.OnOpenCodes)
+	end)
+	rebirthTile, rebirthCaption = tile(tileGrid, "hud2_rebirth", "REBIRTH", UI.Colors.Purple, 5)
 	rebirthTile.Activated:Connect(function()
 		Remotes.RequestRebirth:FireServer()
 	end)
-	dailyTile, dailyCaption = tile(col, "trophy", "DIÁRIO", UI.Colors.Green, 4)
-	dailyTile.Activated:Connect(function()
-		Remotes.RequestClaimDaily:FireServer()
-	end)
-	-- Bolinha de "pronto para resgatar" (forma + cor, não só cor)
-	dailyBadge = UI.frame(dailyTile, {
-		Size = UDim2.fromOffset(28, 28),
-		Position = UDim2.new(1, -18, 0, -10),
-		BackgroundColor3 = UI.Colors.Red,
-		ZIndex = dailyTile.ZIndex + 3,
-		Visible = false,
-	})
-	UI.corner(dailyBadge, 14)
-	UI.stroke(dailyBadge, UI.Colors.Outline, 2)
-	UI.label(dailyBadge, "!", { ZIndex = dailyTile.ZIndex + 4 })
-	local arena = tile(col, "glove", "ARENA", UI.Colors.Red, 5)
-	arena.Activated:Connect(function()
-		open(HUD.OnOpenArena)()
-	end)
-	local codes = tile(col, "gear", "CÓDIGOS", Color3.fromRGB(120, 125, 165), 6)
-	codes.Activated:Connect(function()
-		open(HUD.OnOpenCodes)()
-	end)
-
-	-- Coleção: o "ícone" é uma maçã 3D (mesmo modelo do mundo); quadrado vermelho até o modelo chegar.
-	local coll = UI.button(col, "", Color3.fromRGB(255, 150, 60), { LayoutOrder = 7 })
-	local iconHolder = Instance.new("Frame")
-	iconHolder.BackgroundTransparency = 1
-	iconHolder.Size = UDim2.fromOffset(84, 80)
-	iconHolder.Position = UDim2.fromOffset(10, -4)
-	iconHolder.ZIndex = coll.ZIndex + 1
-	iconHolder.Parent = coll
-	task.spawn(function()
-		if FoodView.waitReady(60) then
-			for _ = 1, 30 do
-				if FoodView.create(iconHolder, "apple", { yaw = 20, zIndex = coll.ZIndex + 1 }) then
-					return
-				end
-				task.wait(1)
-			end
-		end
-	end)
-	UI.label(coll, "COLEÇÃO", {
-		Size = UDim2.new(1, 8, 0, 24),
-		Position = UDim2.new(0, -4, 1, -22),
-		TextScaled = false,
-		TextSize = 20,
-		ZIndex = coll.ZIndex + 1,
-	})
+	local coll = tile(tileGrid, "hud2_collection", "COLEÇÃO", UI.Colors.Orange, 6)
 	local badge = UI.frame(coll, {
 		Size = UDim2.fromOffset(28, 28),
 		Position = UDim2.new(1, -18, 0, -10),
@@ -406,8 +375,78 @@ local function buildSideButtons(gui: ScreenGui)
 	collBadge = badge
 	coll.Activated:Connect(function()
 		badge.Visible = false
-		open(HUD.OnOpenCollection)()
+		call(HUD.OnOpenCollection)
 	end)
+	dailyTile, dailyCaption = tile(tileGrid, "hud2_daily", "DIÁRIO", UI.Colors.Green, 7)
+	dailyTile.Activated:Connect(function()
+		Remotes.RequestClaimDaily:FireServer()
+	end)
+	dailyBadge = UI.frame(dailyTile, {
+		Size = UDim2.fromOffset(28, 28),
+		Position = UDim2.new(1, -18, 0, -10),
+		BackgroundColor3 = UI.Colors.Red,
+		ZIndex = dailyTile.ZIndex + 3,
+		Visible = false,
+	})
+	UI.corner(dailyBadge, 14)
+	UI.stroke(dailyBadge, UI.Colors.Outline, 2)
+	UI.label(dailyBadge, "!", { ZIndex = dailyTile.ZIndex + 4 })
+	-- Loja de Robux aberta de qualquer lugar (pedido do usuário, item 7).
+	local robux = UI.button(tileGrid, "", Color3.fromRGB(40, 190, 90), { LayoutOrder = 8 })
+	UI.label(robux, "R$", {
+		Size = UDim2.fromOffset(TILE - 20, 56),
+		Position = UDim2.fromOffset(0, 2),
+		ZIndex = robux.ZIndex + 1,
+	})
+	UI.label(robux, "ROBUX", {
+		Size = UDim2.new(1, 12, 0, 24),
+		Position = UDim2.new(0, -6, 1, -22),
+		TextScaled = false,
+		TextSize = 20,
+		ZIndex = robux.ZIndex + 1,
+	})
+	robux.Activated:Connect(function()
+		call(HUD.OnOpenRobux)
+	end)
+
+	layout = function()
+		local area = gui.AbsoluteSize
+		if area.Y <= 0 then
+			return
+		end
+		local k = UI.deviceScale()
+		local H = area.Y / k
+		leftRoot.Size = UDim2.fromOffset(640, H)
+		local y = 6
+		local showLogo = H >= 760
+		logoImg.Visible = showLogo
+		if showLogo then
+			y = 78
+		end
+		coinCard.Position = UDim2.fromOffset(12, y)
+		shieldChip.Position = UDim2.fromOffset(12 + CARD_W + 10, y + 22)
+		y += 84 + 8
+		levelCard.Visible = not collapsed
+		local ml = miniLevel
+		if ml then
+			ml.Visible = collapsed
+		end
+		if not collapsed then
+			levelCard.Position = UDim2.fromOffset(12, y)
+			y += 124 + 12
+		end
+		goalCard.Position = UDim2.new(0, 12, 1, -12)
+		local goalH = goalCard.AbsoluteSize.Y / k
+		local avail = H - y - goalH - 24
+		local rows = math.clamp(math.floor((avail + TILE_GAP) / (TILE + TILE_GAP + 4)), 1, TILE_COUNT)
+		local cols = math.ceil(TILE_COUNT / rows)
+		rows = math.ceil(TILE_COUNT / cols)
+		tileGrid.Size = UDim2.fromOffset(cols * TILE + (cols - 1) * TILE_GAP, rows * (TILE + TILE_GAP + 4))
+		tileGrid.Position = UDim2.fromOffset(12, y)
+	end
+	layout()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+	task.defer(layout)
 end
 
 -- Selo "!" na Coleção quando aparece comida nova (some ao abrir).
@@ -637,7 +676,6 @@ end
 local function shieldLoop()
 	while true do
 		local left = State.current.shieldUntil - os.time()
-		goalChip.Visible = left <= 0 -- o escudo ocupa o mesmo lugar enquanto dura
 		if left > 0 then
 			shieldChip.Visible = true
 			shieldLabel.Text = Locale.fmt("shield_active", nil, { t = string.format("%d:%02d", left // 60, left % 60) })

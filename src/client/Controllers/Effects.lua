@@ -356,7 +356,7 @@ function Effects.init(gui: ScreenGui)
 		rareSub.TextColor3 = rar.color
 		rareStroke.Color = rar.color
 		-- logo abaixo das faixas do tutorial (objetivo + dica, ~100 px sem escala)
-		rare.Position = UDim2.new(0.5, 0, 0, math.floor(8 + 168 * UI.deviceScale() + 100))
+		rare.Position = UDim2.new(0.5, 0, 0, math.floor(8 + 76 * UI.deviceScale()))
 		rare.Visible = true
 		UI.pop(rare)
 		UI.sfx("Win", 0.5)

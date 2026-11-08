@@ -38,5 +38,90 @@
     "id": "rbxassetid://108519441272890",
     "file": "assets/ui/icons/trophy.png",
     "bytes": 67972
+  },
+  "extra_box_common": {
+    "id": "rbxassetid://105324416086383",
+    "file": "assets/ui/extra/box_common.png",
+    "bytes": 281655
+  },
+  "extra_box_epic": {
+    "id": "rbxassetid://112934866161366",
+    "file": "assets/ui/extra/box_epic.png",
+    "bytes": 344773
+  },
+  "extra_box_legendary": {
+    "id": "rbxassetid://127331245023494",
+    "file": "assets/ui/extra/box_legendary.png",
+    "bytes": 364573
+  },
+  "extra_box_mythic": {
+    "id": "rbxassetid://140210633088058",
+    "file": "assets/ui/extra/box_mythic.png",
+    "bytes": 403408
+  },
+  "extra_box_rare": {
+    "id": "rbxassetid://115250736262339",
+    "file": "assets/ui/extra/box_rare.png",
+    "bytes": 313734
+  },
+  "extra_hud2_arena": {
+    "id": "rbxassetid://81686148104833",
+    "file": "assets/ui/extra/hud2_arena.png",
+    "bytes": 42827
+  },
+  "extra_hud2_codes": {
+    "id": "rbxassetid://99269318118813",
+    "file": "assets/ui/extra/hud2_codes.png",
+    "bytes": 49744
+  },
+  "extra_hud2_coins": {
+    "id": "rbxassetid://116144241649332",
+    "file": "assets/ui/extra/hud2_coins.png",
+    "bytes": 52572
+  },
+  "extra_hud2_collection": {
+    "id": "rbxassetid://138199403671680",
+    "file": "assets/ui/extra/hud2_collection.png",
+    "bytes": 37366
+  },
+  "extra_hud2_crown": {
+    "id": "rbxassetid://83894601625581",
+    "file": "assets/ui/extra/hud2_crown.png",
+    "bytes": 24708
+  },
+  "extra_hud2_daily": {
+    "id": "rbxassetid://86086520817509",
+    "file": "assets/ui/extra/hud2_daily.png",
+    "bytes": 47798
+  },
+  "extra_hud2_fistglove": {
+    "id": "rbxassetid://116050956824084",
+    "file": "assets/ui/extra/hud2_fistglove.png",
+    "bytes": 85871
+  },
+  "extra_hud2_items": {
+    "id": "rbxassetid://94425931306190",
+    "file": "assets/ui/extra/hud2_items.png",
+    "bytes": 51052
+  },
+  "extra_hud2_logo": {
+    "id": "rbxassetid://102532352885801",
+    "file": "assets/ui/extra/hud2_logo.png",
+    "bytes": 166706
+  },
+  "extra_hud2_mood": {
+    "id": "rbxassetid://77875589554481",
+    "file": "assets/ui/extra/hud2_mood.png",
+    "bytes": 18032
+  },
+  "extra_hud2_rebirth": {
+    "id": "rbxassetid://132273115675330",
+    "file": "assets/ui/extra/hud2_rebirth.png",
+    "bytes": 54914
+  },
+  "extra_hud2_shop": {
+    "id": "rbxassetid://137879490734433",
+    "file": "assets/ui/extra/hud2_shop.png",
+    "bytes": 46568
   }
 }

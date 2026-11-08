@@ -58,6 +58,7 @@ Effects.playSound = Combat.sound
 Effects.toast = Notifications.toast
 
 HUD.OnOpenShop = Shop.open
+HUD.OnOpenRobux = Shop.openRobux
 HUD.OnOpenInventory = Inventory.open
 HUD.OnOpenCodes = Shop.openCodes
 HUD.OnOpenArena = Arena.open

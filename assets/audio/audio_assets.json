@@ -106,5 +106,37 @@
   "vo_ko.pt-BR": {
     "id": "rbxassetid://104554819339209",
     "bytes": 16761
+  },
+  "music_arena_victory": {
+    "id": "rbxassetid://121880877594284",
+    "bytes": 114816
+  },
+  "music_creature_discovery": {
+    "id": "rbxassetid://78195107754319",
+    "bytes": 162881
+  },
+  "music_event_feast": {
+    "id": "rbxassetid://84233489755770",
+    "bytes": 1219064
+  },
+  "music_giant_evolution": {
+    "id": "rbxassetid://93428809727112",
+    "bytes": 130699
+  },
+  "music_giant_milestone": {
+    "id": "rbxassetid://137706815163652",
+    "bytes": 83051
+  },
+  "music_legendary_fanfare": {
+    "id": "rbxassetid://118148302635864",
+    "bytes": 98934
+  },
+  "music_main_island": {
+    "id": "rbxassetid://82452493138549",
+    "bytes": 1698881
+  },
+  "music_mythic_fanfare": {
+    "id": "rbxassetid://74619592621097",
+    "bytes": 146999
   }
 }

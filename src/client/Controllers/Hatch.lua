@@ -6,6 +6,7 @@ local SoundService = game:GetService("SoundService")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
+local UIAssets = require(game.ReplicatedStorage.Shared.UIAssets)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local FoodView = require(script.Parent.Parent.FoodView)
 
@@ -64,7 +65,11 @@ local function burst(parent: Frame, color: Color3, count: number)
 	end
 end
 
-local function play(data: { foodId: string, rarity: string, name: string?, color: Color3? })
+local boxSkin: ImageLabel
+local boxPlain: { GuiObject } = {}
+local boxStroke: UIStroke
+
+local function play(data: { foodId: string, rarity: string, name: string?, color: Color3?, boxId: string? })
 	busy = true
 	local def = Config.FoodById[data.foodId]
 	local rar = Config.Rarities[data.rarity] or Config.Rarities.Common
@@ -79,6 +84,15 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 	box.Rotation = 0
 	box.Size = UDim2.fromOffset(0, 0)
 	box.BackgroundColor3 = rar.color
+	-- Skin nova da caixa (arte do usuário) quando houver; senão o quadrado colorido de antes.
+	local skinId = data.boxId and (UIAssets :: { [string]: string })["extra_box_" .. data.boxId]
+	boxSkin.Image = skinId or ""
+	boxSkin.Visible = skinId ~= nil
+	box.BackgroundTransparency = if skinId then 1 else 0
+	boxStroke.Enabled = skinId == nil
+	for _, g in boxPlain do
+		g.Visible = skinId == nil
+	end
 	TweenService:Create(box, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(160, 160) }):Play()
 	task.wait(0.35)
 
@@ -158,7 +172,17 @@ function Hatch.init(gui: ScreenGui)
 		ZIndex = 51,
 	})
 	UI.corner(box, 20)
-	UI.stroke(box, Color3.new(0, 0, 0), 4)
+	boxStroke = UI.stroke(box, Color3.new(0, 0, 0), 4)
+	boxSkin = Instance.new("ImageLabel")
+	boxSkin.Name = "Skin"
+	boxSkin.BackgroundTransparency = 1
+	boxSkin.Size = UDim2.fromScale(1.25, 1.25)
+	boxSkin.Position = UDim2.fromScale(0.5, 0.5)
+	boxSkin.AnchorPoint = Vector2.new(0.5, 0.5)
+	boxSkin.ScaleType = Enum.ScaleType.Fit
+	boxSkin.ZIndex = 54
+	boxSkin.Visible = false
+	boxSkin.Parent = box
 	local lid = UI.frame(box, {
 		Size = UDim2.new(1, 16, 0, 36),
 		Position = UDim2.fromOffset(-8, -10),
@@ -166,11 +190,12 @@ function Hatch.init(gui: ScreenGui)
 		ZIndex = 52,
 	})
 	UI.corner(lid, 10)
-	UI.label(
+	local q = UI.label(
 		box,
 		"?",
 		{ Size = UDim2.fromScale(1, 1), ZIndex = 53, TextColor3 = Color3.new(0, 0, 0), TextTransparency = 0.4 }
 	)
+	boxPlain = { lid, q }
 
 	reveal = UI.frame(overlay, {
 		Size = UDim2.fromOffset(240, 240),
