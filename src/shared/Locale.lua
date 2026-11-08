@@ -237,13 +237,13 @@ Locale.Exact = {
 		en = "Absorbs everything. +100% coins, grows very slowly.",
 		es = "Absorbe todo. +100% monedas, crece muy lento.",
 	},
-	["O ápice. +100% XP, +50% moedas, arena dominante. NUNCA encolhe."] = {
-		en = "The apex. +100% XP, +50% coins, dominates the arena. NEVER shrinks.",
-		es = "La cima. +100% XP, +50% monedas, domina la arena. NUNCA encoge.",
+	["O ápice. +100% XP, +50% moedas e nunca passa fome."] = {
+		en = "The apex. +100% XP, +50% coins and never gets hungry.",
+		es = "La cima. +100% XP, +50% monedas y nunca pasa hambre.",
 	},
-	["Renasce das cinzas: Rebirth dá +50% em vez de +25%. NUNCA encolhe."] = {
-		en = "Rises from the ashes: Rebirth gives +50% instead of +25%. NEVER shrinks.",
-		es = "Renace de las cenizas: Rebirth da +50% en vez de +25%. NUNCA encoge.",
+	["Renasce das cinzas: Rebirth dá +50% em vez de +25%. Nunca passa fome."] = {
+		en = "Rises from the ashes: Rebirth gives +50% instead of +25%. Never gets hungry.",
+		es = "Renace de las cenizas: Rebirth da +50% en vez de +25%. Nunca pasa hambre.",
 	},
 	["Dobra TODA a renda passiva. Para sempre."] = {
 		en = "Doubles ALL passive income. Forever.",
@@ -257,17 +257,17 @@ Locale.Exact = {
 		en = "Your Giant auto-eats from the yard every 30s.",
 		es = "Tu Gigante come solo del patio cada 30s.",
 	},
-	["Espécie secreta: 2x XP, 1.5x moedas, domina a arena e NUNCA encolhe."] = {
-		en = "Secret species: 2x XP, 1.5x coins, dominates the arena and NEVER shrinks.",
-		es = "Especie secreta: 2x XP, 1.5x monedas, domina la arena y NUNCA encoge.",
+	["Espécie secreta: 2x XP, 1.5x moedas e nunca passa fome."] = {
+		en = "Secret species: 2x XP, 1.5x coins and never gets hungry.",
+		es = "Especie secreta: 2x XP, 1.5x monedas y nunca pasa hambre.",
 	},
-	["Espécie secreta: Rebirth dá +50%, 1.5x moedas e NUNCA encolhe."] = {
-		en = "Secret species: Rebirth gives +50%, 1.5x coins and NEVER shrinks.",
-		es = "Especie secreta: Rebirth da +50%, 1.5x monedas y NUNCA encoge.",
+	["Espécie secreta: Rebirth dá +50%, 1.5x moedas e nunca passa fome."] = {
+		en = "Secret species: Rebirth gives +50%, 1.5x coins and never gets hungry.",
+		es = "Especie secreta: Rebirth da +50%, 1.5x monedas y nunca pasa hambre.",
 	},
-	["Seu Gigante NUNCA encolhe por inatividade, qualquer espécie. Aura dourada."] = {
-		en = "Your Giant NEVER shrinks from inactivity, any species. Golden aura.",
-		es = "Tu Gigante NUNCA encoge por inactividad, cualquier especie. Aura dorada.",
+	["Seu Gigante NUNCA passa fome (sempre Feliz), qualquer espécie. Aura dourada."] = {
+		en = "Your Giant NEVER gets hungry (always Happy), any species. Golden aura.",
+		es = "Tu Gigante NUNCA pasa hambre (siempre Feliz), cualquier especie. Aura dorada.",
 	},
 	["+25% dano nos socos, +30% stamina e luvas douradas."] = {
 		en = "+25% punch damage, +30% stamina and golden gloves.",

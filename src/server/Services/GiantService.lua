@@ -542,24 +542,19 @@ function GiantService.applyDecay(player: Player, profile: DataService.Profile): 
 			Locale.msg("welcome_back", { n = D.ReturnBonusCoins }, Color3.fromRGB(120, 255, 160))
 		)
 	end
-	if GiantService.isDecayImmune(profile) or away <= D.GraceSeconds then
-		return 0
+	-- Fase 4 (decisão do diretor técnico, 08/11/2026; justificativa no GAME_BRIEF): o gigante NÃO
+	-- encolhe mais por ausência. Punir quem volta derruba a retenção D8-28 e o "pague para desfazer"
+	-- é um padrão ruim. Agora a ausência só deixa o gigante FAMINTO (renda x0,8 até comer): um
+	-- convite para alimentar, não um castigo. O bônus de retorno continua.
+	if away > D.GraceSeconds and not GiantService.isDecayImmune(profile) then
+		profile.hunger = math.min(profile.hunger, 10)
+		DataService.markDirty(player)
+		Remotes.Notify:FireClient(player, {
+			text = "Seu Gigante sentiu sua falta e está com FOME! Alimente-o.",
+			color = Color3.fromRGB(255, 200, 80),
+		})
 	end
-	local days = (away - D.GraceSeconds) / 86400
-	local lost = math.min(D.MaxLevelsLost, math.floor(days * D.LevelsLostPerDay), profile.level - 1)
-	if lost <= 0 then
-		return 0
-	end
-	profile.level -= lost
-	profile.xp = 0
-	profile.levelsLostToDecay += lost
-	profile.hunger = 10
-	DataService.markDirty(player)
-	Remotes.Notify:FireClient(
-		player,
-		Locale.msg("shrunk", { d = math.floor(days + 3), n = lost }, Color3.fromRGB(255, 90, 90))
-	)
-	return lost
+	return 0
 end
 
 function GiantService.setSpecies(player: Player, speciesId: string): boolean
@@ -627,6 +622,11 @@ function GiantService.init()
 				if profile then
 					local before = GiantService.mood(profile)
 					local mult = GiantService.species(profile).hungerDecayMult
+					-- Fase 4: Guardião e espécies "sem fome" (Dragão/Fênix) ficam sempre satisfeitos.
+					if GiantService.isDecayImmune(profile) then
+						mult = 0
+						profile.hunger = math.max(profile.hunger, 80)
+					end
 					profile.hunger = math.max(0, profile.hunger - Config.Giant.HungerDecayPerSec * 5 * mult)
 					if GiantService.mood(profile) ~= before then
 						refreshVisual(player, false)

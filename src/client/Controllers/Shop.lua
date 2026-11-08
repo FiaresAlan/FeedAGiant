@@ -24,11 +24,11 @@ local PASS_INFO = {
 	{ key = "DoubleCoins", name = "2x Moedas", desc = "Dobra toda a renda do pátio." },
 	{ key = "VIP", name = "VIP", desc = "+4 slots no pátio, 1.5x XP e nametag." },
 	{ key = "AutoFeed", name = "Auto-Feed", desc = "Alimenta seu Gigante sozinho a cada 5s." },
-	{ key = "Guardian", name = "Guardião", desc = "Seu Gigante NUNCA encolhe por ausência + aura dourada." },
+	{ key = "Guardian", name = "Guardião", desc = "Seu Gigante NUNCA passa fome (sempre Feliz) + aura dourada." },
 	{ key = "BoxerPro", name = "Boxer Pro", desc = "+25% dano, +30% stamina nos socos." },
 	{ key = "ArenaVIP", name = "Arena VIP", desc = "Cooldown de duelo pela metade e rouba 3 comidas ao vencer." },
-	{ key = "DragonGiant", name = "Gigante Dragão", desc = "Espécie SECRETA: 2x XP, +50% moedas, nunca encolhe." },
-	{ key = "PhoenixGiant", name = "Gigante Fênix", desc = "Espécie SECRETA: Rebirth dá +50%, nunca encolhe." },
+	{ key = "DragonGiant", name = "Gigante Dragão", desc = "Espécie SECRETA: 2x XP, +50% moedas, nunca passa fome." },
+	{ key = "PhoenixGiant", name = "Gigante Fênix", desc = "Espécie SECRETA: Rebirth dá +50%, nunca passa fome." },
 }
 
 local PRODUCT_INFO = {
@@ -36,8 +36,6 @@ local PRODUCT_INFO = {
 	{ key = "Coins100k", name = "100.000 Moedas", desc = "Pule direto para as caixas Lendárias." },
 	{ key = "SuperShield", name = "Super Escudo", desc = "10 minutos sem roubos na sua base." },
 	{ key = "LuckyBox", name = "Lucky Lunchbox", desc = "Rara ou melhor, garantido." },
-	{ key = "FreezeDecay7d", name = "Congelar Encolhimento (7d)", desc = "Seu Gigante não perde níveis por 7 dias." },
-	{ key = "RestoreLevels", name = "Restaurar Níveis", desc = "Recupera TODOS os níveis perdidos por ausência." },
 	{ key = "StaminaRefill", name = "Stamina Infinita (60s)", desc = "Stamina cheia + 60s sem gastar stamina." },
 	{ key = "ArenaRematch", name = "Revanche", desc = "Zera o cooldown de duelo agora." },
 	{

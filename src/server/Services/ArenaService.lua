@@ -624,6 +624,9 @@ function ArenaService.init()
 	CombatService.NoRegen = function(player: Player): boolean
 		return (fighting :: { [Player]: any })[player] ~= nil
 	end
+	CombatService.FairFight = function(player: Player): boolean
+		return (fighting :: { [Player]: any })[player] ~= nil
+	end
 	-- Sair do jogo no meio da luta = derrota com o mesmo castigo (aplicado ANTES do save final).
 	DataService.onReleasing(function(player: Player, data: DataService.Profile)
 		local opponent = fighting[player]

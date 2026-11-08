@@ -45,6 +45,10 @@ CombatService.IgnoreSafeZone = nil :: ((victim: Player) -> boolean)?
 CombatService.CanPunch = nil :: ((attacker: Player) -> boolean)?
 -- Fase 3 (revisão): true = sem recuperar vida (durante a luta da arena).
 CombatService.NoRegen = nil :: ((player: Player) -> boolean)?
+-- Fase 4 (luta justa, decisão do diretor técnico): true = vida e força iguais para todos (arena).
+-- Sem isso, o Dragão (passe pago) teria 2,5x a vida de um humano numa luta que tira moedas e comida.
+CombatService.FairFight = nil :: ((player: Player) -> boolean)?
+local FAIR_HP = 150
 
 local function getFighter(player: Player): Fighter
 	local f = fighters[player]
@@ -83,6 +87,10 @@ function CombatService.maxStamina(player: Player): number
 end
 
 function CombatService.maxHp(player: Player): number
+	local fair = CombatService.FairFight
+	if fair and fair(player) then
+		return FAIR_HP
+	end
 	local profile = DataService.get(player)
 	local hp = C.KOHealth
 	if profile then
@@ -96,6 +104,10 @@ function CombatService.maxHp(player: Player): number
 end
 
 function CombatService.strength(player: Player): number
+	local fair = CombatService.FairFight
+	if fair and fair(player) then
+		return 1
+	end
 	local profile = DataService.get(player)
 	local s = 1
 	if profile then

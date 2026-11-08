@@ -58,7 +58,7 @@ Config.Events = {
 
 ----------------------------------------------------------------
 -- v2: ESPÉCIES DE GIGANTE
--- Cada espécie tem stats próprios. "robux = true" = só via Game Pass (nunca encolhe).
+-- Cada espécie tem stats próprios. "robux = true" = só via Game Pass (nunca passa fome).
 ----------------------------------------------------------------
 export type SpeciesDef = {
 	id: string,
@@ -255,7 +255,7 @@ Config.Species = {
 	{
 		id = "dragon",
 		name = "Gigante Dragão",
-		desc = "O ápice. +100% XP, +50% moedas, arena dominante. NUNCA encolhe.",
+		desc = "O ápice. +100% XP, +50% moedas e nunca passa fome.",
 		price = 0,
 		robux = true,
 		passKey = "DragonGiant",
@@ -273,7 +273,7 @@ Config.Species = {
 	{
 		id = "phoenix",
 		name = "Gigante Fênix",
-		desc = "Renasce das cinzas: Rebirth dá +50% em vez de +25%. NUNCA encolhe.",
+		desc = "Renasce das cinzas: Rebirth dá +50% em vez de +25%. Nunca passa fome.",
 		price = 0,
 		robux = true,
 		passKey = "PhoenixGiant",
@@ -634,9 +634,9 @@ Config.GamePasses = {
 	DoubleCoins = 0,
 	VIP = 0,
 	AutoFeed = 0,
-	DragonGiant = 0, -- espécie Dragão (nunca encolhe)
-	PhoenixGiant = 0, -- espécie Fênix (nunca encolhe)
-	Guardian = 0, -- TODOS os seus gigantes nunca encolhem + aura dourada
+	DragonGiant = 0, -- espécie Dragão (nunca passa fome)
+	PhoenixGiant = 0, -- espécie Fênix (nunca passa fome)
+	Guardian = 0, -- seu gigante nunca passa fome (sempre Feliz) + aura dourada
 	BoxerPro = 0, -- +25% dano, +30% stamina, luvas douradas
 	ArenaVIP = 0, -- cooldown de duelo pela metade, rouba 3 comidas em vez de 2
 }
@@ -646,17 +646,17 @@ Config.GamePassInfo = {
 	AutoFeed = { name = "Auto-Feed", desc = "Seu Gigante come sozinho do pátio a cada 5s.", price = 399 },
 	DragonGiant = {
 		name = "Gigante DRAGÃO",
-		desc = "Espécie secreta: 2x XP, 1.5x moedas, domina a arena e NUNCA encolhe.",
+		desc = "Espécie secreta: 2x XP, 1.5x moedas e nunca passa fome.",
 		price = 899,
 	},
 	PhoenixGiant = {
 		name = "Gigante FÊNIX",
-		desc = "Espécie secreta: Rebirth dá +50%, 1.5x moedas e NUNCA encolhe.",
+		desc = "Espécie secreta: Rebirth dá +50%, 1.5x moedas e nunca passa fome.",
 		price = 799,
 	},
 	Guardian = {
 		name = "Guardião",
-		desc = "Seu Gigante NUNCA encolhe por inatividade, qualquer espécie. Aura dourada.",
+		desc = "Seu Gigante NUNCA passa fome (sempre Feliz), qualquer espécie. Aura dourada.",
 		price = 349,
 	},
 	BoxerPro = { name = "Boxeador Pro", desc = "+25% dano nos socos, +30% stamina e luvas douradas.", price = 449 },
@@ -673,8 +673,10 @@ Config.DevProducts = {
 	Coins100k = { id = 0, coins = 100000, fundsRandom = true },
 	SuperShield = { id = 0 },
 	LuckyBox = { id = 0, paidRandom = true },
-	FreezeDecay7d = { id = 0 }, -- congela o encolhimento por 7 dias
-	RestoreLevels = { id = 0 }, -- recupera TODOS os níveis perdidos por decay
+	-- APOSENTADOS (Fase 4, 08/11/2026): o gigante não encolhe mais. Ficam aqui só para um recibo
+	-- atrasado ainda ser entregue (regra do Receipts: nunca recusar recibo pago); não aparecem na loja.
+	FreezeDecay7d = { id = 0, retired = true },
+	RestoreLevels = { id = 0, retired = true },
 	StaminaRefill = { id = 0 }, -- stamina cheia + 60s de stamina infinita
 	ArenaRematch = { id = 0 }, -- zera o cooldown de duelo agora
 	SpeciesReroll = { id = 0 }, -- dá 1 Ficha de Espécie: o jogador ESCOLHE a espécie (não é sorteio)

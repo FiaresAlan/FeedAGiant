@@ -143,6 +143,9 @@ local function canPrompt(player: Player, key: string): (boolean, string?)
 	if not def then
 		return false, nil
 	end
+	if def.retired then
+		return false, nil -- produto aposentado (Fase 4): não é mais vendido
+	end
 	if def.id == 0 then
 		return false, "Produto ainda não configurado (ID 0 em Config.lua)."
 	end
