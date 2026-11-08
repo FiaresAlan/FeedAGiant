@@ -17,6 +17,9 @@ local listFrame: Frame
 local challengePopup: Frame
 local challengeText: TextLabel
 local fight: Frame
+local timerLabel: TextLabel
+local countdownLabel: TextLabel
+local realFight = false
 local nameA: TextLabel
 local nameB: TextLabel
 local hpA: Frame
@@ -166,16 +169,32 @@ local function buildPopup(gui: ScreenGui)
 end
 
 local function buildFight(gui: ScreenGui)
+	-- Fase 3: abaixo do painel do topo da HUD (que ocupa ~0..160 no desenho 1080p) e na mesma escala.
 	fight = UI.panel(gui, {
 		Name = "FightOverlay",
 		Size = UDim2.fromOffset(620, 110),
-		Position = UDim2.new(0.5, 0, 0, 100),
+		Position = UDim2.new(0.5, 0, 0, 104),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundColor3 = UI.Colors.Bg,
 		BackgroundTransparency = 0.1,
 		Visible = false,
 	})
+	UI.autoScale(fight)
 	UI.stroke(fight, UI.Colors.Accent, 3)
+	timerLabel = UI.label(fight, "", {
+		Size = UDim2.fromOffset(80, 26),
+		Position = UDim2.new(0.5, -40, 1, -28),
+		TextColor3 = UI.Colors.Text,
+		TextScaled = false,
+		TextSize = 22,
+	})
+	countdownLabel = UI.title(gui, "", {
+		Size = UDim2.fromOffset(520, 130),
+		Position = UDim2.fromScale(0.5, 0.42),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Visible = false,
+		ZIndex = 40,
+	})
 	fightTitle = UI.title(
 		fight,
 		"⚔ GIANT CLASH ⚔",
@@ -267,19 +286,45 @@ function Arena.init(gui: ScreenGui)
 			nameB.Text = string.format("(⚡%d)  %s", e.powerB, e.bName)
 			hpA.Size = UDim2.fromScale(1, 1)
 			hpB.Size = UDim2.fromScale(1, 1)
+			realFight = e.real == true
+			timerLabel.Text = if realFight then tostring(e.seconds or "") else ""
 			sfx("Bell", if involved then 1 else 0.5)
-			UI.sfx("VO_Fight", if involved then 1 else 0.6)
 			if involved then
 				win.Visible = false
+			end
+			if realFight and involved then
+				-- Contagem regressiva (o servidor segura os lutadores parados nesse tempo)
+				local n = math.max(1, math.floor(tonumber(e.countdown) or 3))
+				task.spawn(function()
+					countdownLabel.Visible = true
+					for i = n, 1, -1 do
+						countdownLabel.Text = tostring(i)
+						UI.pop(countdownLabel)
+						task.wait(1)
+					end
+					countdownLabel.Text = Locale.t("LUTEM!")
+					UI.pop(countdownLabel)
+					UI.sfx("VO_Fight", 1)
+					task.wait(0.8)
+					countdownLabel.Visible = false
+				end)
+			else
+				UI.sfx("VO_Fight", if involved then 1 else 0.6)
 			end
 		elseif e.kind == "Tick" then
 			TweenService:Create(hpA, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpA / 100, 0, 1), 1) })
 				:Play()
 			TweenService:Create(hpB, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpB / 100, 0, 1), 1) })
 				:Play()
-			sfx(if math.random() < 0.3 then "Heavy" else "Punch", 0.4)
-			if (e.a == player.UserId or e.b == player.UserId) and Arena.shake then
-				Arena.shake(0.6, 0.2)
+			if type(e.left) == "number" then
+				timerLabel.Text = tostring(e.left)
+			end
+			if not realFight then
+				-- luta encenada antiga: sons e tremor simulados (na real, os socos já têm som próprio)
+				sfx(if math.random() < 0.3 then "Heavy" else "Punch", 0.4)
+				if (e.a == player.UserId or e.b == player.UserId) and Arena.shake then
+					Arena.shake(0.6, 0.2)
+				end
 			end
 		elseif e.kind == "End" then
 			if e.winner == player.UserId then
@@ -296,6 +341,15 @@ function Arena.init(gui: ScreenGui)
 				sfx("KO", 0.9)
 			else
 				fightTitle.Text = Locale.fmt("fight_other", nil, { p = e.winnerName or "?" })
+			end
+			local why = if e.reason == "ko"
+				then Locale.t("por NOCAUTE!")
+				elseif e.reason == "ring" then Locale.t("fora do RINGUE!")
+				elseif e.reason == "time" then Locale.t("no TEMPO!")
+				else ""
+			if why ~= "" then
+				timerLabel.Text = ""
+				fightTitle.Text ..= "  " .. why
 			end
 			task.delay(4, function()
 				fight.Visible = false

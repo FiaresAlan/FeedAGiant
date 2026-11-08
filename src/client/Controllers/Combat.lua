@@ -32,6 +32,47 @@ local lastHp = -1
 local lowHpVignette: Frame
 local strengthLabel: TextLabel
 
+-- Fase 3: animações de boxe (kit make-anim do fwjelaa; IDs em AnimationIds). Tocadas só no
+-- personagem LOCAL: o Animator replica a animação do próprio jogador para os outros.
+local AnimationIds = require(game.ReplicatedStorage.Shared.AnimationIds)
+local tracks: { [string]: AnimationTrack } = {}
+local tracksFor: Model? = nil
+local punchSide = false
+
+local function playAnim(name: string, speed: number)
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	local id = (AnimationIds :: { [string]: string })[name]
+	if not char or not hum or not id or hum.RigType ~= Enum.HumanoidRigType.R15 then
+		return -- só R15 (as animações do kit são R15); R6 segue sem animação de soco
+	end
+	if tracksFor ~= char then
+		table.clear(tracks)
+		tracksFor = char
+	end
+	local track = tracks[name]
+	if not track then
+		local animator = hum:FindFirstChildOfClass("Animator")
+		if not animator then
+			return
+		end
+		local anim = Instance.new("Animation")
+		anim.AnimationId = id
+		local ok, loaded = pcall(function()
+			return (animator :: Animator):LoadAnimation(anim)
+		end)
+		if not ok or not loaded then
+			return
+		end
+		local t = loaded :: AnimationTrack
+		t.Priority = Enum.AnimationPriority.Action
+		tracks[name] = t
+		track = t
+	end
+	local t = track :: AnimationTrack
+	t:Play(0.05, 1, speed)
+end
+
 local function sound(key: string, volume: number?)
 	local s = sounds[key]
 	if not s then
@@ -412,7 +453,15 @@ function Combat.init(gui: ScreenGui)
 		end
 		if e.kind == "Swing" then
 			sound("Whoosh", 0.35)
+			if e.attacker == player.UserId then
+				-- Fase 3: animação de soco (jab/direto alternados; pesado = golpe final do combo)
+				punchSide = not punchSide
+				playAnim(if e.heavy then "R15_M1_4" elseif punchSide then "R15_M1_1" else "R15_M1_2", 1.25)
+			end
 		elseif e.kind == "Hit" then
+			if e.victim == player.UserId and not e.blocked then
+				playAnim("R15_HitReact", 1)
+			end
 			local vroot = rootOfUser(e.victim)
 			if vroot then
 				hitMarker(

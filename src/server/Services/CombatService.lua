@@ -145,6 +145,58 @@ function CombatService.resetFighter(player: Player)
 	push(player)
 end
 
+-- Fase 3 (boxe do personagem): luvas de boxe nas duas mãos. Vermelhas; douradas com o passe
+-- Boxer Pro (a descrição do passe já prometia "luvas douradas"). Peças leves, sem colisão.
+function CombatService.equipGloves(player: Player)
+	local char = player.Character
+	if not char then
+		return
+	end
+	local old = char:FindFirstChild("BoxingGloves")
+	if old then
+		old:Destroy()
+	end
+	local profile = DataService.get(player)
+	local gold = profile ~= nil and profile.passes.BoxerPro == true
+	local folder = Instance.new("Folder")
+	folder.Name = "BoxingGloves"
+	for _, handName in { "RightHand", "LeftHand", "Right Arm", "Left Arm" } do
+		local hand = char:FindFirstChild(handName)
+		if hand and hand:IsA("BasePart") then
+			local r6 = handName:find(" ") ~= nil
+			local glove = Instance.new("Part")
+			glove.Name = "Glove"
+			glove.Shape = Enum.PartType.Ball
+			glove.Size = Vector3.new(1.35, 1.35, 1.35)
+			glove.Color = if gold then Color3.fromRGB(255, 196, 60) else Color3.fromRGB(215, 35, 40)
+			glove.Material = if gold then Enum.Material.Foil else Enum.Material.SmoothPlastic
+			glove.CanCollide = false
+			glove.CanQuery = false
+			glove.CanTouch = false
+			glove.Massless = true
+			glove.CFrame = hand.CFrame * CFrame.new(0, if r6 then -hand.Size.Y / 2 else -0.15, 0)
+			local cuff = Instance.new("Part")
+			cuff.Name = "Cuff"
+			cuff.Shape = Enum.PartType.Cylinder
+			cuff.Size = Vector3.new(0.45, 1.15, 1.15)
+			cuff.Color = Color3.fromRGB(245, 245, 245)
+			cuff.CanCollide = false
+			cuff.CanQuery = false
+			cuff.CanTouch = false
+			cuff.Massless = true
+			cuff.CFrame = glove.CFrame * CFrame.new(0, 0.62, 0) * CFrame.Angles(0, 0, math.rad(90))
+			for _, p in { glove, cuff } do
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = hand
+				weld.Part1 = p
+				weld.Parent = p
+				p.Parent = folder
+			end
+		end
+	end
+	folder.Parent = char
+end
+
 -- Vida atual em 0..1 (para as barras da arena).
 function CombatService.hpFraction(player: Player): number
 	local f = getFighter(player)
@@ -422,6 +474,7 @@ function CombatService.init()
 		f.koUntil = 0
 		f.blocking = false
 		task.wait(0.5)
+		CombatService.equipGloves(player)
 		push(player)
 	end
 	local function watch(player: Player)

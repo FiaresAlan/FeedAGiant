@@ -983,18 +983,36 @@ function World.buildArena(root: Instance): Model
 	floorDisc("ArenaCenterIn", 7.2, A.floorTop + 0.08, K.sand, Enum.Material.Sand)
 	-- coroa pintada (peças finas no chão)
 	local emblem = A.floorTop + 0.1
+	-- Coroa vista de cima (teste de 08/11: a versão pequena lia como "setas"): faixa larga,
+	-- corpo trapezoidal, 3 pontas altas e bolinhas nas pontas.
 	arenaPart(model, base, {
 		Name = "Emblem",
-		Size = Vector3.new(7, 0.06, 1.4),
-		CFrame = CFrame.new(0, emblem, 1.4),
+		Size = Vector3.new(10, 0.06, 1.8),
+		CFrame = CFrame.new(0, emblem, 2.6),
 		Color = K.emblem,
 		CanCollide = false,
 	})
-	for _, x in { -2.6, 0, 2.6 } do
+	arenaPart(model, base, {
+		Name = "Emblem",
+		Size = Vector3.new(8.4, 0.06, 2.4),
+		CFrame = CFrame.new(0, emblem, 0.6),
+		Color = K.emblem,
+		CanCollide = false,
+	})
+	for _, x in { -3.6, 0, 3.6 } do
+		local tall = x == 0
 		arenaPart(model, base, {
 			Name = "Emblem",
-			Size = Vector3.new(1.9, 0.06, 1.9),
-			CFrame = CFrame.new(x, emblem, if x == 0 then -0.6 else -0.1) * CFrame.Angles(0, math.rad(45), 0),
+			Size = Vector3.new(if tall then 3.2 else 2.6, 0.06, if tall then 3.2 else 2.6),
+			CFrame = CFrame.new(x, emblem, if tall then -1.6 else -1.0) * CFrame.Angles(0, math.rad(45), 0),
+			Color = K.emblem,
+			CanCollide = false,
+		})
+		arenaPart(model, base, {
+			Name = "Emblem",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.06, 1.3, 1.3),
+			CFrame = CFrame.new(x, emblem, if tall then -4.0 else -3.0) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = K.emblem,
 			CanCollide = false,
 		})

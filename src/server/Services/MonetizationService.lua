@@ -219,6 +219,7 @@ function MonetizationService.init()
 		DataService.markDirty(player)
 		PlotService.pushState(player)
 		PlotService.rebuildPlot(player)
+		CombatService.equipGloves(player) -- Boxer Pro: luvas douradas na hora
 	end)
 
 	local function promptAllowed(player: Player): boolean
