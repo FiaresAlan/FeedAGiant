@@ -96,8 +96,8 @@ end
 local function placeAll(gui: ScreenGui)
 	local k = UI.deviceScale()
 	-- Embaixo no meio, acima do botão ALIMENTAR (que só aparece perto do gigante).
-	card.Position = UDim2.new(0.5, 0, 1, -math.floor(130 * k))
-	arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(232 * k))
+	card.Position = UDim2.new(0.5, 0, 1, -math.floor(140 * k))
+	arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(240 * k))
 	local _ = gui
 end
 
@@ -219,7 +219,7 @@ function Drops.init(gui: ScreenGui)
 		local list = (s :: any).pendingBoxes :: { string }?
 		local n = if list then #list else 0
 		boxChip.Visible = n > 0
-		boxChip.Text = string.format("🎁 CAIXAS (%d)", n)
+		boxChip.Text = string.format("CAIXAS (%d)", n)
 		if boxWin.Visible then
 			openBoxWindow()
 		end

@@ -19,8 +19,8 @@ UI.FontBody = Enum.Font.BuilderSansExtraBold
 -- ícones e destaques coloridos (moeda dourada, laranja de destaque, verde progresso, vermelho combate).
 UI.Colors = {
 	Bg = Color3.fromRGB(24, 26, 30),
-	Panel = Color3.fromRGB(38, 41, 48),
-	Panel2 = Color3.fromRGB(56, 60, 70),
+	Panel = Color3.fromRGB(44, 47, 55),
+	Panel2 = Color3.fromRGB(64, 68, 80),
 	Outline = Color3.fromRGB(14, 15, 18),
 	Edge = Color3.fromRGB(88, 94, 108), -- borda clara e fina dos painéis grafite
 	Accent = Color3.fromRGB(255, 210, 63), -- dourado
