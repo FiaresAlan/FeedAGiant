@@ -18,6 +18,8 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Redeem = { burst = 3, perSecond = 0.1 }, -- depois de 3, 1 código a cada 10 s (contra força bruta)
 	Duel = { burst = 3, perSecond = 0.5 },
 	Combat = { burst = 12, perSecond = 8 }, -- socos/bloqueio; o cooldown real fica no CombatService
+	Box = { burst = 2, perSecond = 0.5 }, -- abrir caixa guardada (a animação dura ~2 s)
+	Shield = { burst = 2, perSecond = 0.5 }, -- renovar escudo no pedestal da base
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.

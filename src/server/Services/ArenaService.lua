@@ -15,6 +15,7 @@ local World = require(script.Parent.Parent.World)
 local MapService = require(script.Parent.MapService)
 local CombatService = require(script.Parent.CombatService)
 local StealService = require(script.Parent.StealService)
+local DropService = require(script.Parent.DropService)
 
 local A = Config.Arena
 local ArenaService = {}
@@ -240,6 +241,8 @@ local function fight(a: Player, b: Player): (Player?, Player?, string)
 	end
 	StealService.dropCarried(a)
 	StealService.dropCarried(b)
+	DropService.dropCarried(a) -- ninguém entra na luta com comida/caixa do mapa na cabeça
+	DropService.dropCarried(b)
 	fighting[a], fighting[b] = b, a
 	CombatService.resetFighter(a)
 	CombatService.resetFighter(b)

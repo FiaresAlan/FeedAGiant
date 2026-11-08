@@ -411,7 +411,11 @@ function BossService.init()
 		end
 		return true
 	end
+	local prevNpcKO = CombatService.OnNpcKO
 	CombatService.OnNpcKO = function(victim, source)
+		if prevNpcKO then
+			prevNpcKO(victim, source)
+		end
 		local f = current
 		if source == "boss" and f then
 			eatFrom(f, victim)

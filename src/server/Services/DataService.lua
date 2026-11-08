@@ -72,6 +72,8 @@ export type Profile = {
 	-- Dragão Faminto: vitórias contadas por dia (dia = os.time() // 86400)
 	bossDay: number,
 	bossWins: number,
+	-- Lunchboxes trazidas do mapa até a base, esperando o jogador abrir (DropService)
+	pendingBoxes: { string },
 }
 
 local DataService = {}
@@ -114,6 +116,7 @@ local function defaultProfile(): Profile
 		discovered = {},
 		bossDay = 0,
 		bossWins = 0,
+		pendingBoxes = {},
 	}
 end
 DataService.defaultProfile = defaultProfile

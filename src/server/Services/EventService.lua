@@ -1,18 +1,14 @@
 --!strict
 -- EventService — eventos globais de servidor (Golden Hour, Chuva de Comida, Boss Faminto, Lucky Boxes).
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
-local Locale = require(game.ReplicatedStorage.Shared.Locale)
-local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local PlotService = require(script.Parent.PlotService)
 local ShopService = require(script.Parent.ShopService)
 local GiantService = require(script.Parent.GiantService)
-local Guard = require(script.Parent.Parent.Guard)
-local FoodModels = require(script.Parent.Parent.FoodModels)
 local BossService = require(script.Parent.BossService)
+local DropService = require(script.Parent.DropService)
 local WorldFx = require(script.Parent.Parent.WorldFx)
 
 local EventService = {}
@@ -34,12 +30,13 @@ local function runLuckyBoxes(def)
 	ShopService.setLuckBonus(0)
 end
 
+-- Chuva de Comida (reforma de 08/11, pedido do usuário): poucas comidas que caem em volta do
+-- caldeirão e seguem a regra dos drops (cronômetro curto, pegar com E/toque, carregar até a base).
+-- Antes: ~75 comidas por evento que entravam na mochila só de encostar.
 local function runFoodRain(def)
-	local folder = Instance.new("Folder")
-	folder.Name = "FoodRain"
-	folder.Parent = Workspace
 	local t0 = os.clock()
-	while os.clock() - t0 < def.duration do
+	local spawned = 0
+	while os.clock() - t0 < def.duration and spawned < Config.Drops.RainItems do
 		local pool = {}
 		for _, f in Config.Foods do
 			if f.rarity == "Common" or f.rarity == "Uncommon" or (f.rarity == "Rare" and math.random() < 0.15) then
@@ -50,52 +47,15 @@ local function runFoodRain(def)
 		local a = math.random() * math.pi * 2
 		-- fora do caldeirão central (raio ~29) para a comida não ficar presa no alto dele
 		local r = 40 + math.random() * 50
-		local p = Util.makePart({
-			Name = "Drop",
-			Anchored = false,
-			Size = Vector3.new(2.5, 2.5, 2.5),
-			Color = food.color,
-			Material = Enum.Material.Neon,
-			CFrame = CFrame.new(math.cos(a) * r, 120, math.sin(a) * r),
-			Parent = folder,
-		})
-		p.Shape = Enum.PartType.Ball
-		FoodModels.dress(p, food.id, 3) -- Fase 2: comida 3D (sem modelo, fica a bola)
-		-- Física da peça fica com o servidor: o cliente não consegue puxá-la até si.
-		p:SetNetworkOwner(nil)
-		Util.makeBillboard(
-			p,
-			food.name,
-			UDim2.fromOffset(120, 36),
-			Vector3.new(0, 2, 0),
-			Config.Rarities[food.rarity].color
-		)
-		local taken = false
-		-- fwjelaa-ignore: connect-in-loop - uma peça nova por volta; p:Destroy() (ao pegar ou em 25 s) desliga a conexão
-		p.Touched:Connect(function(hit)
-			if taken then
-				return
-			end
-			local plr = Players:GetPlayerFromCharacter(hit.Parent)
-			-- Touched dispara para peças do cliente a qualquer distância: confere no servidor.
-			if plr and Guard.withinReach(plr, p, 6) and PlotService.giveFood(plr, food.id) then
-				taken = true
-				p:Destroy()
-				Remotes.Notify:FireClient(
-					plr,
-					Locale.msg("rain_caught", { f = food.name }, Color3.fromRGB(80, 200, 255))
-				)
-			end
-		end)
-		task.delay(25, function()
-			if p.Parent then
-				p:Destroy()
-			end
-		end)
-		task.wait(0.8)
+		DropService.spawnAt(Vector3.new(math.cos(a) * r, 4.5, math.sin(a) * r), "food", food.id, true)
+		spawned += 1
+		task.wait(Config.Drops.RainEvery)
 	end
-	task.wait(25)
-	folder:Destroy()
+	-- o evento dura o tempo todo mesmo depois das comidas (a disputa continua)
+	local left = def.duration - (os.clock() - t0)
+	if left > 0 then
+		task.wait(left)
+	end
 end
 
 -- 08/11/2026: o "Boss Faminto" (bloco + bola clicável) virou o Dragão Faminto da arena (BossService).

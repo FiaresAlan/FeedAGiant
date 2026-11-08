@@ -47,6 +47,15 @@ Config.Steal = {
 
 -- Dragão Faminto (evento na arena; ver BossService). Decisão de 08/11/2026 (pedido do usuário):
 -- vencer dá caixa épica grátis até 2x por dia; ser nocauteado faz o dragão comer 1 comida da mochila.
+-- Pedestal "RENOVAR ESCUDO" em cada base (ShieldService, pedido do usuário de 08/11/2026).
+-- Preço em moedas = 2 minutos da renda atual (mínimo 500): acompanha o progresso sem virar
+-- trivial nem impossível. O Super Escudo (Robux) continua sendo o produto SuperShield.
+Config.Shield = {
+	CoinRenew = { seconds = 300, secondsOfIncome = 120, minPrice = 500 },
+	PedestalOffset = Vector3.new(22, 0, -18), -- canto da base, ao lado do pedestal do gigante
+	PedestalYaw = 0,
+}
+
 Config.Boss = {
 	Height = 26, -- altura do modelo em studs
 	BaseHp = 900, -- vida com 1 lutador (~75 socos leves de um jogador iniciante)
@@ -460,19 +469,38 @@ Config.Combat = {
 -- Quem está em pé dentro do círculo quando o timer zera ganha. Soco empurra para fora.
 ----------------------------------------------------------------
 Config.Drops = {
-	MinInterval = 35,
-	MaxInterval = 70,
-	MaxActive = 3,
-	ZoneRadius = 14,
+	-- Reforma de 08/11/2026 (DropService): item cai, cronômetro, coleta manual, carregar até a base.
+	-- Antes: 35-70 s, círculo de disputa, e a Chuva de Comida dava ~75 comidas por evento só de encostar.
+	MinInterval = 45, -- segundos entre drops (divididos por até 1,4 com servidor cheio)
+	MaxInterval = 80,
+	MaxActive = 3, -- itens no chão ao mesmo tempo (carregados não contam)
 	FallHeight = 160,
 	FallTime = 3.5,
-	WarnBeforeFall = 4, -- marcador no chão antes de cair
-	ExpireIfNobody = 45,
-	-- tempo de disputa por raridade: quanto mais rara, mais tempo precisa segurar o círculo
-	HoldTimeByRarity = { Common = 6, Uncommon = 9, Rare = 14, Epic = 20, Legendary = 30, Mythic = 45, Secret = 60 },
+	ExpireAfter = 120, -- some se ninguém pegar em 2 min depois de pousar/cair
+	PickupReach = 10, -- studs (conferido no servidor)
+	DroppedRelock = 1.5, -- carga derrubada por soco volta a ficar livre depois disso
+	MaxPendingBoxes = 6, -- caixas trazidas e ainda fechadas
+	BoxChance = 0.15, -- 15% dos drops normais são Lunchboxes
+	BoxWeights = { common = 60, rare = 28, epic = 10, legendary = 1.6, mythic = 0.4 },
+	-- Segundos até poder pegar, por raridade (comida comum: na hora) e por caixa.
+	UnlockByRarity = { Common = 0, Uncommon = 3, Rare = 8, Epic = 15, Legendary = 25, Mythic = 40, Secret = 60 },
+	UnlockByBox = { common = 10, rare = 15, epic = 25, legendary = 35, mythic = 45 },
+	-- Peso: velocidade de quem carrega (1 = normal). Comum sem penalidade.
+	SpeedByRarity = {
+		Common = 1,
+		Uncommon = 0.95,
+		Rare = 0.88,
+		Epic = 0.8,
+		Legendary = 0.72,
+		Mythic = 0.65,
+		Secret = 0.6,
+	},
+	SpeedByBox = { common = 0.92, rare = 0.85, epic = 0.78, legendary = 0.7, mythic = 0.62 },
 	Weights = { Common = 38, Uncommon = 30, Rare = 18, Epic = 9, Legendary = 3.5, Mythic = 1.2, Secret = 0.3 },
-	MinPlayersForRare = 2, -- com 1 jogador, Legendary+ não cai (evita farm solo)
-	ProgressLossWhenOut = 0.5, -- perde 50% do progresso ao ser empurrado para fora
+	MinPlayersForRare = 2, -- com 1 jogador, Legendary+ (comida ou caixa) não cai (evita farm solo)
+	-- Chuva de Comida: poucos itens com coleta manual (antes ~75 automáticos)
+	RainItems = 14,
+	RainEvery = 4,
 }
 
 ----------------------------------------------------------------

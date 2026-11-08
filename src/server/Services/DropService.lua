@@ -1,7 +1,21 @@
 --!strict
--- DropService — COMIDA CAI DO CÉU e precisa ser DEFENDIDA.
--- Um círculo aparece no chão. Quem fica dentro acumula progresso; o tempo necessário depende da raridade.
--- Socos empurram rivais para fora (e eles perdem metade do progresso). Quem fecha a barra leva a comida.
+-- DropService — COMIDAS E LUNCHBOXES QUE CAEM NO MAPA (reforma de 08/11/2026, pedido do usuário).
+--
+-- Antes: o círculo de disputa ("segure o círculo") e, na Chuva de Comida, comidas que entravam na
+-- mochila só de encostar. O usuário pegou 20 a 50 comidas sem disputa, o que tirava o valor das caixas.
+--
+-- Agora (um sistema só para drops normais e para a Chuva):
+--   1. O item cai do céu e fica no chão, com um cronômetro em cima ("libera em 0:12").
+--   2. Enquanto o cronômetro corre, ninguém pega. O tempo depende da raridade (comida comum: na hora;
+--      raras e caixas: mais expectativa e mais disputa) — Config.Drops.UnlockByRarity/UnlockByBox.
+--   3. Liberado, o jogador PRECISA interagir (ProximityPrompt: E no teclado, X no controle, toque no
+--      celular). Nada entra na mochila só de passar por cima.
+--   4. O item vai para cima da cabeça e o jogador anda mais devagar quanto mais raro (peso).
+--   5. Soco ou nocaute derrubam a carga no chão (libera de novo em ~1,5 s): qualquer um pode pegar.
+--   6. Na própria base: comida vai para o pátio (rende moedas) ou, sem vaga, para a mochila; caixa vai
+--      para "caixas guardadas" e o jogador escolhe quando abrir (não abre sozinha).
+-- Tudo no servidor: distância, liberação, um item por vez, tempo mínimo de viagem (anti-teleporte),
+-- dono da base. Um item só existe em um lugar (no chão, numa cabeça ou entregue): sem duplicar.
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
@@ -9,45 +23,67 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local UIAssets = require(game.ReplicatedStorage.Shared.UIAssets)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local CombatService = require(script.Parent.CombatService)
+local MapService = require(script.Parent.MapService)
+local Guard = require(script.Parent.Parent.Guard)
 local FoodModels = require(script.Parent.Parent.FoodModels)
+local ShopService = require(script.Parent.ShopService)
 
 local DropService = {}
 local D = Config.Drops
--- Diferença máxima de altura entre o jogador e o centro do círculo (studs).
--- Personagem em pé fica ~3 acima do chão; pulos chegam a ~7.
-local MAX_DROP_HEIGHT = 9
 
-type Drop = {
+local MAX_TRAVEL_SPEED = 45 -- igual ao StealService: mais rápido que isso = teleporte
+local DEPOSIT_MARGIN = 6
+
+export type Kind = "food" | "box"
+
+type Item = {
 	id: number,
-	food: Config.FoodDef,
+	kind: Kind,
+	foodId: string?,
+	boxId: string?,
+	name: string,
+	rarity: string, -- raridade da comida ou da caixa (para cor e peso)
+	color: Color3,
 	pos: Vector3,
-	model: Model,
-	ring: Part,
+	holder: Part, -- peça no chão (ou na cabeça)
 	label: TextLabel,
-	holdTime: number,
-	progress: { [Player]: number },
-	inside: { [Player]: boolean },
-	landedAt: number,
+	prompt: ProximityPrompt,
+	unlockAt: number, -- os.clock()
+	carrier: Player?,
+	pickedAt: number,
+	pickedPos: Vector3,
+	landed: boolean,
+	expiresAt: number,
 	done: boolean,
 }
 
-local drops: { [number]: Drop } = {}
+local items: { [number]: Item } = {}
+local carrying: { [Player]: Item } = {}
+local baseSpeed: { [Player]: number } = {}
 local nextId = 0
 local folder: Folder
 
+local BOX_RARITY = { common = "Common", rare = "Rare", epic = "Epic", legendary = "Legendary", mythic = "Mythic" }
+
+local function serverNow(): number
+	return Workspace:GetServerTimeNow()
+end
+
 local function activeCount(): number
 	local n = 0
-	for _ in drops do
-		n += 1
+	for _, it in items do
+		if not it.carrier then
+			n += 1
+		end
 	end
 	return n
 end
 
-local function rollFood(): Config.FoodDef
-	-- Com poucos jogadores, raridades altas não caem do céu.
+local function pickFood(): Config.FoodDef
 	local noRare = #Players:GetPlayers() < D.MinPlayersForRare
 	local weights: { [string]: number } = {}
 	for rawRarity, w in D.Weights do
@@ -69,279 +105,448 @@ local function rollFood(): Config.FoodDef
 	return pool[math.random(1, #pool)]
 end
 
-local function buildDropModel(food: Config.FoodDef, pos: Vector3): (Model, Part, TextLabel)
-	local model = Instance.new("Model")
-	model.Name = "Drop_" .. food.id
-	local rar = Config.Rarities[food.rarity]
-	local body = Util.makePart({
-		Name = "Body",
-		Size = Vector3.new(4, 4, 4),
-		Color = food.color,
-		Material = if rar.order >= 4 then Enum.Material.Neon else Enum.Material.SmoothPlastic,
-		CFrame = CFrame.new(pos + Vector3.new(0, D.FallHeight, 0)),
-		CanCollide = false,
-		Parent = model,
+local function pickBox(): string
+	local noRare = #Players:GetPlayers() < D.MinPlayersForRare
+	local weights: { [string]: number } = {}
+	for id, w in D.BoxWeights do
+		if not (noRare and (id == "legendary" or id == "mythic")) then
+			weights[id :: string] = w :: number
+		end
+	end
+	return Util.weightedPick(weights, 0)
+end
+
+local function broadcast(it: Item)
+	Remotes.DropState:FireAllClients({
+		id = it.id,
+		kind = it.kind,
+		foodId = it.foodId,
+		boxId = it.boxId,
+		name = it.name,
+		rarity = it.rarity,
+		pos = if it.carrier then nil else it.holder.Position,
+		unlockAt = serverNow() + math.max(0, it.unlockAt - os.clock()),
+		carrierId = if it.carrier then it.carrier.UserId else nil,
+		carrierName = if it.carrier then it.carrier.DisplayName else nil,
+		landed = it.landed,
 	})
-	if FoodModels.has(food.id) then
-		-- Fase 2: comida 3D, maior que a do pátio (destaque do evento de disputa).
-		FoodModels.dress(body, food.id, 5)
+end
+
+local function remove(it: Item)
+	it.done = true
+	items[it.id] = nil
+	Remotes.DropState:FireAllClients({ id = it.id, removed = true })
+	it.holder:Destroy()
+end
+
+-- Etiqueta do mundo: nome, raridade e o estado (caindo / libera em X / PEGUE!).
+local function updateLabel(it: Item)
+	local rar = Locale.rarity(it.rarity)
+	if it.carrier then
+		it.label.Text = string.format("%s (%s)", it.name, rar)
+	elseif not it.landed then
+		it.label.Text = string.format("%s (%s)\nCaindo!", it.name, rar)
 	else
-		body.Shape = if food.shape == "Ball"
-			then Enum.PartType.Ball
-			elseif food.shape == "Cylinder" then Enum.PartType.Cylinder
-			else Enum.PartType.Block
+		local left = math.ceil(it.unlockAt - os.clock())
+		if left > 0 then
+			it.label.Text = string.format("%s (%s)\n🔒 libera em %d:%02d", it.name, rar, left // 60, left % 60)
+		else
+			it.label.Text = string.format("%s (%s)\nPEGUE! [E]", it.name, rar)
+		end
+	end
+end
+
+-- Visual do item: comida 3D ou a caixa (imagem da skin nova, de frente para a câmera, sobre uma
+-- caixa colorida). Indicador no chão discreto (pequeno disco + brilho leve), pedido do usuário: o
+-- círculo Neon grande antigo "ofuscava" o mapa.
+local function buildHolder(it: Item, at: Vector3): Part
+	local rarColor = it.color
+	local holder = Util.makePart({
+		Name = "Drop_" .. it.id,
+		Size = if it.kind == "box" then Vector3.new(3, 2.2, 2.2) else Vector3.new(2.6, 2.6, 2.6),
+		Color = rarColor,
+		Material = Enum.Material.SmoothPlastic,
+		Transparency = 0,
+		CFrame = CFrame.new(at),
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Parent = folder,
+	})
+	if it.kind == "food" and it.foodId and FoodModels.has(it.foodId) then
+		holder.Transparency = 1
+		FoodModels.dress(holder, it.foodId, 4)
+	elseif it.kind == "box" then
+		holder.Transparency = 1
+		local skin = it.boxId and (UIAssets :: { [string]: string })["extra_box_" .. it.boxId]
+		local bb = Instance.new("BillboardGui")
+		bb.Name = "BoxSprite"
+		bb.Size = UDim2.fromScale(5, 5)
+		bb.LightInfluence = 0.3
+		bb.MaxDistance = 250
+		bb.Parent = holder
+		if skin then
+			local img = Instance.new("ImageLabel")
+			img.BackgroundTransparency = 1
+			img.Size = UDim2.fromScale(1, 1)
+			img.Image = skin
+			img.Parent = bb
+		else
+			holder.Transparency = 0
+		end
 	end
 	local light = Instance.new("PointLight")
-	light.Color = rar.color
-	light.Range = 12 + rar.order * 3
-	light.Brightness = 2
-	light.Parent = body
-	local trail = Instance.new("ParticleEmitter")
-	trail.Color = ColorSequence.new(rar.color)
-	trail.Rate = 40
-	trail.Lifetime = NumberRange.new(0.5, 1)
-	trail.Speed = NumberRange.new(2, 5)
-	trail.Size = NumberSequence.new(1.5, 0)
-	trail.LightEmission = 1
-	trail.Parent = body
-	model.PrimaryPart = body
+	light.Color = rarColor
+	light.Range = 10
+	light.Brightness = 1
+	light.Shadows = false
+	light.Parent = holder
+	local sparkle = Instance.new("ParticleEmitter")
+	sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	sparkle.Color = ColorSequence.new(rarColor)
+	sparkle.LightEmission = 1
+	sparkle.Size = NumberSequence.new(0.5, 0)
+	sparkle.Lifetime = NumberRange.new(0.6, 1)
+	sparkle.Speed = NumberRange.new(1, 3)
+	sparkle.SpreadAngle = Vector2.new(180, 180)
+	sparkle.Rate = 3 + Config.Rarities[it.rarity].order
+	sparkle.Parent = holder
+	local label = Util.makeBillboard(holder, "", UDim2.fromOffset(240, 60), Vector3.new(0, 4, 0), rarColor)
+	local board = label.Parent :: BillboardGui
+	board.MaxDistance = 220
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PickUp"
+	prompt.ActionText = "PEGAR"
+	prompt.ObjectText = it.name
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
+	prompt.MaxActivationDistance = D.PickupReach
+	prompt.RequiresLineOfSight = false
+	prompt.HoldDuration = 0
+	prompt.Enabled = false
+	prompt.Parent = holder
+	it.label = label
+	it.prompt = prompt
+	return holder
+end
 
-	local ring = Util.makePart({
-		Name = "Ring",
+local function marker(it: Item)
+	local blip = Util.makePart({
+		Name = "Blip",
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, D.ZoneRadius * 2, D.ZoneRadius * 2),
-		CFrame = CFrame.new(pos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = rar.color,
+		Size = Vector3.new(0.12, 3.2, 3.2),
+		CFrame = CFrame.new(it.pos.X, it.pos.Y - 2.3, it.pos.Z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = it.color,
 		Material = Enum.Material.Neon,
 		Transparency = 0.55,
 		CanCollide = false,
 		CanQuery = false,
-		Parent = model,
+		CanTouch = false,
+		Parent = it.holder,
 	})
-	local label = Util.makeBillboard(ring, "", UDim2.fromOffset(320, 90), Vector3.new(0, 10, 0), rar.color)
-	label.Text = string.format("%s\n%s — caindo!", food.name, Locale.rarity(food.rarity))
-	return model, ring, label
+	blip.Anchored = true
 end
 
-local function award(drop: Drop, winner: Player)
-	drop.done = true
-	drops[drop.id] = nil
-	local profile = DataService.get(winner)
-	if profile then
-		profile.dropsWon += 1
-		DataService.markDirty(winner)
-	end
-	-- force: prêmio disputado; perder depois de vencer seria frustrante (1 item por drop).
-	PlotService.giveFood(winner, drop.food.id, true)
-	local rar = Config.Rarities[drop.food.rarity]
-	Remotes.Notify:FireClient(winner, Locale.msg("drop_defended", { f = drop.food.name }, rar.color))
-	if rar.order >= 3 then
-		Remotes.Notify:FireAllClients(
-			Locale.msg(
-				"drop_won_broadcast",
-				{ p = winner.DisplayName, f = drop.food.name, r = drop.food.rarity },
-				rar.color
-			)
-		)
-	end
-	Remotes.DropState:FireAllClients({ id = drop.id, removed = true })
-	-- efeito de coleta
-	local body = drop.model.PrimaryPart
-	if body then
-		task.spawn(function()
-			for i = 1, 10 do
-				body.CFrame = body.CFrame * CFrame.new(0, 1.5, 0)
-				body.Transparency = i / 10
-				task.wait(0.03)
-			end
-			drop.model:Destroy()
-		end)
-	else
-		drop.model:Destroy()
-	end
-end
-
-local function expire(drop: Drop)
-	drop.done = true
-	drops[drop.id] = nil
-	Remotes.DropState:FireAllClients({ id = drop.id, removed = true })
-	drop.model:Destroy()
-end
-
-local function broadcastState(drop: Drop)
-	local list = {}
-	for plr, prog in drop.progress do
-		if plr.Parent then
-			table.insert(list, {
-				userId = plr.UserId,
-				name = plr.DisplayName,
-				progress = prog / drop.holdTime,
-				inside = drop.inside[plr] == true,
-			})
-		end
-	end
-	table.sort(list, function(a, b)
-		return a.progress > b.progress
-	end)
-	Remotes.DropState:FireAllClients({
-		id = drop.id,
-		foodId = drop.food.id,
-		name = drop.food.name,
-		rarity = drop.food.rarity,
-		pos = drop.pos,
-		holdTime = drop.holdTime,
-		contenders = list,
-	})
-end
-
-local function runDrop(drop: Drop)
-	-- Aviso no chão antes de cair
-	drop.label.Text =
-		string.format("%s (%s)\nCaindo em %ds!", drop.food.name, Locale.rarity(drop.food.rarity), D.WarnBeforeFall)
-	Remotes.Notify:FireAllClients(
-		Locale.msg(
-			"drop_incoming",
-			{ f = drop.food.name, r = drop.food.rarity, n = drop.holdTime },
-			Config.Rarities[drop.food.rarity].color
-		)
-	)
-	broadcastState(drop)
-	task.wait(D.WarnBeforeFall)
-	if drop.done then
+local function setSpeed(player: Player, mult: number?)
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hum then
 		return
 	end
-	-- Queda
-	local body = drop.model.PrimaryPart :: Part
-	local t0 = os.clock()
-	local startY = D.FallHeight
-	while os.clock() - t0 < D.FallTime do
-		local a = (os.clock() - t0) / D.FallTime
-		a = a * a -- aceleração
-		body.CFrame = CFrame.new(drop.pos + Vector3.new(0, startY * (1 - a) + 2.5, 0)) * CFrame.Angles(a * 6, a * 9, 0)
-		task.wait()
-	end
-	body.CFrame = CFrame.new(drop.pos + Vector3.new(0, 2.5, 0))
-	drop.landedAt = os.clock()
-	Remotes.CombatEvent:FireAllClients({ kind = "Impact", pos = drop.pos })
-
-	-- Disputa
-	local lastBroadcast = 0
-	local emptySince = os.clock()
-	while not drop.done do
-		local dt = task.wait(0.2)
-		local anyone = false
-		for _, plr in Players:GetPlayers() do
-			local char = plr.Character
-			local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if not root then
-				continue
-			end
-			local flat = Vector3.new(root.Position.X - drop.pos.X, 0, root.Position.Z - drop.pos.Z)
-			-- Fase 0.6: altura também conta (quem flutua acima do círculo não pode ser socado).
-			local height = math.abs(root.Position.Y - drop.pos.Y)
-			local isIn = flat.Magnitude <= D.ZoneRadius and height <= MAX_DROP_HEIGHT and not CombatService.isKO(plr)
-			local wasIn = drop.inside[plr] == true
-			if isIn then
-				anyone = true
-				drop.inside[plr] = true
-				drop.progress[plr] = math.min(drop.holdTime, (drop.progress[plr] or 0) + dt)
-				if drop.progress[plr] >= drop.holdTime then
-					award(drop, plr)
-					return
-				end
-			else
-				drop.inside[plr] = nil
-				if wasIn and drop.progress[plr] then
-					drop.progress[plr] = drop.progress[plr] * (1 - D.ProgressLossWhenOut)
-					Remotes.Notify:FireClient(
-						plr,
-						{ text = "Saiu do círculo! Perdeu metade do progresso.", color = Color3.fromRGB(255, 120, 80) }
-					)
-				end
-			end
+	if mult then
+		if not baseSpeed[player] then
+			baseSpeed[player] = hum.WalkSpeed
 		end
-		if anyone then
-			emptySince = os.clock()
-		elseif os.clock() - emptySince > D.ExpireIfNobody then
-			expire(drop)
-			return
+		hum.WalkSpeed = (baseSpeed[player] :: number) * mult
+	else
+		local b = baseSpeed[player]
+		if b then
+			hum.WalkSpeed = b
 		end
-		-- Label do mundo: líder atual
-		local leader: Player? = nil
-		local lp = 0
-		for plr, prog in drop.progress do
-			if prog > lp then
-				lp = prog
-				leader = plr
-			end
-		end
-		if leader then
-			drop.label.Text = string.format(
-				"%s (%s)\n%s está defendendo: %d%%",
-				drop.food.name,
-				Locale.rarity(drop.food.rarity),
-				leader.DisplayName,
-				math.floor(lp / drop.holdTime * 100)
-			)
-		else
-			drop.label.Text =
-				string.format("%s (%s)\nENTRE NO CÍRCULO E DEFENDA!", drop.food.name, Locale.rarity(drop.food.rarity))
-		end
-		if os.clock() - lastBroadcast > 0.4 then
-			lastBroadcast = os.clock()
-			broadcastState(drop)
-		end
-		body.CFrame = body.CFrame * CFrame.Angles(0, 0.04, 0)
+		baseSpeed[player] = nil
 	end
 end
 
-function DropService.spawn(forceRarity: string?)
+local function speedFor(it: Item): number
+	if it.kind == "box" then
+		return D.SpeedByBox[it.boxId or "common"] or 0.9
+	end
+	return D.SpeedByRarity[it.rarity] or 1
+end
+
+-- Larga a carga no chão onde o jogador está (soco, nocaute, morte, saída, arena).
+local function dropCarry(player: Player, reason: string?)
+	local it = carrying[player]
+	if not it then
+		return
+	end
+	carrying[player] = nil
+	player:SetAttribute("CarryingDrop", nil)
+	setSpeed(player, nil)
+	it.carrier = nil
+	local root = Guard.rootOf(player)
+	local at = if root then root.Position else it.pickedPos
+	-- desce até o chão (raio) para não ficar flutuando
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local ignore: { Instance } = { folder }
+	if player.Character then
+		table.insert(ignore, player.Character :: Model)
+	end
+	params.FilterDescendantsInstances = ignore
+	local hit = Workspace:Raycast(at + Vector3.new(0, 4, 0), Vector3.new(0, -60, 0), params)
+	local ground = if hit then hit.Position else at - Vector3.new(0, 3, 0)
+	it.pos = ground + Vector3.new(0, 2.4, 0)
+	for _, d in it.holder:GetChildren() do
+		if d:IsA("WeldConstraint") or d:IsA("Weld") then
+			d:Destroy()
+		end
+	end
+	it.holder.Anchored = true
+	it.holder.CFrame = CFrame.new(it.pos)
+	it.holder.Parent = folder
+	marker(it)
+	it.unlockAt = os.clock() + D.DroppedRelock
+	it.expiresAt = os.clock() + D.ExpireAfter
+	it.prompt.Enabled = false
+	updateLabel(it)
+	broadcast(it)
+	if reason and player.Parent then
+		Remotes.Notify:FireClient(player, { text = reason, color = Color3.fromRGB(255, 90, 90) })
+	end
+end
+
+function DropService.dropCarried(player: Player)
+	dropCarry(player, nil)
+end
+
+function DropService.isCarrying(player: Player): boolean
+	return carrying[player] ~= nil
+end
+
+local function tryPickup(player: Player, it: Item)
+	if it.done or it.carrier or not it.landed or os.clock() < it.unlockAt then
+		return
+	end
+	if carrying[player] or player:GetAttribute("CarryingSteal") or CombatService.isKO(player) then
+		Remotes.Notify:FireClient(
+			player,
+			{ text = "Você já está carregando algo! Leve até sua base.", color = Color3.fromRGB(255, 170, 60) }
+		)
+		return
+	end
+	if not Guard.withinReach(player, it.holder, D.PickupReach) then
+		return
+	end
+	local char = player.Character
+	local head = char and char:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then
+		return
+	end
+	it.carrier = player
+	carrying[player] = it
+	player:SetAttribute("CarryingDrop", it.id)
+	it.pickedAt = os.clock()
+	it.pickedPos = it.holder.Position
+	it.prompt.Enabled = false
+	local blip = it.holder:FindFirstChild("Blip")
+	if blip then
+		blip:Destroy()
+	end
+	-- vai para cima da cabeça (soldado, sem peso físico)
+	it.holder.Anchored = false
+	it.holder.Massless = true
+	it.holder.CFrame = head.CFrame * CFrame.new(0, 3.2, 0)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = head
+	weld.Part1 = it.holder
+	weld.Parent = it.holder
+	it.holder.Parent = char
+	setSpeed(player, speedFor(it))
+	updateLabel(it)
+	broadcast(it)
+	Remotes.Notify:FireClient(
+		player,
+		{ text = "Pegou! Leve até a SUA base (cuidado com os socos).", color = Color3.fromRGB(80, 255, 120) }
+	)
+end
+
+local function deliver(player: Player, it: Item)
+	local profile = DataService.get(player)
+	if not profile then
+		return
+	end
+	carrying[player] = nil
+	player:SetAttribute("CarryingDrop", nil)
+	setSpeed(player, nil)
+	it.carrier = nil
+	if it.kind == "food" and it.foodId then
+		profile.dropsWon += 1
+		-- Pátio primeiro (rende moedas); sem vaga, mochila (entra mesmo cheia: foi disputada).
+		local placed = false
+		local max = PlotService.maxSlots(profile)
+		for i = 1, max do
+			if not profile.plot[tostring(i)] then
+				profile.plot[tostring(i)] = { id = it.foodId, uid = DataService.newUid() }
+				placed = true
+				break
+			end
+		end
+		if not placed then
+			table.insert(profile.inventory, { id = it.foodId, uid = DataService.newUid() })
+		end
+		DataService.markDirty(player)
+		PlotService.rebuildPlot(player)
+		PlotService.pushState(player)
+		Remotes.Notify:FireClient(player, {
+			text = string.format(
+				"%s entregue! %s",
+				it.name,
+				if placed then "Está no seu pátio rendendo moedas." else "Pátio cheio: foi para a mochila."
+			),
+			color = Config.Rarities[it.rarity].color,
+		})
+	elseif it.kind == "box" and it.boxId then
+		local pending = (profile :: any).pendingBoxes :: { string }
+		if #pending >= D.MaxPendingBoxes then
+			-- sem lugar: a caixa volta ao chão na frente da base
+			carrying[player] = it
+			it.carrier = player
+			dropCarry(player, "Você já tem caixas demais guardadas. Abra uma antes!")
+			return
+		end
+		table.insert(pending, it.boxId)
+		DataService.markDirty(player)
+		PlotService.pushState(player)
+		Remotes.PendingBox:FireClient(player, { boxId = it.boxId, count = #pending })
+	end
+	remove(it)
+	local rar = Config.Rarities[it.rarity]
+	if rar.order >= 4 then
+		Remotes.Notify:FireAllClients(
+			Locale.msg("drop_won_broadcast", { p = player.DisplayName, f = it.name, r = it.rarity }, rar.color)
+		)
+	end
+end
+
+-- Quem carrega e chegou dentro do quadrado da PRÓPRIA base entrega (conferido no servidor).
+local function checkDeliveries()
+	for player, it in carrying do
+		if not player.Parent then
+			continue
+		end
+		local base = MapService.getBaseOf(player)
+		local root = Guard.rootOf(player)
+		if not base or not root then
+			continue
+		end
+		local here = base.origin:PointToObjectSpace(root.Position)
+		local half = Config.BaseSize / 2 + DEPOSIT_MARGIN
+		if math.abs(here.X) <= half and math.abs(here.Z) <= half then
+			local toBase = (base.origin.Position - it.pickedPos).Magnitude - Config.BaseSize * 0.75
+			if os.clock() - it.pickedAt >= math.max(0, toBase) / MAX_TRAVEL_SPEED then
+				deliver(player, it)
+			end
+		end
+	end
+end
+
+local function fall(it: Item)
+	local t0 = os.clock()
+	local h = D.FallHeight
+	while os.clock() - t0 < D.FallTime and not it.done do
+		local a = (os.clock() - t0) / D.FallTime
+		a = a * a
+		it.holder.CFrame = CFrame.new(it.pos + Vector3.new(0, h * (1 - a), 0)) * CFrame.Angles(0, a * 9, 0)
+		task.wait()
+	end
+	if it.done then
+		return
+	end
+	it.holder.CFrame = CFrame.new(it.pos)
+	it.landed = true
+	it.unlockAt = os.clock() + it.unlockAt -- unlockAt guardava a DURAÇÃO até pousar
+	it.expiresAt = os.clock() + D.ExpireAfter
+	marker(it)
+	Remotes.CombatEvent:FireAllClients({ kind = "Impact", pos = it.pos })
+	updateLabel(it)
+	broadcast(it)
+end
+
+-- Cria um item que cai em `pos` (chão). kind/ids opcionais: sem eles, sorteia (comida ou caixa).
+function DropService.spawnAt(pos: Vector3, kind: Kind?, id: string?, silent: boolean?)
+	local k: Kind = kind or (if math.random() < D.BoxChance then "box" else "food")
+	nextId += 1
+	local it: Item
+	if k == "box" then
+		local boxId = id or pickBox()
+		local box = Config.LunchboxById[boxId]
+		local rarity = BOX_RARITY[boxId] or "Common"
+		it = {
+			id = nextId,
+			kind = "box",
+			boxId = boxId,
+			name = box and box.name or "Lunchbox",
+			rarity = rarity,
+			color = if box then box.color else Config.Rarities[rarity].color,
+			pos = pos,
+			unlockAt = D.UnlockByBox[boxId] or 15,
+		} :: any
+	else
+		local food = if id then Config.FoodById[id] else pickFood()
+		it = {
+			id = nextId,
+			kind = "food",
+			foodId = food.id,
+			name = food.name,
+			rarity = food.rarity,
+			color = Config.Rarities[food.rarity].color,
+			pos = pos,
+			unlockAt = D.UnlockByRarity[food.rarity] or 5,
+		} :: any
+	end
+	it.pickedAt = 0
+	it.pickedPos = pos
+	it.landed = false
+	it.expiresAt = math.huge
+	it.done = false
+	it.holder = buildHolder(it, pos + Vector3.new(0, D.FallHeight, 0))
+	items[it.id] = it
+	it.prompt.Triggered:Connect(function(player)
+		tryPickup(player, it)
+	end)
+	if not silent then
+		Remotes.Notify:FireAllClients(
+			Locale.msg("drop_incoming2", { f = it.name, r = it.rarity, n = math.floor(it.unlockAt) }, it.color)
+		)
+	end
+	updateLabel(it)
+	broadcast(it)
+	task.spawn(function()
+		local ok, err = pcall(function()
+			fall(it)
+		end)
+		if not ok then
+			warn("[DropService]", err)
+			if not it.done then
+				remove(it)
+			end
+		end
+	end)
+end
+
+-- Ponto aleatório na praça (entre o caldeirão e a loja), como antes.
+function DropService.plazaPoint(): Vector3
+	local a = math.random() * math.pi * 2
+	local r = 45 + math.random() * 45
+	return Vector3.new(math.cos(a) * r, 4.5, math.sin(a) * r)
+end
+
+function DropService.spawn(kind: Kind?, id: string?)
 	if activeCount() >= D.MaxActive then
 		return
 	end
-	local food = rollFood()
-	if forceRarity then
-		local pool = {}
-		for _, f in Config.Foods do
-			if f.rarity == forceRarity then
-				table.insert(pool, f)
-			end
-		end
-		if #pool > 0 then
-			food = pool[math.random(1, #pool)]
-		end
-	end
-	-- posição aleatória na praça: depois do caldeirão (raio ~29) e antes da loja/evento (r 98+).
-	-- Com o círculo de raio 14, a disputa fica entre r 36 e r 96 (World.lua).
-	local a = math.random() * math.pi * 2
-	local r = 50 + math.random() * 32
-	local pos = Vector3.new(math.cos(a) * r, 2.5, math.sin(a) * r)
-	nextId += 1
-	local model, ring, label = buildDropModel(food, pos)
-	model.Parent = folder
-	local drop: Drop = {
-		id = nextId,
-		food = food,
-		pos = pos,
-		model = model,
-		ring = ring,
-		label = label,
-		holdTime = D.HoldTimeByRarity[food.rarity] or 10,
-		progress = {},
-		inside = {},
-		landedAt = 0,
-		done = false,
-	}
-	drops[drop.id] = drop
-	task.spawn(function()
-		local ok, err = pcall(runDrop :: any, drop)
-		if not ok then
-			warn("[DropService]", err)
-			if not drop.done then
-				expire(drop)
-			end
-		end
-	end)
+	DropService.spawnAt(DropService.plazaPoint(), kind, id)
 end
 
 function DropService.init()
@@ -349,38 +554,108 @@ function DropService.init()
 	folder.Name = "Drops"
 	folder.Parent = Workspace
 
-	-- Quem é nocauteado dentro do círculo perde TODO o progresso daquele drop
-	local prevKO = CombatService.OnKO
-	CombatService.OnKO = function(attacker: Player, victim: Player)
-		if prevKO then
-			prevKO(attacker, victim)
+	-- Soco em quem carrega derruba a carga (o nocaute também, pois vem depois de um soco).
+	local prevHit = CombatService.OnHit
+	CombatService.OnHit = function(attacker: Player, victim: Player, heavy: boolean)
+		if prevHit then
+			prevHit(attacker, victim, heavy)
 		end
-		for _, drop in drops do
-			if drop.progress[victim] and drop.progress[victim] > 0 then
-				drop.progress[victim] = 0
-				drop.inside[victim] = nil
-				Remotes.Notify:FireClient(
-					victim,
-					{ text = "Nocauteado! Progresso da disputa zerado.", color = Color3.fromRGB(255, 80, 80) }
-				)
-			end
+		if carrying[victim] then
+			dropCarry(victim, "Você levou um soco e derrubou a carga!")
 		end
 	end
+	local prevKO = CombatService.OnNpcKO
+	CombatService.OnNpcKO = function(victim: Player, source: string)
+		if prevKO then
+			prevKO(victim, source)
+		end
+		dropCarry(victim, "Nocauteado! Você derrubou a carga.")
+	end
 
+	local function watch(player: Player)
+		player.CharacterAdded:Connect(function(char)
+			baseSpeed[player] = nil
+			local hum = char:WaitForChild("Humanoid", 5)
+			if hum and hum:IsA("Humanoid") then
+				hum.Died:Connect(function()
+					dropCarry(player, nil)
+				end)
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, p in Players:GetPlayers() do
+		watch(p)
+	end
 	Players.PlayerRemoving:Connect(function(player)
-		for _, drop in drops do
-			drop.progress[player] = nil
-			drop.inside[player] = nil
+		dropCarry(player, nil)
+		baseSpeed[player] = nil
+	end)
+	-- Abrir uma caixa guardada (o jogador confirma no cliente; nunca abre sozinha).
+	Remotes.RequestOpenPending.OnServerEvent:Connect(function(player, index)
+		if not Guard.isIndex(index, D.MaxPendingBoxes) or not Guard.allow(player, "Box") then
+			return
+		end
+		local profile = DataService.get(player)
+		if not profile then
+			return
+		end
+		local pending: { string } = (profile :: any).pendingBoxes
+		local boxId = pending[index]
+		if not boxId then
+			return
+		end
+		-- Mesmo sorteio e mesmas chances da caixa comprada (LunchboxOdds), sem cobrar: foi conquistada.
+		table.remove(pending, index)
+		if not ShopService.openBox(player, boxId, { free = true, force = true }) then
+			table.insert(pending, index, boxId) -- não abriu (ex.: erro): a caixa continua guardada
+		end
+		DataService.markDirty(player)
+		PlotService.pushState(player)
+	end)
+
+	-- Quem entra no jogo vê os itens que já estão no mapa.
+	Players.PlayerAdded:Connect(function()
+		task.wait(3)
+		for _, it in items do
+			broadcast(it)
 		end
 	end)
 
+	-- Laço: cronômetros, liberação, entregas e itens esquecidos.
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			checkDeliveries()
+			local now = os.clock()
+			for _, it in items do
+				if it.done then
+					continue
+				end
+				if it.landed and not it.carrier then
+					local unlocked = now >= it.unlockAt
+					if unlocked ~= it.prompt.Enabled then
+						it.prompt.Enabled = unlocked
+						broadcast(it)
+					end
+					if now >= it.expiresAt then
+						remove(it)
+						continue
+					end
+				end
+				updateLabel(it)
+			end
+		end
+	end)
+
+	-- Drops normais
 	task.spawn(function()
 		task.wait(20)
 		while true do
 			if #Players:GetPlayers() > 0 then
 				DropService.spawn()
 			end
-			local scale = math.clamp(#Players:GetPlayers() / 4, 0.7, 1.6)
+			local scale = math.clamp(#Players:GetPlayers() / 4, 0.7, 1.4)
 			task.wait(math.random(D.MinInterval, D.MaxInterval) / scale)
 		end
 	end)

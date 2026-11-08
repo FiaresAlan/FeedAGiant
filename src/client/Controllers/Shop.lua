@@ -568,6 +568,116 @@ local function refreshSpecies(s: State.PlayerState)
 	end
 end
 
+-- Janela do pedestal "RENOVAR ESCUDO" (item 8). Moedas: 2 cliques (o segundo confirma). Robux: o
+-- próprio diálogo de compra da Roblox confirma.
+local function buildShield(gui: ScreenGui)
+	local body: Frame
+	local shieldWin: Frame
+	shieldWin, body = UI.window(gui, "ESCUDO DA BASE", UDim2.fromOffset(560, 360))
+	local status = UI.label(body, "", {
+		Size = UDim2.new(1, 0, 0, 40),
+		TextScaled = false,
+		TextSize = 26,
+		TextColor3 = UI.Colors.Blue,
+	})
+	UI.label(body, "Com escudo, ninguém rouba comida do seu pátio.", {
+		Size = UDim2.new(1, 0, 0, 30),
+		Position = UDim2.fromOffset(0, 42),
+		TextScaled = false,
+		TextSize = 20,
+		TextTransparency = 0.2,
+	})
+	local coinBtn = UI.button(body, "", UI.Colors.Accent, {
+		Size = UDim2.new(1, 0, 0, 64),
+		Position = UDim2.fromOffset(0, 84),
+		TextScaled = false,
+		TextSize = 24,
+	})
+	local superBtn = UI.button(body, "", UI.Colors.Blue, {
+		Size = UDim2.new(1, 0, 0, 64),
+		Position = UDim2.fromOffset(0, 162),
+		TextScaled = false,
+		TextSize = 24,
+	})
+	local data: any = nil
+	local leftAt = 0
+	local confirming = false
+	local function render()
+		if not data then
+			return
+		end
+		local left = math.max(0, leftAt - os.time())
+		status.Text = if left > 0
+			then string.format("🛡 Escudo ativo: %d:%02d", left // 60, left % 60)
+			else "Sem escudo: sua base pode ser roubada!"
+		status.TextColor3 = if left > 0 then UI.Colors.Blue else UI.Colors.Red
+		local secs = math.floor((data.coinSeconds or 300) / 60)
+		if confirming then
+			coinBtn.Text = string.format("CONFIRMAR: pagar %s moedas?", Util.formatNumber(data.coinPrice or 0))
+			coinBtn.BackgroundColor3 = UI.Colors.Orange
+		else
+			coinBtn.Text = string.format(
+				"%s %d MIN  •  %s $",
+				if left > 0 then "RENOVAR +" else "ATIVAR",
+				secs,
+				Util.formatNumber(data.coinPrice or 0)
+			)
+			coinBtn.BackgroundColor3 = if (State.current.coins or 0) >= (data.coinPrice or 0)
+				then UI.Colors.Accent
+				else Color3.fromRGB(90, 90, 100)
+		end
+		if data.superAvailable then
+			superBtn.Text = string.format("SUPER ESCUDO %d MIN (ROBUX)", math.floor((data.superSeconds or 600) / 60))
+			superBtn.BackgroundColor3 = UI.Colors.Blue
+		else
+			superBtn.Text = "SUPER ESCUDO (em breve)"
+			superBtn.BackgroundColor3 = Color3.fromRGB(90, 90, 100)
+		end
+	end
+	coinBtn.Activated:Connect(function()
+		if not data then
+			return
+		end
+		if not confirming then
+			confirming = true
+			render()
+			task.delay(4, function()
+				confirming = false
+				render()
+			end)
+			return
+		end
+		confirming = false
+		Remotes.RequestShieldRenew:FireServer()
+		render()
+	end)
+	superBtn.Activated:Connect(function()
+		if data and data.superAvailable then
+			Remotes.RequestPurchase:FireServer("SuperShield")
+		end
+	end)
+	Remotes.ShieldMenu.OnClientEvent:Connect(function(d)
+		if type(d) ~= "table" then
+			return
+		end
+		data = d
+		leftAt = os.time() + (tonumber(d.left) or 0)
+		confirming = false
+		render()
+		if not shieldWin.Visible then
+			UI.pop(shieldWin)
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if shieldWin.Visible then
+				render()
+			end
+		end
+	end)
+end
+
 local function buildCodes(gui: ScreenGui)
 	local body: Frame
 	codesWin, body = UI.window(gui, "CÓDIGOS", UDim2.fromOffset(380, 220))
@@ -666,6 +776,7 @@ function Shop.init(gui: ScreenGui)
 	buildRobuxTab(rBody)
 
 	buildConfirm(gui)
+	buildShield(gui)
 	buildCodes(gui)
 	buildOddsWindow(gui)
 	State.onChanged(refresh)

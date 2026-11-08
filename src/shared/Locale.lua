@@ -601,6 +601,11 @@ Locale.Templates = {
 		en = "GOAL: REBIRTH at Lv. {n} = more coins forever",
 		es = "META: REBIRTH en Nv. {n} = más monedas para siempre",
 	},
+	drop_incoming2 = {
+		["pt-br"] = "{f} ({r}) está caindo na praça! Libera em {n}s.",
+		en = "{f} ({r}) is falling in the plaza! Unlocks in {n}s.",
+		es = "¡{f} ({r}) está cayendo en la plaza! Se libera en {n}s.",
+	},
 	backpack_n = { ["pt-br"] = "MOCHILA ({n})", en = "BACKPACK ({n})", es = "MOCHILA ({n})" },
 	yard_n = { ["pt-br"] = "PÁTIO ({n} / {m})", en = "YARD ({n} / {m})", es = "PATIO ({n} / {m})" },
 	food_row = {

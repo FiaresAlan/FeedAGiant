@@ -28,6 +28,7 @@ export type PlayerState = {
 	championUntil: number?,
 	speciesTokens: number?,
 	discovered: { [string]: boolean }?,
+	pendingBoxes: { string }?,
 }
 
 local State = {}

@@ -38,7 +38,10 @@ local EVENTS = {
 	"RequestFightMode", -- client -> server: on:boolean (modo de luta: luvas, soco e bloqueio)
 	"Fireworks", -- server -> all: {userId, name, foodId, rarity} (fogos no servidor inteiro)
 	"EventSchedule", -- server -> all: {nextId, nextName, at (os.time), activeId?, endsAt?}
-	"BossState", -- server -> all: {active, hp, maxHp}
+	"PendingBox", -- server -> client: {boxId, count} (lunchbox entregue na base, esperando abrir)
+	"RequestOpenPending", -- client -> server: index (abre uma caixa guardada; nunca sozinha)
+	"ShieldMenu", -- server -> client: {left, coinSeconds, coinPrice, superSeconds, superAvailable}
+	"RequestShieldRenew", -- client -> server: renovar escudo com moedas (no pedestal da própria base)
 }
 
 local FUNCTIONS = {

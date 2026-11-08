@@ -121,6 +121,7 @@ local function dropCarry(thief: Player, returnTo: boolean)
 		return
 	end
 	carrying[thief] = nil
+	thief:SetAttribute("CarryingSteal", nil)
 	if c.model then
 		c.model:Destroy()
 	end
@@ -145,7 +146,7 @@ function StealService.dropCarried(player: Player)
 end
 
 local function tryStartSteal(thief: Player, foodModel: Model)
-	if carrying[thief] or channeling[thief] then
+	if carrying[thief] or channeling[thief] or thief:GetAttribute("CarryingDrop") then
 		return
 	end
 	local primary = foodModel.PrimaryPart
@@ -237,6 +238,7 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	end
 	local visual = attachCarryVisual(thief, def)
 	carrying[thief] = { food = food, from = owner, model = visual, pickedAt = os.clock(), pickedPos = primary.Position }
+	thief:SetAttribute("CarryingSteal", true)
 	Remotes.Notify:FireClient(
 		thief,
 		{ text = "Pegou! Corra para sua base e toque no seu pátio.", color = Color3.fromRGB(80, 255, 120) }
@@ -274,6 +276,7 @@ local function tryDeposit(thief: Player, base: MapService.BaseInfo)
 		return
 	end
 	carrying[thief] = nil
+	thief:SetAttribute("CarryingSteal", nil)
 	if c.model then
 		c.model:Destroy()
 	end

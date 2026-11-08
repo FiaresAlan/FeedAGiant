@@ -65,6 +65,7 @@ function PlotService.pushState(player: Player)
 	markDiscovered(player, profile)
 	Remotes.StateChanged:FireClient(player, {
 		discovered = profile.discovered,
+		pendingBoxes = (profile :: any).pendingBoxes,
 		coins = profile.coins,
 		level = profile.level,
 		xp = profile.xp,
@@ -167,8 +168,8 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 	local rc = Config.Rarities[def.rarity].color
 	local label = Util.makeBillboard(
 		p,
-		if bounds then def.name else def.name .. "\n" .. def.rarity,
-		UDim2.fromOffset(120, 28),
+		string.format("%s  +%d/s", def.name, Config.Rarities[def.rarity].cps), -- item 6: renda base de cada comida exposta
+		UDim2.fromOffset(170, 28),
 		Vector3.new(0, p.Size.Y / 2 + 1.2, 0),
 		rc
 	)
