@@ -8,6 +8,7 @@
 --   * o ScreenGui usa ScreenInsets = CoreUISafeInsets: tudo fica dentro da área segura e abaixo da
 --     barra do Roblox (sem somar a altura da barra à mão);
 --   * botões usam Activated (mouse, toque e controle); estado nunca só por cor (texto junto).
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -39,6 +40,9 @@ local dailyTile: TextButton
 local dailyBadge: Frame
 local collBadge: Frame? = nil
 local lastCoins = 0
+local coinsReady = false -- o primeiro estado só preenche o número (sem moedas voando)
+local hudGui: ScreenGui? = nil
+local coinIcon: GuiObject? = nil
 
 HUD.OnOpenShop = nil :: (() -> ())?
 HUD.OnOpenInventory = nil :: (() -> ())?
@@ -97,7 +101,7 @@ local function buildTopBar(gui: ScreenGui)
 
 	-- Moedas
 	local coin = pill(panel, 18, 300, UI.Colors.Accent)
-	UI.icon(coin, "coin", { Size = UDim2.fromOffset(64, 64), Position = UDim2.fromOffset(6, 6), ZIndex = 4 })
+	coinIcon = UI.icon(coin, "coin", { Size = UDim2.fromOffset(64, 64), Position = UDim2.fromOffset(6, 6), ZIndex = 4 })
 	coinsLabel = UI.title(coin, "0", {
 		Size = UDim2.fromOffset(212, 44),
 		Position = UDim2.fromOffset(78, 2),
@@ -423,6 +427,52 @@ local function buildFeedButton(gui: ScreenGui)
 	end)
 end
 
+-- Fase 3 (juice): moedas saem do meio da tela e voam até o contador quando o ganho é "de verdade"
+-- (venda, prêmio, diário), não a renda passiva de cada segundo. No máximo 8 moedas; nada com
+-- "Movimento reduzido" (só o pulso do número).
+local function flyCoins(amount: number)
+	local gui, target = hudGui, coinIcon
+	if not gui or not target or GuiService.ReducedMotionEnabled then
+		return
+	end
+	local origin = gui.AbsolutePosition
+	local to = target.AbsolutePosition + target.AbsoluteSize / 2 - origin
+	local from = gui.AbsoluteSize / 2 + Vector2.new(0, gui.AbsoluteSize.Y * 0.12)
+	local n = math.clamp(math.floor(math.log10(math.max(amount, 1))) * 2 + 2, 3, 8)
+	local size = math.floor(44 * UI.deviceScale())
+	for i = 1, n do
+		task.delay((i - 1) * 0.05, function()
+			local c = UI.icon(gui, "coin", {
+				Size = UDim2.fromOffset(size, size),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(from.X + math.random(-60, 60), from.Y + math.random(-30, 30)),
+				ZIndex = 40,
+			})
+			local mid = UDim2.fromOffset(
+				(from.X + to.X) / 2 + math.random(-120, 120),
+				math.min(from.Y, to.Y) - math.random(20, 80)
+			)
+			local t1 = TweenService:Create(c, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = mid,
+			})
+			t1:Play()
+			t1.Completed:Once(function()
+				local t2 = TweenService:Create(c, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+					Position = UDim2.fromOffset(to.X, to.Y),
+					Size = UDim2.fromOffset(size * 0.6, size * 0.6),
+				})
+				t2:Play()
+				t2.Completed:Once(function()
+					c:Destroy()
+				end)
+			end)
+		end)
+	end
+	task.delay(0.5, function()
+		UI.sfx("Coin", 0.35)
+	end)
+end
+
 local function refresh(s: State.PlayerState)
 	if s.coins ~= lastCoins then
 		local delta = s.coins - lastCoins
@@ -430,7 +480,11 @@ local function refresh(s: State.PlayerState)
 		coinsLabel.Text = Util.formatNumber(s.coins)
 		if delta > 0 then
 			UI.pulse(coinsLabel, 1.1, 0.2)
+			if coinsReady and delta > math.max(s.cps * 3, 20) then
+				flyCoins(delta)
+			end
 		end
+		coinsReady = true
 	end
 	cpsLabel.Text = "+" .. Util.formatNumber(s.cps) .. "/s"
 	local stage = (s :: any).stage or "Gigante"
@@ -494,6 +548,7 @@ local function watchShopPad()
 end
 
 function HUD.init(gui: ScreenGui)
+	hudGui = gui
 	buildTopBar(gui)
 	buildSideButtons(gui)
 	buildFeedButton(gui)

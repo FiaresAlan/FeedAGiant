@@ -34,6 +34,7 @@ local EVENTS = {
 	"RequestBuySpecies", -- client -> server: speciesId
 	"RequestEquipSpecies", -- client -> server: speciesId
 	"GiantEvolved", -- server -> all: {userId, stageName, level}
+	"RareFound", -- server -> all: {userId, name, foodId, rarity} (no máximo 1 a cada 6 s)
 }
 
 local FUNCTIONS = {

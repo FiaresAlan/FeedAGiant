@@ -102,7 +102,7 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 
 	reveal.BackgroundColor3 = (def and def.color) or (data.color or rar.color)
 	revealName.Text = (def and def.name) or (data.name or data.foodId)
-	revealRarity.Text = string.upper(Locale.rarity(data.rarity))
+	revealRarity.Text = Locale.upper(Locale.rarity(data.rarity))
 	revealRarity.TextColor3 = rar.color
 	-- Fase 3: a comida aparece em 3D girando (mesmo modelo do mundo); sem modelo, fica só a cor.
 	for _, child in revealView:GetChildren() do

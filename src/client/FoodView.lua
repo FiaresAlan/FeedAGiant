@@ -84,7 +84,8 @@ function FoodView.create(parent: GuiObject, foodId: string, opts: Options?): Vie
 	cam.FieldOfView = 30
 	local radius = math.max(ext.X, ext.Y, ext.Z) * 0.5
 	local dist = radius / math.tan(math.rad(cam.FieldOfView / 2)) * 1.25
-	local pitch = math.rad(-18)
+	-- -32°: comidas chatas (pizza, donut, prato) aparecem por cima, não de lado (teste de 08/11)
+	local pitch = math.rad(-32)
 	local yaw = math.rad(o.yaw or 25)
 	local function place(a: number)
 		local dir = CFrame.Angles(0, a, 0) * CFrame.Angles(pitch, 0, 0)

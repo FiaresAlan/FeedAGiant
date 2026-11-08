@@ -529,6 +529,11 @@ Locale.Templates = {
 	rebirth_btn = { ["pt-br"] = "REBIRTH (Nv.{n})", en = "REBIRTH (Lv.{n})", es = "REBIRTH (Nv.{n})" },
 	daily_btn = { ["pt-br"] = "DIÁRIO ({n}/7)", en = "DAILY ({n}/7)", es = "DIARIO ({n}/7)" },
 	shield_active = { ["pt-br"] = "ESCUDO ATIVO: {t}", en = "SHIELD ACTIVE: {t}", es = "ESCUDO ACTIVO: {t}" },
+	rare_banner = {
+		["pt-br"] = "{p} achou uma comida rara!",
+		en = "{p} found a rare food!",
+		es = "¡{p} encontró una comida rara!",
+	},
 	collection_count = {
 		["pt-br"] = "Comidas descobertas: {n} de {m}",
 		en = "Foods discovered: {n} of {m}",
@@ -609,6 +614,31 @@ local RARITY_NAMES: { [string]: { [string]: string } } = {
 		Secret = "Secreto",
 	},
 }
+
+-- string.upper não mexe em letras acentuadas (saía "LENDáRIO"); esta troca as do pt/es.
+local ACCENT_UPPER: { [string]: string } = {
+	["á"] = "Á",
+	["à"] = "À",
+	["â"] = "Â",
+	["ã"] = "Ã",
+	["é"] = "É",
+	["ê"] = "Ê",
+	["í"] = "Í",
+	["ó"] = "Ó",
+	["ô"] = "Ô",
+	["õ"] = "Õ",
+	["ú"] = "Ú",
+	["ç"] = "Ç",
+	["ñ"] = "Ñ",
+}
+
+function Locale.upper(text: string): string
+	local out = string.upper(text)
+	for lower, upper in ACCENT_UPPER do
+		out = string.gsub(out, lower, upper)
+	end
+	return out
+end
 
 function Locale.rarity(id: string, locale: string?): string
 	local names = RARITY_NAMES[locale or Locale.of(nil)]

@@ -191,7 +191,7 @@ function Collection.init(gui: ScreenGui)
 			TextScaled = true,
 			ZIndex = 14,
 		})
-		UI.label(card, string.upper(Locale.rarity(def.rarity)), {
+		UI.label(card, Locale.upper(Locale.rarity(def.rarity)), {
 			Size = UDim2.new(1, -8, 0, 22),
 			Position = UDim2.fromOffset(4, 138),
 			TextScaled = false,

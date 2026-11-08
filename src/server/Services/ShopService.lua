@@ -30,6 +30,8 @@ local lastBuy: { [Player]: number } = {}
 local rng = Random.new()
 
 local BUY_COOLDOWN = 0.4
+local RARE_BANNER_GAP = 6 -- segundos entre faixas de "comida rara" para o servidor todo
+local lastRareBanner = -math.huge
 
 export type OpenOptions = {
 	free: boolean?, -- não cobra moedas (recompensas e produtos)
@@ -82,6 +84,18 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		{ foodId = food.id, rarity = food.rarity, name = food.name, color = food.color }
 	)
 	if Config.Rarities[food.rarity].order >= 5 then
+		-- Fase 3: faixa grande com a comida 3D para todos, no máximo 1 a cada 6 s (servidor cheio
+		-- abrindo caixas não vira enxurrada); fora do limite fica só o aviso de texto.
+		local now = os.clock()
+		if now - lastRareBanner >= RARE_BANNER_GAP then
+			lastRareBanner = now
+			Remotes.RareFound:FireAllClients({
+				userId = player.UserId,
+				name = player.DisplayName,
+				foodId = food.id,
+				rarity = food.rarity,
+			})
+		end
 		Remotes.Notify:FireAllClients(
 			Locale.msg(
 				"found_food",

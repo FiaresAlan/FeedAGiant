@@ -7,6 +7,8 @@ local Workspace = game:GetService("Workspace")
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local Config = require(game.ReplicatedStorage.Shared.Config)
+local FoodView = require(script.Parent.Parent.FoodView)
 
 local Effects = {}
 local flash: Frame
@@ -198,6 +200,75 @@ function Effects.init(gui: ScreenGui)
 				banner.Visible = false
 			end)
 		end
+	end)
+	-- Fase 3: faixa "comida rara" com a comida 3D (o servidor limita a 1 a cada 6 s). Quem achou já
+	-- vê a abertura da caixa; os outros veem a faixa por 3,5 s, no alto, abaixo da faixa do tutorial.
+	-- Fundo liso escuro (o painel 9-slice tem faixa dourada que escondia comidas douradas).
+	local rare = UI.frame(gui, {
+		Name = "RareBanner",
+		BackgroundColor3 = Color3.fromRGB(22, 26, 64),
+		Size = UDim2.fromOffset(640, 132),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 280),
+		Visible = false,
+		ZIndex = 30,
+	})
+	UI.autoScale(rare)
+	UI.corner(rare, 22)
+	local rareStroke = UI.stroke(rare, UI.Colors.Accent, 3)
+	local rareView = Instance.new("Frame")
+	rareView.BackgroundTransparency = 1
+	rareView.Size = UDim2.fromOffset(116, 116)
+	rareView.Position = UDim2.fromOffset(12, 8)
+	rareView.ZIndex = 31
+	rareView.Parent = rare
+	local rareText = UI.label(rare, "", {
+		Size = UDim2.new(1, -152, 0, 52),
+		Position = UDim2.fromOffset(136, 18),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 31,
+	})
+	local rareSub = UI.label(rare, "", {
+		Size = UDim2.new(1, -152, 0, 34),
+		Position = UDim2.fromOffset(136, 76),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 24,
+		ZIndex = 31,
+	})
+	local rareSerial = 0
+	Remotes.RareFound.OnClientEvent:Connect(function(e)
+		if type(e) ~= "table" or e.userId == player.UserId or type(e.foodId) ~= "string" then
+			return
+		end
+		local def = Config.FoodById[e.foodId]
+		local rar = def and Config.Rarities[def.rarity]
+		if not def or not rar then
+			return
+		end
+		rareSerial += 1
+		local serial = rareSerial
+		for _, c in rareView:GetChildren() do
+			c:Destroy()
+		end
+		FoodView.create(rareView, def.id, { spin = true, zIndex = 32 })
+		rareText.Text = Locale.fmt("rare_banner", nil, { p = tostring(e.name) })
+		rareSub.Text = def.name .. "  ·  " .. Locale.upper(Locale.rarity(def.rarity))
+		rareSub.TextColor3 = rar.color
+		rareStroke.Color = rar.color
+		-- logo abaixo das faixas do tutorial (objetivo + dica, ~100 px sem escala)
+		rare.Position = UDim2.new(0.5, 0, 0, math.floor(8 + 168 * UI.deviceScale() + 100))
+		rare.Visible = true
+		UI.pop(rare)
+		UI.sfx("Win", 0.5)
+		task.delay(3.5, function()
+			if rareSerial == serial then
+				rare.Visible = false
+				for _, c in rareView:GetChildren() do
+					c:Destroy()
+				end
+			end
+		end)
 	end)
 	Remotes.GiantFed.OnClientEvent:Connect(function(e)
 		if type(e) == "table" and e.leveled and e.userId == player.UserId then
