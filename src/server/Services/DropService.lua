@@ -23,6 +23,7 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local Hooks = require(script.Parent.Parent.Hooks)
 local UIAssets = require(game.ReplicatedStorage.Shared.UIAssets)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
@@ -420,6 +421,7 @@ local function deliver(player: Player, it: Item)
 		PlotService.pushState(player)
 		Remotes.PendingBox:FireClient(player, { boxId = it.boxId, count = #pending })
 	end
+	Hooks.fire("delivered", player, it.kind, it.foodId)
 	remove(it)
 	local rar = Config.Rarities[it.rarity]
 	if rar.order >= 4 then

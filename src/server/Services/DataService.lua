@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Vendor = ServerScriptService:WaitForChild("fwjelaa")
 local PlayerData = require(Vendor:WaitForChild("PlayerData"))
 local StudioMemoryStore = require(Vendor:WaitForChild("StudioMemoryStore"))
@@ -79,6 +80,18 @@ export type Profile = {
 	giantLosses: number,
 	giantDay: number,
 	giantRewardsToday: number,
+	-- Missão 08/11/2026 (noite). Todos aditivos: perfis antigos recebem o padrão no reconcile.
+	-- Coleção de gigantes: progresso POR espécie. profile.level/xp continuam sendo os do gigante
+	-- ATIVO (todo o código antigo segue funcionando); os outros ficam aqui.
+	giants: { [string]: { level: number, xp: number, inherited: boolean? } },
+	display: { string }, -- espécies expostas na base (no máximo GameRules.Roster.DisplaySlots)
+	displaySettledAt: number, -- os.time() até onde a renda da exposição já foi paga
+	records: { [string]: number }, -- recordes pessoais (GameRules.Records)
+	objDay: number,
+	objProgress: { [string]: number },
+	objClaimed: { [string]: boolean },
+	objBonusClaimed: boolean,
+	bossClaimed: { string }, -- ids de lutas do Dragão já pagas (anti-duplicação de pendentes)
 }
 
 local DataService = {}
@@ -126,6 +139,15 @@ local function defaultProfile(): Profile
 		giantLosses = 0,
 		giantDay = 0,
 		giantRewardsToday = 0,
+		giants = {},
+		display = {},
+		displaySettledAt = 0,
+		records = {},
+		objDay = 0,
+		objProgress = {},
+		objClaimed = {},
+		objBonusClaimed = false,
+		bossClaimed = {},
 	}
 end
 DataService.defaultProfile = defaultProfile
@@ -144,6 +166,34 @@ local function sanitize(player: Player, profile: Profile)
 	if profile.peakLevel < profile.level then
 		profile.peakLevel = profile.level
 	end
+	-- Migração da coleção (08/11/2026): antes o nível era um só para todas as espécies. Para
+	-- ninguém perder nada, cada espécie já possuída começa com o nível ATUAL do jogador.
+	-- Idempotente: só preenche espécies possuídas que ainda não têm registro.
+	for id, owned in profile.ownedSpecies do
+		if owned and Config.SpeciesById[id] and profile.giants[id] == nil then
+			profile.giants[id] = {
+				level = profile.level,
+				xp = if id == profile.species then profile.xp else 0,
+				inherited = true,
+			}
+		end
+	end
+	-- Exposição: só espécies possuídas, sem a ativa, sem repetição, até o limite.
+	local seen: { [string]: boolean } = {}
+	local clean = {}
+	for _, id in profile.display do
+		if
+			type(id) == "string"
+			and profile.ownedSpecies[id]
+			and id ~= profile.species
+			and not seen[id]
+			and #clean < GameRules.Roster.DisplaySlots
+		then
+			seen[id] = true
+			table.insert(clean, id)
+		end
+	end
+	profile.display = clean
 	-- Nunca apaga itens na carga (podem ter sido comprados com Robux). Só avisa.
 	if #profile.inventory > Config.MaxInventoryHard then
 		warn(`[DataService] inventário de {player.UserId} acima do teto: {#profile.inventory}`)

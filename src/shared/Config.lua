@@ -654,6 +654,15 @@ Config.FoodById = {} :: { [string]: FoodDef }
 for _, f in Config.Foods do
 	Config.FoodById[f.id] = f
 end
+-- Porção da Carne Gigante (evento de disputa, GameRules.Meat). Fica FORA de Config.Foods de
+-- propósito: caixas, drops e a tabela de chances (itens aleatórios pagos) não mudam.
+Config.FoodById.giantmeat = {
+	id = "giantmeat",
+	name = "Porção de Carne Gigante",
+	rarity = "Rare",
+	shape = "Block",
+	color = Color3.fromRGB(190, 70, 60),
+}
 
 export type LunchboxDef = { id: string, name: string, price: number, color: Color3, weights: { [string]: number } }
 

@@ -12,11 +12,15 @@ local FoodModels = require(script.Parent.Parent.FoodModels)
 local TutorialService = require(script.Parent.TutorialService)
 local Guard = require(script.Parent.Parent.Guard)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Hooks = require(script.Parent.Parent.Hooks)
 
 -- Maior índice de vaga possível (VIP tem mais vagas); o dono é conferido depois.
 local MAX_SLOT_INDEX = math.max(Config.PlotSlots, Config.PlotSlotsVIP)
 
 local PlotService = {}
+-- Renda da exposição de gigantes (RosterService preenche; aqui só para somar no tick e mostrar).
+PlotService.DisplayIncome = nil :: ((Player) -> number)?
 local foodModels: { [Player]: { [number]: Model } } = {}
 local globalCoinMultiplier = 1 -- alterado por EventService (Golden Hour)
 -- Fase 0.7: membro do grupo é consultado UMA vez na entrada (IsInGroup pode ceder/yield).
@@ -96,6 +100,11 @@ function PlotService.pushState(player: Player)
 		dropsWon = profile.dropsWon,
 		knockouts = profile.knockouts,
 		speciesTokens = profile.speciesTokens or 0,
+		-- coleção de gigantes (08/11/2026): nível de cada espécie e quais estão expostas
+		giants = profile.giants,
+		display = profile.display,
+		displayCps = if PlotService.DisplayIncome then PlotService.DisplayIncome(player) else 0,
+		streak = (PlotService.streakOf(player)),
 	})
 end
 
@@ -108,7 +117,8 @@ function PlotService.coinsPerSecond(player: Player): number
 	for _, food in profile.plot do
 		local def = Config.FoodById[food.id]
 		if def then
-			total += Config.Rarities[def.rarity].cps
+			local trait = GameRules.traitOf(def.id)
+			total += Config.Rarities[def.rarity].cps * (if trait then trait.incomeMult else 1)
 		end
 	end
 	local sp = GiantService.species(profile)
@@ -316,6 +326,56 @@ function PlotService.nearGiant(player: Player): boolean
 	return d - math.max(ext.X, ext.Z) / 2 <= PlotService.FEED_REACH + Guard.MARGIN
 end
 
+-- Alimentação com as novidades de 08/11/2026 (tudo decidido AQUI, no servidor):
+--   * 4.1 sequência: cada alimentação até StreakWindow s depois da anterior sobe a sequência
+--     (+10% de XP por passo, teto x1,5); demorou demais, recomeça do 1;
+--   * 4.3 traço da comida (Crescimento / Renda / Picante / Doce, GameRules.Traits);
+--   * 4.4 crítica: chance pequena (x3 com Picante) de x2,5 de crescimento.
+local streaks: { [Player]: { n: number, at: number } } = {}
+local function doFeed(player: Player, profile: DataService.Profile, def: Config.FoodDef, from: Vector3?)
+	local F = GameRules.Feed
+	local now = os.clock()
+	local trait = GameRules.traitOf(def.id)
+	local st = streaks[player]
+	if not st or now - st.at > F.StreakWindow then
+		st = { n = 0, at = now }
+		streaks[player] = st :: any
+	end
+	assert(st, "sequência")
+	st.n += 1 + (if trait then trait.streakBonus else 0)
+	st.at = now
+	local streakMult = GameRules.streakMult(st.n)
+	local critChance = F.CritChance * (if trait then trait.critMult else 1)
+	local crit = math.random() < critChance
+	local xp = Config.Rarities[def.rarity].xp * streakMult * (if trait then trait.xpMult else 1)
+	if crit then
+		xp *= F.CritMult
+	end
+	xp = math.floor(xp)
+	if trait and trait.fillHunger then
+		profile.hunger = 100
+	end
+	profile.totalFeeds += 1
+	local levels = GiantService.addXp(player, xp, def.id, from, {
+		crit = crit,
+		streak = st.n,
+		streakMult = streakMult,
+		trait = if trait then trait.id else nil,
+	})
+	Hooks.fire("fed", player, { xp = xp, crit = crit, streak = st.n, levels = levels, foodId = def.id })
+	TutorialService.signal(player, "Fed")
+	TutorialService.refresh(player) -- passo "grow" (nível 3) completa sozinho
+end
+
+-- Para a HUD mostrar a sequência ativa (o cliente só exibe).
+function PlotService.streakOf(player: Player): (number, number)
+	local st = streaks[player]
+	if not st or os.clock() - st.at > GameRules.Feed.StreakWindow then
+		return 0, 0
+	end
+	return st.n, GameRules.Feed.StreakWindow - (os.clock() - st.at)
+end
+
 function PlotService.feed(player: Player, slot: number)
 	local profile = DataService.get(player)
 	if not profile then
@@ -332,10 +392,7 @@ function PlotService.feed(player: Player, slot: number)
 	local fromModel = foodModels[player] and foodModels[player][slot]
 	local from = if fromModel then fromModel:GetPivot().Position else nil
 	profile.plot[tostring(slot)] = nil
-	profile.totalFeeds += 1
-	GiantService.addXp(player, Config.Rarities[def.rarity].xp, def.id, from)
-	TutorialService.signal(player, "Fed")
-	TutorialService.refresh(player) -- passo "grow" (nível 3) completa sozinho
+	doFeed(player, profile, def, from)
 	PlotService.rebuildPlot(player)
 	PlotService.pushState(player)
 end
@@ -354,12 +411,9 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 		return
 	end
 	table.remove(profile.inventory, invIndex)
-	profile.totalFeeds += 1
 	local char = player.Character
 	local from = if char then char:GetPivot().Position + Vector3.new(0, 2, 0) else nil
-	GiantService.addXp(player, Config.Rarities[def.rarity].xp, def.id, from)
-	TutorialService.signal(player, "Fed")
-	TutorialService.refresh(player)
+	doFeed(player, profile, def, from)
 	PlotService.pushState(player)
 end
 
@@ -472,6 +526,7 @@ function PlotService.init()
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		streaks[player] = nil
 		groupMember[player] = nil
 		autoFeedTick[player] = nil
 		fullTick[player] = nil

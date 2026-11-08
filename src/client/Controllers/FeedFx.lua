@@ -12,11 +12,14 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local FoodVisuals = require(game.ReplicatedStorage.Shared.FoodVisuals)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Util = require(game.ReplicatedStorage.Shared.Util)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Locale = require(game.ReplicatedStorage.Shared.Locale)
+local UI = require(script.Parent.Parent.UI)
 
 local FeedFx = {}
 
 local MAX_DIST = 250
-local FLIGHT = 0.6
+local FLIGHT = GameRules.Feed.FlightSeconds -- o mesmo tempo da mordida em GiantAnim
 local FOOD_SIZE = 3.2
 
 local function giantOf(userId: number): Model?
@@ -68,7 +71,31 @@ local function cloneFood(foodId: string): Model?
 	return m
 end
 
-local function burst(at: Vector3, color: Color3, xp: number)
+local player = game:GetService("Players").LocalPlayer
+
+-- Tremida curta da câmera (só para o dono, só na crítica). Respeita "movimento reduzido".
+local function shake(strength: number, duration: number)
+	local GuiService = game:GetService("GuiService")
+	if GuiService.ReducedMotionEnabled then
+		return
+	end
+	local t0 = os.clock()
+	local name = "FeedCritShake"
+	RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 1, function()
+		local a = os.clock() - t0
+		local cam = Workspace.CurrentCamera
+		if a >= duration or not cam then
+			RunService:UnbindFromRenderStep(name)
+			return
+		end
+		local k = strength * (1 - a / duration)
+		cam.CFrame = cam.CFrame
+			* CFrame.Angles(math.rad((math.random() - 0.5) * k), math.rad((math.random() - 0.5) * k), 0)
+	end)
+end
+
+local function burst(at: Vector3, color: Color3, xp: number, e: { [string]: any })
+	local crit = e.crit == true
 	local anchor = Instance.new("Part")
 	anchor.Anchored = true
 	anchor.CanCollide = false
@@ -89,21 +116,61 @@ local function burst(at: Vector3, color: Color3, xp: number)
 	pe.Size = NumberSequence.new(0.8, 0)
 	pe.Parent = anchor
 	pe:Emit(22)
+	if crit then
+		-- Crítica: estrelas douradas grandes + anel de faíscas (um Emit só, sem Rate contínuo).
+		local star = Instance.new("ParticleEmitter")
+		star.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		star.Color = ColorSequence.new(Color3.fromRGB(255, 230, 90), Color3.fromRGB(255, 150, 40))
+		star.LightEmission = 1
+		star.LightInfluence = 0
+		star.Rate = 0
+		star.Lifetime = NumberRange.new(0.7, 1.2)
+		star.Speed = NumberRange.new(14, 26)
+		star.SpreadAngle = Vector2.new(180, 180)
+		star.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 2.4),
+			NumberSequenceKeypoint.new(1, 0),
+		})
+		star.Rotation = NumberRange.new(0, 360)
+		star.RotSpeed = NumberRange.new(-180, 180)
+		star.Parent = anchor
+		star:Emit(36)
+	end
+	local trait = if type(e.trait) == "string" then GameRules.Traits[e.trait] else nil
+	local text = "+" .. Util.formatNumber(xp) .. " XP"
+	if crit then
+		text = Locale.t("CRÍTICO!") .. "  " .. text
+	end
+	local streak = if type(e.streak) == "number" then e.streak else 0
+	if streak >= 2 and type(e.streakMult) == "number" and e.streakMult > 1 then
+		text ..= "\n" .. string.format("%s %d  x%.1f", Locale.t("SEQUÊNCIA"), streak, e.streakMult)
+	end
 	local label = Util.makeBillboard(
 		anchor,
-		"+" .. Util.formatNumber(xp) .. " XP",
-		UDim2.fromOffset(160, 44),
+		text,
+		if crit then UDim2.fromOffset(300, 110) else UDim2.fromOffset(200, 76),
 		Vector3.new(0, 2, 0),
-		color
+		if crit then Color3.fromRGB(255, 220, 70) elseif trait then trait.color else color
 	)
 	local board = label.Parent :: BillboardGui
 	board.AlwaysOnTop = true
-	TweenService:Create(board, TweenInfo.new(1.1, Enum.EasingStyle.Quad), { StudsOffset = Vector3.new(0, 7, 0) }):Play()
-	TweenService:Create(label, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+	TweenService:Create(board, TweenInfo.new(1.3, Enum.EasingStyle.Quad), { StudsOffset = Vector3.new(0, 8, 0) }):Play()
+	TweenService:Create(label, TweenInfo.new(1.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 	}):Play()
-	task.delay(1.3, function()
+	if e.userId == player.UserId then
+		if crit then
+			shake(1.6, 0.45)
+			UI.sfx("Heavy", 0.8)
+			task.delay(0.08, function()
+				UI.sfx("Bell", 0.7)
+			end)
+		else
+			UI.sfx("Coin", 0.35)
+		end
+	end
+	task.delay(1.5, function()
 		anchor:Destroy()
 	end)
 end
@@ -123,7 +190,7 @@ local function fly(e: { [string]: any })
 	local food = cloneFood(e.foodId)
 	local xp = if type(e.xp) == "number" then e.xp else 0
 	if not food then
-		burst(mouthOf(giant), color, xp)
+		task.delay(FLIGHT, burst, mouthOf(giant), color, xp, e)
 		return
 	end
 	local model = food :: Model
@@ -144,7 +211,7 @@ local function fly(e: { [string]: any })
 		if a >= 1 then
 			conn:Disconnect()
 			model:Destroy()
-			burst(to, color, xp)
+			burst(to, color, xp, e)
 		end
 	end)
 end

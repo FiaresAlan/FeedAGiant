@@ -15,6 +15,8 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Hooks = require(script.Parent.Parent.Hooks)
 local LunchboxOdds = require(game.ReplicatedStorage.Shared.LunchboxOdds)
 local Secrets = require(script.Parent.Parent.Secrets)
 local DataService = require(script.Parent.DataService)
@@ -227,10 +229,22 @@ function ShopService.tokenTargets(profile: DataService.Profile): { string }
 end
 
 local function unlockSpecies(player: Player, profile: DataService.Profile, sp: Config.SpeciesDef)
-	profile.ownedSpecies[sp.id] = true
+	-- Coleção (08/11/2026): a espécie nova herda 30% do crescimento do gigante ativo; o antigo
+	-- continua salvo com o próprio nível (troca grátis a qualquer momento).
+	local fromName = GiantService.species(profile).name
+	local inherited = GiantService.grantSpecies(player, sp.id)
 	DataService.markDirty(player)
 	GiantService.setSpecies(player, sp.id)
 	PlotService.pushState(player)
+	Remotes.Notify:FireClient(
+		player,
+		Locale.msg(
+			"transfer_ok",
+			{ s = sp.name, n = inherited, f = fromName, p = math.floor(GameRules.Roster.TransferFraction * 100) },
+			Color3.fromRGB(120, 255, 160)
+		)
+	)
+	Hooks.fire("speciesUnlocked", player, sp.id)
 	Remotes.Notify:FireAllClients(
 		Locale.msg("species_unlocked_broadcast", { p = player.DisplayName, s = sp.name, r = sp.rarityTag }, sp.color)
 	)

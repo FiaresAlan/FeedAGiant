@@ -7,6 +7,8 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Hooks = require(script.Parent.Parent.Hooks)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
@@ -437,15 +439,24 @@ local function refreshVisual(player: Player, pulse: boolean)
 		return
 	end
 	local scale = GiantService.scaleForLevel(profile.level)
+	-- BUG achado na auditoria de 08/11/2026 (noite): antes, TODA alimentação fazia ScaleTo(1) e
+	-- crescia de novo do tamanho 1 até o tamanho certo (o gigante "piscava" pequeno a cada comida e o
+	-- servidor replicava a escala do modelo inteiro por 0,6 s). Agora o pulso só acontece quando a
+	-- escala muda de verdade, partindo da escala anterior.
+	local prevScale = model:GetScale()
 	model:ScaleTo(1)
 	local stage = Config.stageForLevel(profile.level)
 	applyStage(model, stage, profile)
 	ensureCreatureMesh(player, model, profile.species, stage.minLevel == 1)
-	if pulse then
+	if pulse and math.abs(prevScale - scale) > 1e-3 then
+		model:ScaleTo(prevScale)
 		Util.tweenScale(model, scale, 0.6)
 	else
 		model:ScaleTo(scale)
 	end
+	-- Para a animação no cliente (GiantAnim): personalidade da espécie e humor (birra de fome).
+	model:SetAttribute("Species", profile.species)
+	model:SetAttribute("Mood", GiantService.mood(profile))
 	local sp = GiantService.species(profile)
 	local torso = model.PrimaryPart
 	if torso then
@@ -499,10 +510,19 @@ end
 
 -- foodId/from (Fase 3, juice): qual comida foi dada e de onde ela sai, para o cliente animar a
 -- comida voando até a boca do gigante. Opcionais (eventos sem comida continuam funcionando).
-function GiantService.addXp(player: Player, amount: number, foodId: string?, from: Vector3?)
+-- extra (missão 08/11/2026): {crit, streak, streakMult, trait} da alimentação, só para o cliente
+-- mostrar e animar. O valor de `amount` já vem com todos os bônus calculados no servidor.
+-- Devolve quantos níveis subiu (0 se nenhum).
+function GiantService.addXp(
+	player: Player,
+	amount: number,
+	foodId: string?,
+	from: Vector3?,
+	extra: { [string]: any }?
+): number
 	local profile = DataService.get(player)
 	if not profile then
-		return
+		return 0
 	end
 	if profile.passes.VIP then
 		amount = math.floor(amount * 1.5)
@@ -512,9 +532,11 @@ function GiantService.addXp(player: Player, amount: number, foodId: string?, fro
 	profile.hunger = math.min(100, profile.hunger + Config.Giant.HungerPerFeed)
 	profile.lastFed = os.time()
 	local leveled = false
+	local levelsUp = 0
 	while profile.level < Config.Giant.MaxLevel and profile.xp >= Config.xpNeeded(profile.level) do
 		profile.xp -= Config.xpNeeded(profile.level)
 		profile.level += 1
+		levelsUp += 1
 		leveled = true
 	end
 	profile.peakLevel = math.max(profile.peakLevel, profile.level)
@@ -525,16 +547,23 @@ function GiantService.addXp(player: Player, amount: number, foodId: string?, fro
 		fx:Emit(20)
 	end
 	refreshVisual(player, true)
+	local ex: { [string]: any } = extra or {}
 	Remotes.GiantFed:FireAllClients({
 		userId = player.UserId,
 		xp = amount,
 		leveled = leveled,
 		foodId = foodId,
 		from = from,
+		crit = ex.crit == true,
+		streak = ex.streak,
+		streakMult = ex.streakMult,
+		trait = ex.trait,
 	})
 	if leveled then
 		Remotes.Notify:FireClient(player, Locale.msg("levelup", { n = profile.level }, Color3.fromRGB(255, 220, 80)))
+		Hooks.fire("leveled", player, levelsUp, profile.level)
 	end
+	return levelsUp
 end
 
 -- Decay por ausência (chamado ao entrar). Retorna níveis perdidos.
@@ -567,15 +596,77 @@ function GiantService.applyDecay(player: Player, profile: DataService.Profile): 
 	return 0
 end
 
+-- XP total acumulado (todos os níveis + XP atual): base da transferência de crescimento.
+function GiantService.totalXp(level: number, xp: number): number
+	local total = xp
+	for l = 1, level - 1 do
+		total += Config.xpNeeded(l)
+	end
+	return total
+end
+
+function GiantService.fromTotalXp(total: number): (number, number)
+	local level = 1
+	while level < Config.Giant.MaxLevel and total >= Config.xpNeeded(level) do
+		total -= Config.xpNeeded(level)
+		level += 1
+	end
+	return level, math.floor(total)
+end
+
+-- Sistema 1 (coleção): ao ganhar uma espécie NOVA, ela nasce com GameRules.Roster.TransferFraction
+-- (30%) do XP total do gigante ATIVO naquele momento. Uma vez só por espécie (registro criado aqui;
+-- a mesma espécie nunca recebe de novo). O gigante antigo não perde nada. Devolve o nível herdado.
+function GiantService.grantSpecies(player: Player, speciesId: string): number
+	local profile = DataService.get(player)
+	if not profile or not Config.SpeciesById[speciesId] then
+		return 0
+	end
+	profile.ownedSpecies[speciesId] = true
+	local rec = profile.giants[speciesId]
+	if rec then
+		return rec.level
+	end
+	local total = GiantService.totalXp(profile.level, profile.xp)
+	local level, xp = GiantService.fromTotalXp(math.floor(total * GameRules.Roster.TransferFraction))
+	profile.giants[speciesId] = { level = level, xp = xp, inherited = true }
+	DataService.markDirty(player)
+	return level
+end
+
 function GiantService.setSpecies(player: Player, speciesId: string): boolean
 	local profile = DataService.get(player)
 	if not profile or not Config.SpeciesById[speciesId] or not profile.ownedSpecies[speciesId] then
 		return false
 	end
-	profile.species = speciesId
+	if profile.species ~= speciesId then
+		-- guarda o progresso do gigante que sai e carrega o do que entra
+		profile.giants[profile.species] = { level = profile.level, xp = profile.xp, inherited = true }
+		GiantService.grantSpecies(player, speciesId)
+		local rec = profile.giants[speciesId]
+		profile.species = speciesId
+		profile.level = rec.level
+		profile.xp = rec.xp
+		-- o gigante ativo não pode estar exposto ao mesmo tempo
+		for i = #profile.display, 1, -1 do
+			if profile.display[i] == speciesId then
+				table.remove(profile.display, i)
+			end
+		end
+		Hooks.fire("speciesChanged", player)
+	end
 	DataService.markDirty(player)
 	GiantService.spawnFor(player)
 	return true
+end
+
+-- Progresso guardado de uma espécie (a ativa usa o perfil).
+function GiantService.levelOf(profile: DataService.Profile, speciesId: string): number
+	if speciesId == profile.species then
+		return profile.level
+	end
+	local rec = profile.giants[speciesId]
+	return if rec then rec.level else 0
 end
 
 function GiantService.onPassesChanged(player: Player)
@@ -583,7 +674,7 @@ function GiantService.onPassesChanged(player: Player)
 	if profile then
 		for _, sp in Config.Species do
 			if sp.robux and sp.passKey and profile.passes[sp.passKey] then
-				profile.ownedSpecies[sp.id] = true
+				GiantService.grantSpecies(player, sp.id)
 			end
 		end
 	end

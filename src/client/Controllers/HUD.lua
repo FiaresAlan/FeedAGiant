@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
@@ -543,6 +544,67 @@ local function buildFeedButton(gui: ScreenGui)
 			end
 			task.wait(0.25)
 		end
+	end)
+
+	-- 4.1 Sequência de alimentação: selo acima do botão com o multiplicador e uma barra que
+	-- esvazia até a sequência acabar (o servidor decide; aqui só mostra o que veio no GiantFed).
+	local chip = UI.frame(holder, {
+		Name = "StreakChip",
+		Size = UDim2.fromOffset(300, 40),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -8),
+		BackgroundColor3 = UI.Colors.Panel,
+		Visible = false,
+	})
+	UI.corner(chip, 12)
+	local chipStroke = UI.stroke(chip, UI.Colors.Accent, 3)
+	local chipText = UI.label(chip, "", {
+		Size = UDim2.new(1, -16, 0, 28),
+		Position = UDim2.fromOffset(8, 2),
+		TextScaled = false,
+		TextSize = 22,
+		ZIndex = chip.ZIndex + 1,
+	})
+	local chipBar = UI.frame(chip, {
+		Size = UDim2.new(1, -16, 0, 5),
+		Position = UDim2.new(0, 8, 1, -9),
+		BackgroundColor3 = UI.Colors.Accent,
+		ZIndex = chip.ZIndex + 1,
+	})
+	UI.corner(chipBar, 3)
+	local streakSerial = 0
+	Remotes.GiantFed.OnClientEvent:Connect(function(e)
+		if type(e) ~= "table" or e.userId ~= player.UserId or type(e.streak) ~= "number" then
+			return
+		end
+		streakSerial += 1
+		local serial = streakSerial
+		local n = e.streak
+		local mult = if type(e.streakMult) == "number" then e.streakMult else 1
+		local maxed = n - 1 >= GameRules.Feed.StreakMaxSteps
+		chipText.Text = string.format(
+			"%s %d  ·  x%.1f%s",
+			Locale.t("SEQUÊNCIA"),
+			n,
+			mult,
+			if maxed then "  " .. Locale.t("MÁX!") else ""
+		)
+		chipStroke.Color = if maxed then Color3.fromRGB(255, 120, 60) else UI.Colors.Accent
+		chip.Visible = n >= 2
+		if n >= 2 then
+			UI.pop(chip)
+		end
+		chipBar.Size = UDim2.new(1, -16, 0, 5)
+		local window = GameRules.Feed.StreakWindow
+		local tw = TweenService:Create(chipBar, TweenInfo.new(window, Enum.EasingStyle.Linear), {
+			Size = UDim2.new(0, 0, 0, 5),
+		})
+		tw:Play()
+		task.delay(window, function()
+			if streakSerial == serial then
+				chip.Visible = false
+			end
+		end)
 	end)
 
 	-- Pulso de atenção só quando há comida e o gigante não está feliz (via UIScale, não Size)

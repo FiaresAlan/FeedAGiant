@@ -44,7 +44,17 @@ local EVENTS = {
 	"RequestShieldRenew", -- client -> server: renovar escudo com moedas (no pedestal da própria base)
 	"GiantBattle", -- server -> client: {kind = Start|Tick|End, ...} (arena dos gigantes)
 	"RequestGiantBattle", -- client -> server: speciesId (leva um gigante seu ao coliseu)
-	"RequestGiantSpecial", -- client -> server: GOLPE FORTE (recarga no servidor)
+	"RequestGiantSpecial", -- (antigo GOLPE FORTE; sem uso desde a batalha por turnos)
+	-- Missão de 08/11/2026 (noite)
+	"RequestGiantMove", -- client -> server: índice do golpe (1..3) na batalha por turnos
+	"GiantReact", -- server -> all: {userId, kind = cheer|evolve} (vitórias, recordes)
+	"DiaryState", -- server -> client: {daily, objectives, records, offline}
+	"RequestDiary", -- client -> server: abrir o Diário (pede o estado)
+	"RequestClaimObjective", -- client -> server: índice da tarefa (1..3) ou 0 = bônus do dia
+	"RequestDisplay", -- client -> server: speciesId, on:boolean (expor gigante na base)
+	"MeatState", -- server -> all: {kind = Warn|Land|Update|End, pos, portions, endsAt}
+	"RequestMeatCut", -- client -> server: cortar uma porção da Carne Gigante
+	"BossState", -- server -> all: {kind = Phase|Rewards, ...} (ilha do Dragão)
 }
 
 local FUNCTIONS = {

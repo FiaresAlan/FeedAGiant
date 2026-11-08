@@ -20,6 +20,10 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Combat = { burst = 12, perSecond = 8 }, -- socos/bloqueio; o cooldown real fica no CombatService
 	Box = { burst = 2, perSecond = 0.5 }, -- abrir caixa guardada (a animação dura ~2 s)
 	Shield = { burst = 2, perSecond = 0.5 }, -- renovar escudo no pedestal da base
+	Diary = { burst = 4, perSecond = 1 }, -- abrir o Diário / resgatar objetivo
+	Display = { burst = 4, perSecond = 1 }, -- expor/recolher gigante na base
+	Move = { burst = 3, perSecond = 2 }, -- golpe da batalha por turnos (1 por turno)
+	Meat = { burst = 4, perSecond = 2 }, -- cortar porção da Carne Gigante
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.
