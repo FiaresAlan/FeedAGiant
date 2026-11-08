@@ -20,14 +20,39 @@ function Tutorial.init()
 		local player = Players.LocalPlayer
 		local ui = module.Client.DefaultUi()
 
-		-- Botão Pular (44 px de toque, confirmação em 2 toques)
 		local gui = player:WaitForChild("PlayerGui"):WaitForChild("FwjelaaTutorialUI", 10)
+		-- Objetivo e dica logo ABAIXO do painel do topo da HUD (teste de 08/11: ficavam por cima dele).
+		-- O painel ocupa ~160 px no desenho 1080p, na escala do aparelho.
+		local function placeBanners()
+			if not gui then
+				return
+			end
+			local y = 8 + 132 * UI.deviceScale()
+			local objective = gui:FindFirstChild("Objective")
+			local hint = gui:FindFirstChild("Hint")
+			if objective and objective:IsA("GuiObject") then
+				objective.Position = UDim2.new(0.5, 0, 0, y)
+				objective.ZIndex = 5
+			end
+			if hint and hint:IsA("GuiObject") then
+				hint.Position = UDim2.new(0.5, 0, 0, y + 46)
+				hint.ZIndex = 5
+			end
+		end
+		placeBanners()
+		local cam = workspace.CurrentCamera
+		if cam then
+			cam:GetPropertyChangedSignal("ViewportSize"):Connect(placeBanners)
+		end
+
+		-- Botão Pular (46 px de toque, confirmação em 2 toques), no canto inferior esquerdo:
+		-- longe da HUD, do painel de disputa (canto superior direito) e do combate (inferior direito).
 		local skip: TextButton? = nil
 		if gui then
 			local b = UI.button(gui, "Pular tutorial", Color3.fromRGB(110, 110, 130), {
 				Name = "TutorialSkip",
-				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -12, 0, 8),
+				AnchorPoint = Vector2.new(0, 1),
+				Position = UDim2.new(0, 12, 1, -12),
 				Size = UDim2.fromOffset(170, 46),
 				TextScaled = false,
 				TextSize = 18,
