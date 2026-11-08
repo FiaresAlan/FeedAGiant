@@ -483,7 +483,11 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	local dim = Instance.new("Frame")
 	dim.Name = "Dim_" .. titleText
 	dim.BackgroundColor3 = Color3.new(0, 0, 0)
-	dim.BackgroundTransparency = 0.45
+	-- P0 da especificação v3 (08/11/2026): a janela não escurece mais o mundo. Antes era 0,45 de
+	-- preto na tela inteira; agora o contraste vem só da sombra/brilho atrás do painel (UI.glow).
+	-- O quadro continua existindo (é o pai da janela e acompanha o Visible), mas é invisível.
+	dim.BackgroundTransparency = 1
+	dim.Active = false
 	dim.BorderSizePixel = 0
 	dim.Size = UDim2.fromScale(1, 1)
 	dim.Visible = false
@@ -499,6 +503,8 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 		-- `if not win.Visible then UI.pop(win)` nunca rodava e NENHUM botão da HUD abria nada.
 		Visible = false,
 	})
+	-- Sombra suave só atrás do painel (substitui o escurecimento da tela inteira) + brilho laranja.
+	UI.glow(win, Color3.new(0, 0, 0), 34, 0.55)
 	UI.glow(win, UI.Colors.Orange, 22, 0.82)
 	local header = Instance.new("Frame")
 	header.BackgroundColor3 = UI.Colors.Accent

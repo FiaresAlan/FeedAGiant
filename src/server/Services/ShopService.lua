@@ -25,6 +25,9 @@ local GiantService = require(script.Parent.GiantService)
 local StealService = require(script.Parent.StealService)
 local TutorialService = require(script.Parent.TutorialService)
 local Guard = require(script.Parent.Parent.Guard)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local Analytics = require(script.Parent.Parent.Analytics)
+local GameLogic = require(script.Parent.Parent.GameLogic)
 
 local ShopService = {}
 local luckBonus = 0 -- alterado por EventService (Lucky Boxes)
@@ -78,9 +81,26 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		profile.coins -= box.price
 	end
 	profile.totalBoxes += 1
-	local food = LunchboxOdds.roll(boxId, if opts.paid then 0 else luckBonus, opts.minRarity, rng)
+	-- Pity v3 (GameRules.Pity): só caixas compradas (moedas) ou pagas (Robux) contam. A raridade
+	-- mínima vem da MESMA função que a tela de chances usa (LunchboxOdds.pityMin).
+	local counts = Features.on("LunchboxPity") and (not opts.free or opts.paid == true)
+	local minRarity = opts.minRarity
+	if counts then
+		minRarity = LunchboxOdds.pityMin(profile.pityCount, minRarity, GameRules.Pity.Hard, GameRules.Pity.MinRarity)
+	end
+	local food = LunchboxOdds.roll(boxId, if opts.paid then 0 else luckBonus, minRarity, rng)
 	if not PlotService.giveFood(player, food.id, true, opts.paid == true) then
 		return false -- teto duro da mochila (só prêmios grátis chegam aqui)
+	end
+	if counts then
+		local before = profile.pityCount
+		profile.pityCount = LunchboxOdds.pityAfter(before, food.rarity, GameRules.Pity.MinRarity)
+		Analytics.event(
+			player,
+			"gacha_roll",
+			before,
+			{ boxId, food.rarity, if minRarity ~= opts.minRarity then "pity" else "base" }
+		)
 	end
 	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
 	Remotes.HatchResult:FireClient(
@@ -197,8 +217,17 @@ function ShopService.claimDaily(player: Player)
 		)
 		return
 	end
-	if elapsed > 48 * 3600 then
-		profile.dailyStreak = 0
+	-- v3 (Features.StreakBackup): uma proteção salva a sequência uma vez, sem perguntar.
+	-- Regra pura em GameLogic.dailyStreakBase (testada em tests/V3.spec.luau).
+	local before = profile.dailyStreak
+	local base, backupsLeft, preserved =
+		GameLogic.dailyStreakBase(before, elapsed, profile.streakBackups, Features.on("StreakBackup"))
+	profile.streakBackups = backupsLeft
+	profile.dailyStreak = base
+	if preserved then
+		Analytics.event(player, "streak_preserved_by_backup", before)
+	elseif before > 0 and base == 0 then
+		Analytics.event(player, "streak_lost", before)
 	end
 	profile.dailyStreak = math.min(profile.dailyStreak + 1, #Config.DailyRewards)
 	profile.lastDaily = now
@@ -208,6 +237,20 @@ function ShopService.claimDaily(player: Player)
 		-- Prêmio do 7º dia: entregue mesmo com a mochila cheia (só acontece uma vez por ciclo).
 		ShopService.openBox(player, "epic", { free = true, force = true })
 		profile.dailyStreak = 0
+		if Features.on("StreakBackup") and profile.streakBackups < GameRules.StreakBackup.Max then
+			profile.streakBackups =
+				math.min(GameRules.StreakBackup.Max, profile.streakBackups + GameRules.StreakBackup.PerCycle)
+			Remotes.Notify:FireClient(player, {
+				text = "Sequência completa! +1 PROTEÇÃO: se faltar um dia, sua sequência continua.",
+				color = Color3.fromRGB(120, 220, 255),
+			})
+		end
+	end
+	if preserved then
+		Remotes.Notify:FireClient(player, {
+			text = string.format("Sequência protegida! (proteções restantes: %d)", profile.streakBackups),
+			color = Color3.fromRGB(120, 220, 255),
+		})
 	end
 	DataService.markDirty(player)
 	PlotService.pushState(player)

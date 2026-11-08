@@ -221,4 +221,49 @@ function GameLogic.meatRefusal(portionsLeft: number, cutsByPlayer: number, carry
 	return nil
 end
 
+---------------------------------------------------------------------------
+-- v3 (Features): limites éticos do roubo e proteção da sequência diária
+---------------------------------------------------------------------------
+-- Pode tentar roubar? Devolve (ok, motivo). `day` = dia UTC (os.time() // 86400).
+-- Motivos: "newbie" (vítima com nível baixo) ou "daily" (ladrão já fez o máximo hoje).
+function GameLogic.stealAllowed(
+	thiefStealDay: number,
+	thiefStealsToday: number,
+	victimLevel: number,
+	day: number
+): (boolean, string?)
+	local L = GameRules.StealLimits
+	if victimLevel < L.MinVictimLevel then
+		return false, "newbie"
+	end
+	local today = if thiefStealDay == day then thiefStealsToday else 0
+	if today >= L.MaxPerDay then
+		return false, "daily"
+	end
+	return true, nil
+end
+
+-- Conta um roubo concluído. Devolve (novo stealDay, novo stealsToday).
+function GameLogic.countSteal(thiefStealDay: number, thiefStealsToday: number, day: number): (number, number)
+	local today = if thiefStealDay == day then thiefStealsToday else 0
+	return day, today + 1
+end
+
+-- Sequência diária ao resgatar com `elapsed` segundos desde o último resgate.
+-- Devolve (sequência antes de somar o dia de hoje, proteções restantes, usou proteção?).
+function GameLogic.dailyStreakBase(
+	streak: number,
+	elapsed: number,
+	backups: number,
+	backupsOn: boolean
+): (number, number, boolean)
+	if elapsed <= 48 * 3600 or streak <= 0 then
+		return streak, backups, false
+	end
+	if backupsOn and backups > 0 then
+		return streak, backups - 1, true
+	end
+	return 0, backups, false
+end
+
 return GameLogic

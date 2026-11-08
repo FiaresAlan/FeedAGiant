@@ -92,6 +92,13 @@ export type Profile = {
 	objClaimed: { [string]: boolean },
 	objBonusClaimed: boolean,
 	bossClaimed: { string }, -- ids de lutas do Dragão já pagas (anti-duplicação de pendentes)
+	-- Especificação v3 (08/11/2026), atrás de Features. Aditivos: perfis antigos ganham o padrão.
+	pityCount: number, -- caixas pagas seguidas sem Épica ou melhor (GameRules.Pity)
+	streakBackups: number, -- proteções da sequência diária (GameRules.StreakBackup)
+	stealDay: number, -- dia UTC do contador de roubos
+	stealsToday: number, -- roubos bem-sucedidos nesse dia (GameRules.StealLimits)
+	onboardingAt: number, -- os.time() em que o primeiro acesso v3 terminou (0 = ainda não)
+	welcomeGiven: boolean, -- presente de boas-vindas já entregue (fica guardado até abrir)
 }
 
 local DataService = {}
@@ -148,6 +155,12 @@ local function defaultProfile(): Profile
 		objClaimed = {},
 		objBonusClaimed = false,
 		bossClaimed = {},
+		pityCount = 0,
+		streakBackups = 0,
+		stealDay = 0,
+		stealsToday = 0,
+		onboardingAt = 0,
+		welcomeGiven = false,
 	}
 end
 DataService.defaultProfile = defaultProfile
@@ -200,6 +213,9 @@ local function sanitize(player: Player, profile: Profile)
 		profile.objProgress[k] = num(v, 0, 1e6, 0)
 	end
 	profile.displaySettledAt = num(profile.displaySettledAt, 0, os.time(), 0)
+	profile.pityCount = num(profile.pityCount, 0, GameRules.Pity.Hard, 0)
+	profile.streakBackups = num(profile.streakBackups, 0, GameRules.StreakBackup.Max, 0)
+	profile.stealsToday = num(profile.stealsToday, 0, 1e6, 0)
 	-- Exposição: só espécies possuídas, sem a ativa, sem repetição, até o limite.
 	local seen: { [string]: boolean } = {}
 	local clean = {}

@@ -69,7 +69,12 @@ local function render(st: { [string]: any })
 			nextDay,
 			#Config.DailyRewards,
 			Util.formatNumber(Config.DailyRewards[nextDay])
-		),
+		)
+			.. (
+				if type(d.backups) == "number"
+					then string.format("  ·  %s %d", Locale.t("Proteções"), d.backups)
+					else ""
+			),
 		{
 			Size = UDim2.new(1, -200, 1, -10),
 			Position = UDim2.fromOffset(12, 5),

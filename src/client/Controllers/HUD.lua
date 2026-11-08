@@ -132,6 +132,27 @@ end
 HUD.goalCard = nil :: Frame?
 HUD.goalObjective = nil :: TextLabel?
 HUD.goalHint = nil :: TextLabel?
+
+-- v3 (ObjectiveHint): uma dica do servidor ocupa a linha de META por alguns segundos.
+local stageGoalText = ""
+local goalOverride: { text: string, color: Color3 }? = nil
+local function paintGoal()
+	if not goalLabel then
+		return
+	end
+	local o = goalOverride
+	if o then
+		goalLabel.Text = o.text
+		goalLabel.TextColor3 = o.color
+	else
+		goalLabel.Text = stageGoalText
+		goalLabel.TextColor3 = UI.Colors.Accent
+	end
+end
+function HUD.setGoalOverride(text: string?, color: Color3?)
+	goalOverride = if text and text ~= "" then { text = text, color = color or UI.Colors.Accent } else nil
+	paintGoal()
+end
 HUD.OnOpenRobux = nil :: (() -> ())?
 
 local function card(parent: Instance, name: string, w: number, h: number): Frame
@@ -879,14 +900,15 @@ local function refresh(s: State.PlayerState)
 		end
 	end
 	if nextStage then
-		goalLabel.Text = Locale.fmt("goal_stage", nil, {
+		stageGoalText = Locale.fmt("goal_stage", nil, {
 			s = Locale.upper(Locale.t(nextStage.name)),
 			n = nextStage.minLevel,
 			k = nextStage.minLevel - s.level,
 		})
 	else
-		goalLabel.Text = Locale.fmt("goal_rebirth", nil, { n = Config.Rebirth.MinLevel })
+		stageGoalText = Locale.fmt("goal_rebirth", nil, { n = Config.Rebirth.MinLevel })
 	end
+	paintGoal()
 	local ml = miniLevel
 	if ml then
 		ml.Text = "Nv. " .. s.level

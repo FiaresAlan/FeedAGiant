@@ -81,7 +81,8 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 
 	overlay.Visible = true
 	overlay.BackgroundTransparency = 1
-	TweenService:Create(overlay, TweenInfo.new(0.2), { BackgroundTransparency = 0.45 }):Play()
+	-- P0 v3: a abertura não apaga mais o mundo (era 0,45 de preto); só um véu leve de 0,85.
+	TweenService:Create(overlay, TweenInfo.new(0.2), { BackgroundTransparency = 0.85 }):Play()
 
 	reveal.Visible = false
 	box.Visible = true

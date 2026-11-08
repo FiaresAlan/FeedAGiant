@@ -106,6 +106,9 @@ function PlotService.pushState(player: Player)
 		display = profile.display,
 		displayCps = if PlotService.DisplayIncome then PlotService.DisplayIncome(player) else 0,
 		streak = (PlotService.streakOf(player)),
+		-- v3 (Features): contador do pity e proteções da sequência diária
+		pityCount = (profile :: any).pityCount or 0,
+		streakBackups = (profile :: any).streakBackups or 0,
 	})
 end
 

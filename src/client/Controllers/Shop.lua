@@ -10,6 +10,8 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local State = require(script.Parent.Parent.State)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 
 local Shop = {}
 
@@ -53,11 +55,32 @@ local function currentLuck(): number
 	return if type(v) == "number" then v else 0
 end
 
+-- Pity v3: raridade mínima REAL da próxima abertura paga (mesma função do servidor).
+local function effectiveMin(minRarity: string?): string?
+	if not Features.on("LunchboxPity") then
+		return minRarity
+	end
+	local count = (State.current :: any).pityCount or 0
+	return LunchboxOdds.pityMin(count, minRarity, GameRules.Pity.Hard, GameRules.Pity.MinRarity)
+end
+
+-- "Épico garantido em N caixas" (vazio com o pity desligado).
+local function pityText(): string
+	if not Features.on("LunchboxPity") then
+		return ""
+	end
+	local left = GameRules.Pity.Hard - ((State.current :: any).pityCount or 0)
+	if left <= 1 then
+		return "ÉPICO GARANTIDO NESTA CAIXA!"
+	end
+	return string.format("Épico garantido em %d caixas", left)
+end
+
 -- Resumo por raridade para o cartão da caixa ("Rare 22% · Epic 6% ...").
 local function oddsSummary(boxId: string, minRarity: string?): string
 	local byRarity: { [string]: number } = {}
 	-- Caixa paga (tem raridade mínima) sorteia sem bônus de evento no servidor.
-	for _, row in LunchboxOdds.rows(boxId, if minRarity then 0 else currentLuck(), minRarity) do
+	for _, row in LunchboxOdds.rows(boxId, if minRarity then 0 else currentLuck(), effectiveMin(minRarity)) do
 		byRarity[row.rarity] = (byRarity[row.rarity] or 0) + row.percent
 	end
 	local ordered = {}
@@ -95,7 +118,11 @@ local function renderOdds()
 	oddsHeading.Text = if luck > 0
 		then string.format("%s  (Lucky Boxes ativo: +%d%% em Rare ou melhor)", shown.title, math.floor(luck * 100))
 		else shown.title
-	local rows = LunchboxOdds.rows(shown.boxId, luck, shown.minRarity)
+	local rows = LunchboxOdds.rows(shown.boxId, luck, effectiveMin(shown.minRarity))
+	local pt = pityText()
+	if pt ~= "" then
+		oddsHeading.Text ..= "  ·  " .. pt
+	end
 	for i, row in rows do
 		local color = Config.Rarities[row.rarity].color
 		UI.label(oddsList, string.format("%s  [%s]   %s", row.name, Locale.rarity(row.rarity), row.text), {
@@ -142,10 +169,21 @@ local function buildOddsWindow(gui: ScreenGui)
 	layout.Padding = UDim.new(0, 4)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = oddsList
-	ReplicatedStorage:GetAttributeChangedSignal(LunchboxOdds.LUCK_ATTRIBUTE):Connect(function()
+	local function refreshAll()
 		renderOdds()
 		for boxId, label in summaryLabels do
-			label.Text = oddsSummary(boxId, nil)
+			local pt = pityText()
+			label.Text = oddsSummary(boxId, nil) .. (if pt ~= "" then "\n" .. pt else "")
+		end
+	end
+	ReplicatedStorage:GetAttributeChangedSignal(LunchboxOdds.LUCK_ATTRIBUTE):Connect(refreshAll)
+	-- O contador do pity muda a cada compra: o cartão e a tela de chances acompanham.
+	local lastPity = -1
+	State.onChanged(function(st)
+		local c = (st :: any).pityCount or 0
+		if c ~= lastPity then
+			lastPity = c
+			refreshAll()
 		end
 	end)
 end

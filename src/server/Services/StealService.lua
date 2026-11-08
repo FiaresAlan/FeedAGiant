@@ -23,6 +23,9 @@ local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
 local CombatService = require(script.Parent.CombatService)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local GameLogic = require(script.Parent.Parent.GameLogic)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 
 local StealService = {}
 
@@ -174,6 +177,34 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	if not target then
 		return
 	end
+	-- v3 (Features.StealProtection): novato não é roubado; ladrão tem limite por dia.
+	if Features.on("StealProtection") and ownerProfile then
+		local thiefProfile = DataService.get(thief)
+		if not thiefProfile then
+			return
+		end
+		local okSteal, why = GameLogic.stealAllowed(
+			thiefProfile.stealDay,
+			thiefProfile.stealsToday,
+			ownerProfile.level,
+			os.time() // 86400
+		)
+		if not okSteal then
+			Remotes.Notify:FireClient(thief, {
+				text = if why == "newbie"
+					then string.format(
+						"Esta base é de um jogador novo (abaixo do nível %d): não pode ser roubada.",
+						GameRules.StealLimits.MinVictimLevel
+					)
+					else string.format(
+						"Você já fez %d roubos hoje. Volte amanhã!",
+						GameRules.StealLimits.MaxPerDay
+					),
+				color = Color3.fromRGB(255, 200, 80),
+			})
+			return
+		end
+	end
 	local targetUid = target.uid
 	local def = Config.FoodById[target.id]
 	if not def then
@@ -282,6 +313,10 @@ local function tryDeposit(thief: Player, base: MapService.BaseInfo)
 	end
 	table.insert(profile.inventory, c.food) -- item já existia: entra mesmo com mochila cheia
 	profile.totalSteals += 1
+	if Features.on("StealProtection") then
+		profile.stealDay, profile.stealsToday =
+			GameLogic.countSteal(profile.stealDay, profile.stealsToday, os.time() // 86400)
+	end
 	DataService.markDirty(thief)
 	PlotService.pushState(thief)
 	local def = Config.FoodById[c.food.id]

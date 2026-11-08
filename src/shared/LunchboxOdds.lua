@@ -106,6 +106,26 @@ function LunchboxOdds.rows(boxId: string, luckBonus: number?, minRarity: string?
 	return rows
 end
 
+-- Pity (GameRules.Pity): raridade mínima efetiva da PRÓXIMA abertura paga, dado o contador salvo.
+-- Usada pelo servidor no sorteio e pela loja na tela de chances (mesma função = mesma chance).
+function LunchboxOdds.pityMin(pityCount: number, minRarity: string?, hard: number, pityRarity: string): string?
+	if pityCount + 1 < hard then
+		return minRarity
+	end
+	if minRarity and Config.Rarities[minRarity].order >= Config.Rarities[pityRarity].order then
+		return minRarity
+	end
+	return pityRarity
+end
+
+-- Novo valor do contador depois de uma abertura paga que saiu com a raridade `rarity`.
+function LunchboxOdds.pityAfter(pityCount: number, rarity: string, pityRarity: string): number
+	if Config.Rarities[rarity].order >= Config.Rarities[pityRarity].order then
+		return 0
+	end
+	return pityCount + 1
+end
+
 LunchboxOdds.Disclaimer = "As chances são arredondadas para exibição e podem não somar exatamente 100%."
 
 return LunchboxOdds

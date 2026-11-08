@@ -27,6 +27,9 @@ local ProgressService = require(Services.ProgressService)
 local MeatService = require(Services.MeatService)
 local AdminService = require(Services.AdminService)
 local BotService = require(Services.BotService)
+-- Especificação v3 (08/11/2026): tudo atrás de ReplicatedStorage.Shared.Features (desligado)
+local ObjectiveHintService = require(Services.ObjectiveHintService)
+local OnboardingService = require(Services.OnboardingService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -53,6 +56,9 @@ ProgressService.init()
 MeatService.init()
 AdminService.init()
 BotService.init()
+ObjectiveHintService.init()
+OnboardingService.init()
+TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
 -- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do
 -- Dragão desde 08/11/2026 (noite) e não ocupa mais o coliseu.
@@ -92,6 +98,7 @@ local function onPlayerAdded(player: Player)
 	PlotService.rebuildPlot(player)
 	StealService.giveShield(player, Config.Steal.SpawnShieldSec)
 	PlotService.pushState(player)
+	OnboardingService.onJoin(player) -- v3: câmera de chegada e 1ª alimentação mais forte (flag)
 
 	-- Teleporta o jogador para sua base ao (re)nascer
 	player.CharacterAdded:Connect(function(char)

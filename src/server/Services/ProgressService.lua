@@ -21,6 +21,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Features = require(game.ReplicatedStorage.Shared.Features)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Util = require(game.ReplicatedStorage.Shared.Util)
@@ -79,6 +80,8 @@ function ProgressService.state(player: Player): { [string]: any }?
 			ready = elapsed >= 20 * 3600,
 			nextIn = math.max(0, 20 * 3600 - elapsed),
 			rewards = Config.DailyRewards,
+			-- v3: proteções da sequência (nil com a função desligada: a tela não mostra nada)
+			backups = if Features.on("StreakBackup") then profile.streakBackups else nil,
 		},
 		objectives = objs,
 		bonusClaimed = profile.objBonusClaimed,

@@ -57,6 +57,10 @@ local EVENTS = {
 	-- Painel de admin (08/11/2026): o servidor confere o papel em todo comando
 	"AdminCommand", -- client -> server: cmd:string, args:table
 	"AdminState", -- server -> admin: {kind = Result|Confirm, ...}
+	-- Especificação v3 (08/11/2026), atrás de Features: só servidor -> cliente (nenhum pedido novo
+	-- do cliente, então nenhum remote novo a proteger contra spam).
+	"ObjectiveHint", -- server -> client: {id, text, category = now|soon|short|long|none}
+	"OnboardingV2", -- server -> client: {kind = Arrival|FirstFeed|Done}
 }
 
 local FUNCTIONS = {

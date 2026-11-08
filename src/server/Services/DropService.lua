@@ -160,6 +160,55 @@ end
 -- Visual do item: comida 3D ou a caixa (imagem da skin nova, de frente para a câmera, sobre uma
 -- caixa colorida). Indicador no chão discreto (pequeno disco + brilho leve), pedido do usuário: o
 -- círculo Neon grande antigo "ofuscava" o mapa.
+-- Pernil cartoon (mesmas cores do pedaço grande do MeatService), ~3,6 studs, sem colisão.
+local function dressMeatPortion(holder: BasePart)
+	local function piece(name: string, shape: Enum.PartType, size: Vector3, color: Color3, offset: CFrame): Part
+		local p = Util.makePart({
+			Name = name,
+			Shape = shape,
+			Size = size,
+			Color = color,
+			Material = Enum.Material.SmoothPlastic,
+			CFrame = holder.CFrame * offset,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			Massless = true,
+			Anchored = false,
+			Parent = holder,
+		})
+		local w = Instance.new("WeldConstraint")
+		w.Part0 = holder
+		w.Part1 = p
+		w.Parent = p
+		return p
+	end
+	local meat = piece("Meat", Enum.PartType.Ball, Vector3.new(3, 3, 3), Color3.fromRGB(176, 72, 52), CFrame.new())
+	local m = Instance.new("SpecialMesh")
+	m.MeshType = Enum.MeshType.Sphere
+	m.Scale = Vector3.new(1.3, 0.85, 1)
+	m.Parent = meat
+	local fat = piece(
+		"Fat",
+		Enum.PartType.Ball,
+		Vector3.new(3.1, 3.1, 3.1),
+		Color3.fromRGB(240, 196, 160),
+		CFrame.new(0, 0.35, 0)
+	)
+	local fm = Instance.new("SpecialMesh")
+	fm.MeshType = Enum.MeshType.Sphere
+	fm.Scale = Vector3.new(1.15, 0.45, 0.9)
+	fm.Parent = fat
+	piece(
+		"Bone",
+		Enum.PartType.Cylinder,
+		Vector3.new(2.2, 0.6, 0.6),
+		Color3.fromRGB(250, 244, 228),
+		CFrame.new(2.6, 0.2, 0)
+	)
+	piece("BoneKnob", Enum.PartType.Ball, Vector3.new(1, 1, 1), Color3.fromRGB(250, 244, 228), CFrame.new(3.7, 0.2, 0))
+end
+
 local function buildHolder(it: Item, at: Vector3): Part
 	local rarColor = it.color
 	local holder = Util.makePart({
@@ -174,7 +223,12 @@ local function buildHolder(it: Item, at: Vector3): Part
 		CanTouch = false,
 		Parent = folder,
 	})
-	if it.kind == "food" and it.foodId and FoodModels.has(it.foodId) then
+	if it.kind == "food" and it.foodId == "giantmeat" then
+		-- P0 v3: a porção da Carne Gigante era um cubo azul (cor da raridade Rara, sem modelo).
+		-- Agora é um pernil cartoon de peças (carne, gordura e osso), soldado ao suporte.
+		holder.Transparency = 1
+		dressMeatPortion(holder)
+	elseif it.kind == "food" and it.foodId and FoodModels.has(it.foodId) then
 		holder.Transparency = 1
 		FoodModels.dress(holder, it.foodId, 4)
 	elseif it.kind == "box" then
@@ -552,7 +606,8 @@ function DropService.giveCarried(player: Player, foodId: string, at: Vector3): b
 		foodId = food.id,
 		name = food.name,
 		rarity = food.rarity,
-		color = Config.Rarities[food.rarity].color,
+		-- A porção usa a cor da carne (brilho, faíscas e nome), não o azul da raridade Rara.
+		color = if food.id == "giantmeat" then food.color else Config.Rarities[food.rarity].color,
 		pos = at,
 		unlockAt = 0,
 	} :: any

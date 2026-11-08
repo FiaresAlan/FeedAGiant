@@ -49,6 +49,9 @@ local REWARDS: { [string]: (Player) -> () } = {
 }
 
 -- Chamado pelos serviços do jogo quando algo acontece (sinais fora do passo atual são ignorados).
+-- Preenchido pelo Main: (player, skipped) quando o tutorial termina.
+TutorialService.FinishedHook = nil :: ((Player, boolean) -> ())?
+
 function TutorialService.signal(player: Player, name: string, amount: number?)
 	if tutorial then
 		tutorial:Signal(player, name, amount or 1)
@@ -118,6 +121,11 @@ function TutorialService.start()
 		onFinished = function(player: Player, skipped: boolean)
 			-- Nunca termina num beco sem saída: a próxima meta aparece na HUD.
 			player:SetAttribute("NextGoal", if skipped then "rebirth" else "level10")
+			-- v3: presente de boas-vindas (OnboardingService, ligado pelo Main sem require circular)
+			local hook = TutorialService.FinishedHook
+			if hook then
+				task.spawn(hook, player, skipped)
+			end
 		end,
 	})
 	tutorial:Start()

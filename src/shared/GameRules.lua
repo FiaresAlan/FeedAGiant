@@ -338,4 +338,39 @@ GameRules.BossIsland = {
 	PendingKeep = 20, -- quantos ids de luta já resgatados guardar no perfil (anti-duplicação)
 }
 
+---------------------------------------------------------------------------
+-- Especificação v3 (08/11/2026). Tudo atrás de Features (desligado por padrão).
+---------------------------------------------------------------------------
+-- Pity das Lunchboxes: a cada caixa ABERTA COM MOEDAS OU ROBUX sem comida Épica ou melhor, o
+-- contador sobe; na caixa número Hard a raridade mínima passa a ser Épica (garantida). Qualquer
+-- Épica ou melhor zera. Caixas grátis (drops, diário, Dragão) não contam nem zeram. Sem "soft
+-- pity": a chance mostrada antes da compra é sempre a chance real daquela abertura (vault: "Pity
+-- not reflected in next-roll odds" é erro comum). O contador fica salvo no perfil (pityCount).
+GameRules.Pity = {
+	Hard = 50,
+	MinRarity = "Epic",
+}
+
+-- Proteção da sequência diária ("backup"): completar o ciclo de 7 dias dá 1 proteção (máx. 2).
+-- Se o jogador perder a janela de 48 h e tiver proteção, ela é gasta e a sequência continua.
+-- Só ganha jogando (produto pago de proteção NÃO foi criado: monetização nova pede o dono).
+GameRules.StreakBackup = {
+	PerCycle = 1,
+	Max = 2,
+}
+
+-- Roubo ético (§5.4 adaptado): base de quem tem nível abaixo de MinVictimLevel não pode ser
+-- roubada; cada ladrão tem até MaxPerDay roubos bem-sucedidos por dia (dia UTC).
+GameRules.StealLimits = {
+	MinVictimLevel = 5,
+	MaxPerDay = 3,
+}
+
+-- Primeiro acesso (§3 adaptado): presente de boas-vindas = 1 Lunchbox Comum guardada (o jogador
+-- abre clicando, nunca automático). Primeira alimentação com efeito 2x.
+GameRules.Onboarding = {
+	WelcomeBox = "common",
+	ArrivalSeconds = 2.5,
+}
+
 return GameRules
