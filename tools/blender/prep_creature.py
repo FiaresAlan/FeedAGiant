@@ -20,7 +20,9 @@ from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 src, out_glb, out_png = argv[0], argv[1], argv[2]
-opts = {"--tris": 8000, "--height": 6.0, "--tex": 1024, "--yaw": 0.0, "--merge": 0.0001}
+# --fit: 0 = escala pela ALTURA (--height); N > 0 = a MAIOR dimensão vira N studs (props achatados,
+# ex.: pizza, que teria quilômetros de largura se a altura de 3 cm virasse 3 studs).
+opts = {"--tris": 8000, "--height": 6.0, "--tex": 1024, "--yaw": 0.0, "--merge": 0.0001, "--fit": 0.0}
 for i, a in enumerate(argv):
     if a in opts:
         opts[a] = type(opts[a])(argv[i + 1])
@@ -150,7 +152,11 @@ def bounds():
     ev.to_mesh_clear()
     return mn, mx
 mn, mx = bounds()
-k = HEIGHT / max(mx.z - mn.z, 1e-6)
+FIT = float(opts["--fit"])
+if FIT > 0:
+    k = FIT / max(mx.x - mn.x, mx.y - mn.y, mx.z - mn.z, 1e-6)
+else:
+    k = HEIGHT / max(mx.z - mn.z, 1e-6)
 root.scale = root.scale * k
 bpy.context.view_layer.update()
 mn, mx = bounds()

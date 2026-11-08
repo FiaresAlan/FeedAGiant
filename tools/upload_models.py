@@ -20,6 +20,12 @@ import upload  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 OPT = ROOT / "assets" / "optimized"
 MANIFEST = OPT / "assets.json"
+# --foods: envia as comidas (assets/foods/optimized; autorização do usuário em 08/11/2026:
+# "sobre as imagens de agora e as próximas pode enviar eu permito" + comidas 3D do Grab3D)
+if "--foods" in sys.argv:
+    sys.argv.remove("--foods")
+    OPT = ROOT / "assets" / "foods" / "optimized"
+    MANIFEST = OPT / "assets.json"
 
 
 def owner_id(key):

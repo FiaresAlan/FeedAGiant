@@ -26,3 +26,7 @@ build/
 # Panoramas HDRI baixados (refazíveis por tools/make_sky.py)
 assets/sky/_cache/
 
+
+# Comidas brutas do Grab3D (refazíveis por tools/fetch_foods.py)
+assets/foods/raw/
+
