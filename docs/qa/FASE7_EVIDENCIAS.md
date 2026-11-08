@@ -96,3 +96,30 @@ offline, 308/123/bônus do Dragão com 2 jogadores, pendência de 1.200 paga uma
 Resultado no Studio: **`[FwjelaaTests] 72 passed, 0 failed, 8 spec modules`** (39 antigos + 33 novos).
 Depois da refatoração, reteste no jogo: alimentação (crítica de 35 XP), compra de espécie com herança e uma batalha inteira
 (vitória, 84 moedas) sem erro no console. Verificador: PASS (77 arquivos).
+
+## 11. Celular emulado (iPhone 17 Pro no emulador de dispositivo do Studio, paisagem, tela útil 750×323)
+Medido com `Stats.SceneTriangleCount`, `SceneDrawcallCount`, `ShadowsTriangleCount` e `RenderCPUFrameTime` (média de 10 quadros),
+interface escondida, qualidade fixada em 3, 5 e 10. Cenário de pior caso: 3 gigantes expostos na vitrine, Carne Gigante e Dragão ativos.
+Alvo do projeto (celular): **500 mil triângulos / 500 draw calls por vista**.
+
+| Vista | Q03 | Q05 | Q10 |
+|---|---|---|---|
+| Ilha (luta, perto do dragão) | 114k / 117 | 118k / 114 | 122k / 117 |
+| Praça olhando a ponte e a ilha | 229k / 176 | 231k / 176 | 248k / 190 |
+| Carne Gigante na praça | 268k / 180 | 271k / 180 | 281k / 186 |
+| Base com gigante e vitrine (3 estátuas) | 195k / 129 | 197k / 131 | 201k / 133 |
+| Aérea (260 studs de altura, não é câmera de jogo) | **649k** / 342 | **663k** / 339 | **690k** / 341 |
+
+CPU de renderização: 3,2 a 4,6 ms por quadro em todas as vistas. Sombras: no máximo 12k triângulos / 6 draws.
+**Todas as vistas de jogo dentro do orçamento.** A aérea passa de 500k; decomposição (Q05, escondendo só no cliente):
+ilha + dragão = **8k / 5 draws** (praça olhando a ilha: 17k / 19); estátuas da praça ≈ 90k; natureza ≈ 230k; o resto
+(≈ 317 draws de base) é terreno, montanhas e bases — tudo de antes desta missão.
+
+**Custo da animação (GiantAnim, medidor só de Studio em `Workspace.GiantAnimMs`):** 1 gigante < 0,01 ms por passo;
+**8 gigantes animando ao mesmo tempo (máximo do servidor) = 0,09 a 0,1 ms por passo**, a 30 passos por segundo.
+
+**Interface no celular (fotos 06 a 08):** a HUD cabe. Achado e corrigido: na batalha por turnos o placar ficava em y = 200, em
+cima dos golpes (y = 196) — sumia. Agora é posicionado pela altura da tela, logo acima dos golpes (medido: placar 107–188,
+golpes 196–307) e fica por cima do botão LUTAR e do cartão de disputa durante a luta.
+Ainda sobrepostos (de antes desta missão): faixas do tutorial sobre o selo de evento; joystick sobre o cartão META.
+**Não é celular físico:** o emulador muda tela e toque, não o processador do aparelho.

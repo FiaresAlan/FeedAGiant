@@ -51,7 +51,7 @@ câmera do jogador.
 - Sistema: rodada 0 (3 revisores cegos) 6,3 / 6,25 / 6,3 → mediana **6,3** (15/24); rodada 2 (1 revisor cego, depois das correções) **7,5** (18/24).
 - Sistema, painel final (3 revisores cegos, depois do teste com 2 jogadores): 7,5 / 7,5 / 6,25 → mediana **7,5** (18/24). 3ª rodada: parado abaixo de 8,5.
   Painel depois dos testes automáticos (3 revisores cegos): 7,9 / 7,9 / 7,9 → mediana **7,9** (19/24). S6 subiu para 2.
-  Para passar de 8,5 faltam: **S3** — medir triângulos/draw calls da ilha e o custo do GiantAnim num emulador de celular (sobe para 8,75);
+  Para passar de 8,5 faltavam: **S3** — FEITO no emulador de celular (evidências §11: vistas de jogo ≤ 281k/190; ilha +8k/5 draws; animação 0,1 ms com 8 gigantes; placar da batalha corrigido no celular);
   **S1** — reentrada real em outro servidor e DataStore real (place publicado; depende do dono). Corrigido neste painel: prêmio do
   Dragão não se perde se o perfil não estiver carregado (vai para a fila de pendentes).
 - Animação: rodada 0 **6,0** (18/30; o revisor errou a soma dos pesos e escreveu 5,6); rodada 2 **6,3** (19/30).

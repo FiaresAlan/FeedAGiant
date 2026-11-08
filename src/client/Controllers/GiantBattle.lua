@@ -249,6 +249,24 @@ function GiantBattle.init(gui: ScreenGui)
 		Visible = false,
 	})
 	UI.autoScale(movesBar)
+	-- Celular (medido no iPhone emulado, tela útil de 323 px de altura): o placar ficava em y = 200,
+	-- em cima dos golpes. Agora fica sempre logo acima dos golpes, e os dois ficam por cima do
+	-- botão LUTAR e do cartão de disputa durante a luta.
+	hud.ZIndex = 25
+	movesBar.ZIndex = 25
+	local function layoutBattle()
+		local area = gui.AbsoluteSize
+		if area.Y <= 0 then
+			return
+		end
+		local k = UI.deviceScale()
+		local movesTop = area.Y - 16 - 184 * k
+		local hudH = 136 * k
+		local y = math.max(8, math.min(200, movesTop - 8 - hudH))
+		hud.Position = UDim2.new(0.5, 0, 0, math.floor(y))
+	end
+	layoutBattle()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutBattle)
 	local turnBg = UI.frame(movesBar, {
 		Size = UDim2.new(1, -28, 0, 8),
 		Position = UDim2.fromOffset(14, 8),

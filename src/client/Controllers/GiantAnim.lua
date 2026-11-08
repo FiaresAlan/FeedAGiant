@@ -571,12 +571,27 @@ function GiantAnim.init()
 		end
 	end)
 	local acc = 0
+	-- Medidor só no Studio (orçamento de celular): média do custo do passo, em ms, no atributo
+	-- Workspace.GiantAnimMs. Fora do Studio não mede nada.
+	local measure = RunService:IsStudio()
+	local costSum, costN = 0, 0
 	RunService.RenderStepped:Connect(function(dt)
 		acc += dt
 		if acc < STEP then
 			return
 		end
 		acc = 0
+		if measure then
+			local t0 = os.clock()
+			step(t0)
+			costSum += os.clock() - t0
+			costN += 1
+			if costN >= 30 then
+				Workspace:SetAttribute("GiantAnimMs", math.floor(costSum / costN * 1e5) / 100)
+				costSum, costN = 0, 0
+			end
+			return
+		end
 		step(os.clock())
 	end)
 	local pendingEvolve: { [number]: number } = {}
