@@ -139,7 +139,7 @@ Aprovadas em 07/11/2026 e ampliadas depois:
 - **Mudanças feitas à mão** pelo usuário dentro de `Workspace.Map` ficam no place, mas **somem se alguém re-assar**. Para mudanças permanentes, altere `World.lua`. Avise o usuário antes de re-assar se ele tiver editado o mapa.
 - Testado numa cópia: assou em 0,4 s com 4.851 peças. Ao rodar, 1 mapa só, o jogador pega a base, o gigante nasce, a placa mostra o nome e a comida vai para o pátio.
 - **Assado no place oficial** em 08/11/2026 pelo MCP, a pedido explícito do usuário ("quero isso no oficial"). Foi feito dentro de uma gravação de desfazer ("Assar mapa Feed a Giant"), então dá para usar Ctrl+Z.
-  - **O place NÃO foi salvo nem publicado pelo Claude.** O usuário precisa salvar ou publicar (Ctrl+S / Arquivo → Publicar no Roblox).
+  - O place não foi salvo pelo Claude. **O usuário salvou o place oficial** em seguida (08/11/2026), então o mapa assado (versão 1) está no place oficial.
   - Foto: `docs/qa/shots/fase1/07_oficial_modo_edicao.jpg`.
 - O código chegou ao place oficial pelo `rojo serve` do usuário. Conferido só por leitura: as fontes de MapService, World e CreatureAssets estavam atualizadas.
 
