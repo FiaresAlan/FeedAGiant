@@ -49,6 +49,8 @@ câmera do jogador.
 
 ### Notas de qualidade (ledger)
 - Sistema: rodada 0 (3 revisores cegos) 6,3 / 6,25 / 6,3 → mediana **6,3** (15/24); rodada 2 (1 revisor cego, depois das correções) **7,5** (18/24).
+- Sistema, painel final (3 revisores cegos, depois do teste com 2 jogadores): 7,5 / 7,5 / 6,25 → mediana **7,5** (18/24). 3ª rodada: parado abaixo de 8,5.
+  Para passar: specs automáticas da batalha/carne/Dragão/pendências (S6), medir ilha e animação no celular (S3), reentrada real e DataStore real (S1).
 - Animação: rodada 0 **6,0** (18/30; o revisor errou a soma dos pesos e escreveu 5,6); rodada 2 **6,3** (19/30).
   Bloqueadores: sem rig não há overlap real (P5) e faltam fotos/vídeo das 12 espécies (P1/P2).
 - **Abaixo de 8,5 = rascunho.** Os critérios que travam a nota são "testado com 2 jogadores" (S1/S2), "teste automático dos sistemas
@@ -61,7 +63,7 @@ câmera do jogador.
 - O botão "GOLPE FORTE" e o remote `RequestGiantSpecial` não são mais usados (o remote ficou na lista só por compatibilidade).
 
 ### PRÓXIMA TAREFA PRIORITÁRIA
-1. ~~Teste com 2 jogadores~~ FEITO (evidências §9). Falta: reentrada real para resgatar a pendência e um novo painel de 3 revisores.
+1. ~~Teste com 2 jogadores~~ FEITO (evidências §9); painel final 7,5. Próximo: specs automáticas em `tests/` (batalha AFK/turno duplo, limite de 2 cortes, divisão do bônus, resgate idempotente) e medir a ilha no emulador de celular.
 2. **Testes automáticos** dos sistemas novos em `tests/` (sequência, transferência 30%, renda offline com teto, pendências idempotentes).
 3. Fotos das 12 espécies comendo/comemorando (contact sheet) para a rubrica de animação; avaliar separar cabeça/corpo do dragão e do
    humano no Blender (requer novo upload: pedir autorização).
