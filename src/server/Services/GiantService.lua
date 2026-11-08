@@ -322,6 +322,10 @@ local function buildGiantModel(player: Player, anchor: Part, sp: Config.SpeciesD
 		horn.Transparency = 1
 	end
 	model.PrimaryPart = torso
+	-- Pivô nos PÉS (topo do pedestal), não no tronco: o ScaleTo cresce a partir do pivô, e com o pivô
+	-- no tronco os pés afundavam no chão ~(altura do tronco x (escala - 1)) — medido no teste de
+	-- 08/11: gigante nível 12 com as pernas enterradas ~15 studs.
+	torso.PivotOffset = torso.CFrame:ToObjectSpace(anchor.CFrame * CFrame.new(0, anchor.Size.Y / 2, 0))
 
 	local label = Util.makeBillboard(torso, "", UDim2.fromOffset(260, 80), Vector3.new(0, 4, 0))
 	local infoGui = label.Parent
