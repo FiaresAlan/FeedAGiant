@@ -11,6 +11,50 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A000. Pedido integrado de 08/11/2026 (21 itens): situação de CADA item
+
+Cópia de teste usada: `scratchpad/studio/FeedAGiant-hud3.rbxl` (código sincronizado pela técnica da A7). Fotos em `docs/qa/shots/fase6/`. Todos os commits estão no `main`.
+
+Legenda: ✅ feito e visto no Studio · 🟨 feito, teste parcial · ⬜ não feito (motivo).
+
+| # | Item | Situação | Onde / observação |
+|---|---|---|---|
+| 0 | Preparação, backups, commits | ✅ | Um commit+push por etapa. Nada publicado, nenhum Robux gasto. Uploads autorizados: 25 imagens da HUD, 8 músicas, 3 modelos refeitos |
+| 1 | HUD nova (grafite, botões coloridos, peças recortadas da referência) | 🟨 | `tools/crop_hud2.py` recorta ícones e logo de `feedagiant_hud_transparente.png` para `assets/ui/extra/hud2_*` (UIAssets). Coluna esquerda: `HUD.lua` (logo, moedas, nível/XP/fome, grade de 8 botões, cartão META+tutorial embaixo). LUTAR grande. Janelas em grafite com faixa laranja (`UI.window`). **Falta:** celular físico, emulador de celular e controle físico. O painel de UI deu 4,5 e 5,0 (ver ledger) e as correções da revisão não foram reavaliadas |
+| 2 | Skins das 5 Lunchboxes | ✅ | `assets/ui/extra/box_*.png` (arte do usuário). Aparecem na loja, na abertura (`Hatch.lua`, campo `boxId` no `HatchResult`) e na caixa no chão (sprite). A imagem "incomum" não é usada (não existe Lunchbox Incomum) |
+| 3 | 8 músicas | ✅ | `Controllers/Music.lua`. Trilha da ilha e do evento com crossfade, fanfarras com prioridade, vitória só no fim da luta, canais Musica/Efeitos/Vozes (SoundGroups). Testado: ilha tocando, fanfarra mítica abaixa a trilha para 0,07. **Não existia** música de combate nem de abertura de caixa no código: não havia nada a preservar (registrado) |
+| 4 | Auditoria das chances (itens aleatórios pagos) | ✅ | Ver A000b abaixo |
+| 5 | Drops com cronômetro, coleta manual, carregar até a base | 🟨 | `DropService.lua` reescrito + `Drops.lua`. Testado: cronômetro, pegar com E, entrega no pátio, caixa guardada, abrir. **Não testado com 2 jogadores:** soco derrubando a carga e outro jogador pegando |
+| 5.1 | Frequência | ✅ | 45 a 80 s (antes 35 a 70), 15% de caixas, Chuva de Comida com 14 itens manuais (antes ~75 automáticos). Tudo em `Config.Drops` |
+| 6 | Renda das comidas expostas | ✅ | Já existia (`PlotService.coinsPerSecond`: cps da raridade × espécie × rebirth × humor × nível × passe × grupo). Agora cada comida mostra "+N/s" (valor base) |
+| 7 | Lojas separadas | ✅ | `Shop.lua`: LOJA DE LUNCHBOXES (botão LOJA e pad da praça), LOJA DE GIGANTES (estátuas e confirmação), LOJA ROBUX (botão R$ da HUD, de qualquer lugar) |
+| 8 | Escudos | ✅ | `ShieldService.lua`: pedestal "RENOVAR ESCUDO" em cada base, só o dono usa, janela com tempo restante, renovar com moedas (2 cliques) ou Super Escudo (Robux, produto existente; com id 0 aparece "em breve"). Preço em `Config.Shield` |
+| 9 | Giant Clash com 2 modos | 🟨 | Boxe entre jogadores preservado. Arena dos gigantes: `GiantBattleService.lua` + `Controllers/GiantBattle.lua`. O gigante do jogador (espécie que ele possui) luta contra um selvagem, com vida e força reais e animação PROCEDURAL (os modelos não têm esqueleto no Roblox). GOLPE FORTE na tecla G, no botão Y ou na tela. Moedas e XP com teto de 15 vitórias por dia. **Falta:** gigante contra gigante de outro jogador (ver RETENCAO_E_FUTURO §3) |
+| 10 | Cronômetros no mundo | ✅ | Entrada da arena: "DRAGÃO FAMINTO EM 4:28" (o Dragão agora tem horário próprio a cada 15 min, `Config.Boss.Every`). Caldeirão: próximo evento ou evento atual (`EventService`) |
+| 11 | Estátuas | ✅ | Pintura real, colisão por cilindro invisível, pedestal redondo em degraus com faixa colorida, placa de madeira, blip + "ENCONTRAR <espécie>" (E/X/toque), que abre a confirmação com preço e atributos. A busca de pedestal na Creator Store **não foi feita**: o pedestal foi construído com peças e materiais do Roblox (sem risco de licença) |
+| 12 | Troll, Hidra e Fênix | ✅ | Causa: decimação forte (de 185 a 400 mil para 8 a 11 mil triângulos), sem solda, numa malha "sopa de triângulos" (virava cacos). Correção: `tools/blender/rebake_creature.py` (remesh por voxel + bake da cor original, 16 mil triângulos). Novos IDs em `CreatureAssets.lua`. Antes e depois nas fotos 08 a 11 |
+| 13 | Comidas cinza | ✅ | Causa: a cor padrão (163,162,165) da MeshPart multiplicava a textura. `FoodModels.load` agora usa branco; `FoodView` tem mais luz ambiente |
+| 14 | Mouse preso | 🟨 | O botão fechar tem `Modal = true`, o que libera o cursor em 1ª pessoa. ESC, Backspace e B do controle fecham a janela de cima; ao abrir, `MouseBehavior = Default`. **Não testado em 1ª pessoa de verdade** (o MCP não trava o mouse) |
+| 15 | Indicador dos drops | ✅ | Disco pequeno (3 studs) translúcido na cor da raridade + brilho leve. O círculo Neon de 28 studs saiu |
+| 16 | Mapa: sem mar, montanhas, grama | 🟨 | `WorldFx.world`: grama de terreno (superfície em y=0 com camada de ocupação 0,5, medido), ondulações fora das rotas, 72 montanhas cartoon com neve, paredes invisíveis no limite, lagos de água de terreno. **Falta medir** triângulos e draw calls (painel do mundo deu 5,0 pelo portão) |
+| 17 | Auras | ⬜ (só avaliação) | `docs/RETENCAO_E_FUTURO.md` §4 |
+| 18 | Loop e retenção | ✅ (análise) | `docs/RETENCAO_E_FUTURO.md` |
+| 19 | Ordem de prioridade | ✅ | Seguida de P1 a P7 |
+| 20 | Testes | 🟨 | Feitos no Studio com 1 jogador. **Não feitos:** 2 clientes, celular, controle, desempenho medido, saída de jogador no meio da batalha de gigantes |
+| 21 | Relatório | ✅ | Esta seção + resposta ao usuário |
+
+### A000b. Auditoria de itens aleatórios pagos (item 4)
+- **Fonte única:** `LunchboxOdds.lua` calcula as chances por comida. O servidor sorteia com `LunchboxOdds.roll` e a tela mostra `LunchboxOdds.rows` (a mesma função). Cada caixa lista todas as comidas com a % individual na janela CHANCES; o resumo por raridade aparece no cartão antes da compra.
+- **Arredondamento:** as porcentagens exibidas são arredondadas (aviso em `LunchboxOdds.Disclaimer`). Na tabela do servidor a soma é exatamente 100%.
+- **Modificador ativo:** o evento Lucky Boxes (+50% em Raro ou melhor) muda as chances mostradas na hora (atributo `LunchboxLuckBonus`), e o cabeçalho avisa.
+- **Formas de obter caixas:**
+  - (a) com moedas;
+  - (b) com o produto LuckyBox (Robux, `paidRandom = true`);
+  - (c) com moedas compradas com Robux (`Coins10k/100k`, `fundsRandom = true`);
+  - (d) ganhas jogando (drops do mapa, Dragão), que não são pagas.
+- **PolicyService:** `MonetizationService.canPrompt` recusa (b) e (c) para quem tem `ArePaidRandomItemsRestricted`, e o cliente mostra "INDISPONÍVEL". Assim, para o jogador restrito toda moeda é ganha jogando, e a caixa comprada com moedas não é item aleatório pago. Nenhuma chance foi alterada. **Falta:** o dono confirmar a regra atual na página da Roblox (não foi aberta nesta sessão).
+
+
 ## A00. Teste do usuário em 08/11/2026 (tarde) e o que foi corrigido
 
 O usuário jogou e apontou problemas. Todos foram tratados e testados na cópia `scratchpad/studio/FeedAGiant-boss1.rbxl` (fotos em `docs/qa/shots/fase5/`):
