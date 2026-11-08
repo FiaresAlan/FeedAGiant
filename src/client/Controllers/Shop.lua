@@ -99,39 +99,41 @@ local function renderOdds()
 	for i, row in rows do
 		local color = Config.Rarities[row.rarity].color
 		UI.label(oddsList, string.format("%s  [%s]   %s", row.name, row.rarity, row.text), {
-			Size = UDim2.new(1, -10, 0, 24),
+			Size = UDim2.new(1, -10, 0, 28),
 			LayoutOrder = i,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextScaled = false,
-			TextSize = 16,
+			TextSize = 20,
 			TextColor3 = color,
 		})
 	end
 	UI.label(oddsList, LunchboxOdds.Disclaimer, {
-		Size = UDim2.new(1, -10, 0, 36),
+		Size = UDim2.new(1, -10, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = #rows + 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 12,
+		TextSize = 20,
 		TextWrapped = true,
 		TextTransparency = 0.3,
 	})
-	oddsList.CanvasSize = UDim2.fromOffset(0, #rows * 28 + 48)
 end
 
 local function buildOddsWindow(gui: ScreenGui)
 	local body: Frame
 	oddsWin, body = UI.window(gui, "CHANCES", UDim2.fromOffset(460, 440))
 	oddsHeading = UI.label(body, "", {
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 52),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 16,
+		TextSize = 20,
 		TextWrapped = true,
 	})
 	oddsList = Instance.new("ScrollingFrame")
-	oddsList.Size = UDim2.new(1, 0, 1, -48)
-	oddsList.Position = UDim2.fromOffset(0, 46)
+	oddsList.Size = UDim2.new(1, 0, 1, -58)
+	oddsList.Position = UDim2.fromOffset(0, 56)
+	oddsList.CanvasSize = UDim2.new()
+	oddsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	oddsList.BackgroundTransparency = 1
 	oddsList.BorderSizePixel = 0
 	oddsList.ScrollBarThickness = 6
@@ -167,7 +169,8 @@ local function buildBoxesTab(parent: Frame)
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 6
-	scroll.CanvasSize = UDim2.fromOffset(0, #Config.Lunchboxes * 118)
+	scroll.CanvasSize = UDim2.new()
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.Parent = parent
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 8)
@@ -189,12 +192,12 @@ local function buildBoxesTab(parent: Frame)
 			TextColor3 = box.color,
 		})
 		summaryLabels[box.id] = UI.label(card, oddsSummary(box.id, nil), {
-			Size = UDim2.new(1, -260, 0, 50),
-			Position = UDim2.fromOffset(104, 46),
+			Size = UDim2.new(1, -260, 0, 58),
+			Position = UDim2.fromOffset(104, 44),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextScaled = false,
-			TextSize = 13,
+			TextSize = 20,
 			TextWrapped = true,
 			TextTransparency = 0.2,
 		})
@@ -222,7 +225,8 @@ local function buildRobuxTab(parent: Frame)
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 6
-	scroll.CanvasSize = UDim2.fromOffset(0, (#PASS_INFO + #PRODUCT_INFO) * 84 + 60)
+	scroll.CanvasSize = UDim2.new()
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.Parent = parent
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 8)
@@ -232,7 +236,7 @@ local function buildRobuxTab(parent: Frame)
 	local order = 0
 	local function row(name: string, desc: string, color: Color3, buttonText: string, cb: () -> ()): TextButton
 		order += 1
-		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 76), LayoutOrder = order })
+		local card = UI.frame(scroll, { Size = UDim2.new(1, -10, 0, 92), LayoutOrder = order })
 		UI.stroke(card, color, 2)
 		UI.label(card, name, {
 			Size = UDim2.new(1, -200, 0, 30),
@@ -241,11 +245,11 @@ local function buildRobuxTab(parent: Frame)
 			TextColor3 = color,
 		})
 		UI.label(card, desc, {
-			Size = UDim2.new(1, -200, 0, 32),
+			Size = UDim2.new(1, -200, 0, 48),
 			Position = UDim2.fromOffset(12, 38),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextScaled = false,
-			TextSize = 14,
+			TextSize = 20,
 			TextWrapped = true,
 			TextTransparency = 0.2,
 		})
@@ -326,7 +330,8 @@ local function buildSpeciesTab(parent: Frame)
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 6
-	scroll.CanvasSize = UDim2.fromOffset(0, #Config.Species * 92 + 40)
+	scroll.CanvasSize = UDim2.new()
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.Parent = parent
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 8)
@@ -336,20 +341,20 @@ local function buildSpeciesTab(parent: Frame)
 		scroll,
 		"Cada espécie muda forma, XP, moedas, fome e força na arena. Trocar é grátis depois de comprar.",
 		{
-			Size = UDim2.new(1, -10, 0, 30),
+			Size = UDim2.new(1, -10, 0, 52),
 			LayoutOrder = 0,
 			TextScaled = false,
-			TextSize = 13,
+			TextSize = 20,
 			TextWrapped = true,
 			TextTransparency = 0.2,
 		}
 	)
 	for i, sp in Config.Species do
-		local card = UI.panel(scroll, { Size = UDim2.new(1, -10, 0, 84), LayoutOrder = i })
+		local card = UI.panel(scroll, { Size = UDim2.new(1, -10, 0, 116), LayoutOrder = i })
 		UI.stroke(card, sp.color, 2)
 		local icon = UI.frame(
 			card,
-			{ Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(10, 14), BackgroundColor3 = sp.skin }
+			{ Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(10, 30), BackgroundColor3 = sp.skin }
 		)
 		UI.corner(icon, 28)
 		UI.stroke(icon, sp.color, 3)
@@ -360,11 +365,11 @@ local function buildSpeciesTab(parent: Frame)
 			TextColor3 = sp.color,
 		})
 		UI.label(card, sp.desc, {
-			Size = UDim2.new(1, -260, 0, 30),
-			Position = UDim2.fromOffset(76, 32),
+			Size = UDim2.new(1, -260, 0, 46),
+			Position = UDim2.fromOffset(76, 34),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextScaled = false,
-			TextSize = 13,
+			TextSize = 20,
 			TextWrapped = true,
 			TextTransparency = 0.2,
 		})
@@ -372,11 +377,11 @@ local function buildSpeciesTab(parent: Frame)
 			card,
 			string.format("XP x%.2f • $ x%.2f • Arena %d/%dHP", sp.xpMult, sp.coinMult, sp.arenaPower, sp.arenaHp),
 			{
-				Size = UDim2.new(1, -260, 0, 16),
-				Position = UDim2.fromOffset(76, 62),
+				Size = UDim2.new(1, -260, 0, 24),
+				Position = UDim2.fromOffset(76, 84),
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextScaled = false,
-				TextSize = 11,
+				TextSize = 20,
 				TextColor3 = UI.Colors.Accent,
 			}
 		)

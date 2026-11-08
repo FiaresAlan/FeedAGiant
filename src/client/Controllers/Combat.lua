@@ -258,8 +258,9 @@ local function buildBars(gui: ScreenGui)
 	UI.autoScale(box)
 	UI.icon(box, "glove", { Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(12, 14), ZIndex = 3 })
 	strengthLabel = UI.label(box, "FORÇA x1.00", {
-		Size = UDim2.fromOffset(110, 24),
-		Position = UDim2.fromOffset(-6, 92),
+		Size = UDim2.fromOffset(124, 24),
+		Position = UDim2.fromOffset(8, 92),
+		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
 		TextSize = 20,
 		Font = UI.FontBody,
@@ -267,6 +268,8 @@ local function buildBars(gui: ScreenGui)
 		ZIndex = 3,
 	})
 	UI.label(box, "HP", {
+		TextScaled = false,
+		TextSize = 24,
 		Size = UDim2.fromOffset(50, 28),
 		Position = UDim2.fromOffset(96, 20),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -286,6 +289,8 @@ local function buildBars(gui: ScreenGui)
 	)
 	hpText.Name = "HpText"
 	UI.label(box, "STA", {
+		TextScaled = false,
+		TextSize = 24,
 		Size = UDim2.fromOffset(50, 28),
 		Position = UDim2.fromOffset(96, 60),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -324,13 +329,14 @@ local function buildBars(gui: ScreenGui)
 	})
 	local hint =
 		UI.label(gui, "Clique/J: soco  •  Dir./K: pesado  •  F: bloquear  •  zona segura no seu pátio", {
-			Size = UDim2.fromOffset(560, 20),
+			Size = UDim2.fromOffset(700, 30),
 			Position = UDim2.new(1, -12, 1, -150),
 			AnchorPoint = Vector2.new(1, 1),
 			TextScaled = false,
-			TextSize = 16,
+			TextSize = 20,
 			Font = UI.FontBody,
-			TextTransparency = 0.35,
+			BackgroundTransparency = 0.45,
+			BackgroundColor3 = Color3.fromRGB(16, 20, 54),
 			TextXAlignment = Enum.TextXAlignment.Right,
 		})
 	hint.Visible = not UserInputService.TouchEnabled

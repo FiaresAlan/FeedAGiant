@@ -99,10 +99,10 @@ local function buildWindow(gui: ScreenGui)
 		body,
 		"Vencedor rouba as 2 comidas mais raras do PÁTIO do perdedor + 5% das moedas. Força = espécie × nível × rebirth × humor (+sorte).",
 		{
-			Size = UDim2.new(1, 0, 0, 40),
+			Size = UDim2.new(1, 0, 0, 72),
 			Position = UDim2.fromOffset(0, 26),
 			TextScaled = false,
-			TextSize = 13,
+			TextSize = 20,
 			TextWrapped = true,
 			TextTransparency = 0.2,
 		}

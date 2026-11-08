@@ -4,6 +4,8 @@
 -- barras com brilho animado e texto com gradiente. Tudo degrada graciosamente se Config.Assets.* = 0.
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local UIAssets = require(game.ReplicatedStorage.Shared.UIAssets)
@@ -360,10 +362,10 @@ function UI.iconButton(
 	local b = UI.button(parent, "", color, props)
 	UI.icon(b, iconName, { Size = UDim2.new(1, -8, 1, -22), Position = UDim2.fromOffset(4, 0), ZIndex = b.ZIndex + 1 })
 	UI.label(b, caption, {
-		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.new(0, 0, 1, -18),
+		Size = UDim2.new(1, 0, 0, 22),
+		Position = UDim2.new(0, 0, 1, -22),
 		TextScaled = false,
-		TextSize = 13,
+		TextSize = 20,
 		ZIndex = b.ZIndex + 1,
 	})
 	return b
@@ -402,15 +404,17 @@ function UI.bar(parent: Instance, color: Color3, props: { [string]: any }?): (Fr
 	shine.ClipsDescendants = true
 	shine.Parent = fill
 	UI.corner(shine, 6)
-	task.spawn(function()
-		while shine.Parent do
-			shine.Position = UDim2.fromOffset(-14, 3)
-			TweenService
-				:Create(shine, TweenInfo.new(1.6, Enum.EasingStyle.Linear), { Position = UDim2.new(1, 0, 0, 3) })
-				:Play()
-			task.wait(2.8)
-		end
-	end)
+	-- Um tween só, repetindo (antes: um laço task.spawn por barra). Parado com "Movimento reduzido".
+	if not GuiService.ReducedMotionEnabled then
+		shine.Position = UDim2.fromOffset(-14, 3)
+		TweenService:Create(
+			shine,
+			TweenInfo.new(1.6, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 1.2),
+			{ Position = UDim2.new(1, 0, 0, 3) }
+		):Play()
+	else
+		shine.Visible = false
+	end
 	return bg, fill
 end
 
@@ -423,26 +427,60 @@ function UI.setBar(fill: Frame, pct: number, instant: boolean?)
 	end
 end
 
+-- Tamanho "de verdade" de cada objeto animado (revisão de UI 08/11: pop/pulso repetidos liam o
+-- tamanho no meio da animação e o objeto ia crescendo ou encolhendo).
+local baseSizes: { [GuiObject]: UDim2 } = setmetatable({}, { __mode = "k" }) :: any
+local activeTweens: { [GuiObject]: Tween } = setmetatable({}, { __mode = "k" }) :: any
+
+local function baseSize(inst: GuiObject): UDim2
+	local b = baseSizes[inst]
+	if not b then
+		b = inst.Size
+		baseSizes[inst] = b
+	end
+	return b
+end
+
+local function play(inst: GuiObject, info: TweenInfo, goal: { [string]: any }): Tween
+	local old = activeTweens[inst]
+	if old then
+		old:Cancel()
+	end
+	local t = TweenService:Create(inst, info, goal)
+	activeTweens[inst] = t
+	t:Play()
+	return t
+end
+
+-- Com "Movimento reduzido" ligado: aparece direto (sem crescer), só o retorno de cor/visibilidade.
+function UI.reducedMotion(): boolean
+	return GuiService.ReducedMotionEnabled
+end
+
 function UI.pop(inst: GuiObject)
 	inst.Visible = true
-	local goal = inst.Size
-	inst.Size = UDim2.new(goal.X.Scale * 0.8, goal.X.Offset * 0.8, goal.Y.Scale * 0.8, goal.Y.Offset * 0.8)
-	TweenService:Create(inst, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal })
-		:Play()
+	local goal = baseSize(inst)
+	if UI.reducedMotion() then
+		inst.Size = goal
+		return
+	end
+	inst.Size = UI.scaleUDim(goal, 0.8)
+	play(inst, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal })
 end
 
 function UI.pulse(inst: GuiObject, scale: number?, time: number?)
-	local goal = inst.Size
-	local k = scale or 1.12
-	local big = UI.scaleUDim(goal, k)
-	local t = TweenService:Create(
-		inst,
-		TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Size = big }
-	)
-	t:Play()
-	t.Completed:Once(function()
-		TweenService:Create(inst, TweenInfo.new((time or 0.18) / 2, Enum.EasingStyle.Quad), { Size = goal }):Play()
+	local goal = baseSize(inst)
+	if UI.reducedMotion() then
+		return
+	end
+	local half = (time or 0.18) / 2
+	local t = play(inst, TweenInfo.new(half, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UI.scaleUDim(goal, scale or 1.12),
+	})
+	t.Completed:Once(function(state)
+		if state == Enum.PlaybackState.Completed then
+			play(inst, TweenInfo.new(half, Enum.EasingStyle.Quad), { Size = goal })
+		end
 	end)
 end
 
@@ -498,16 +536,21 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 	body.Position = UDim2.fromOffset(20, 48)
 	body.ZIndex = 12
 	body.Parent = win
+	baseSizes[win] = size
 	local function hide()
-		local t = TweenService:Create(
-			win,
-			TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{ Size = UI.scaleUDim(size, 0.85) }
-		)
-		t:Play()
-		t.Completed:Once(function()
-			dim.Visible = false
-			win.Size = size
+		if UI.reducedMotion() then
+			win.Visible = false
+			return
+		end
+		local t = play(win, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Size = UI.scaleUDim(size, 0.85),
+		})
+		-- Só esconde se o fechamento terminou de verdade (reabrir no meio cancela este tween).
+		t.Completed:Once(function(state)
+			if state == Enum.PlaybackState.Completed then
+				win.Visible = false
+				win.Size = size
+			end
 		end)
 	end
 	close.Activated:Connect(hide)
@@ -524,13 +567,24 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 		local w = size.X.Offset + area.X * size.X.Scale
 		local h = size.Y.Offset + area.Y * size.Y.Scale + 24 -- cabeçalho acima da janela
 		fit.Scale = math.clamp(math.min(1, (area.X - 24) / math.max(w, 1), (area.Y - 24) / math.max(h, 1)), 0.4, 1)
+		-- O botão fechar nunca fica abaixo de 44 px desenhados, mesmo com a janela encolhida.
+		local c = math.max(44, math.ceil(44 / fit.Scale))
+		close.Size = UDim2.fromOffset(c, c)
+		close.Position = UDim2.new(1, -c + 14, 0, -c + 28)
 	end
 	refit()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 	-- compat: código antigo faz win.Visible = false / UI.pop(win)
 	win:GetPropertyChangedSignal("Visible"):Connect(function()
 		dim.Visible = win.Visible
+		-- Controle/teclado: foco no fechar ao abrir e a seleção fica presa dentro da janela.
+		if win.Visible and UserInputService.GamepadEnabled then
+			GuiService.SelectedObject = close
+		elseif not win.Visible and GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(win) then
+			GuiService.SelectedObject = nil
+		end
 	end)
+	win.SelectionGroup = true
 	dim.MouseEnter:Connect(function() end)
 	return win, body
 end

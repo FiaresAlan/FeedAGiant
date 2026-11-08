@@ -45,6 +45,36 @@ function Tutorial.init()
 			end
 		end
 		placeBanners()
+		-- Revisão de UI (08/11): com uma janela ou a abertura de caixa na tela, as faixas do tutorial
+		-- somem (antes ficavam por trás, escurecidas, e pareciam sobrepostas). Voltam ao fechar.
+		local mainGui = player.PlayerGui:FindFirstChild("FeedAGiantGui")
+		if gui and gui:IsA("ScreenGui") and mainGui then
+			local tutorialGui: ScreenGui = gui
+			local modals: { GuiObject } = {}
+			local function update()
+				local blocked = false
+				for _, m in modals do
+					if m.Visible then
+						blocked = true
+						break
+					end
+				end
+				tutorialGui.Enabled = not blocked
+			end
+			local function watch(child: Instance)
+				if
+					child:IsA("GuiObject") and (child.Name == "HatchOverlay" or string.sub(child.Name, 1, 4) == "Dim_")
+				then
+					table.insert(modals, child)
+					child:GetPropertyChangedSignal("Visible"):Connect(update)
+				end
+			end
+			for _, child in mainGui:GetChildren() do
+				watch(child)
+			end
+			mainGui.ChildAdded:Connect(watch)
+			update()
+		end
 		local cam = workspace.CurrentCamera
 		if cam then
 			cam:GetPropertyChangedSignal("ViewportSize"):Connect(placeBanners)

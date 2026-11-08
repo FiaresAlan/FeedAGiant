@@ -138,7 +138,7 @@ local function buildTopBar(gui: ScreenGui)
 	xpText = UI.label(xpBg, "0 / 50 XP", {
 		Size = UDim2.fromScale(1, 1),
 		TextScaled = false,
-		TextSize = 18,
+		TextSize = 20,
 		Font = UI.FontBody,
 		ZIndex = 7,
 	})
@@ -213,7 +213,7 @@ local function tile(
 		Size = UDim2.new(1, 8, 0, 24),
 		Position = UDim2.new(0, -4, 1, -22),
 		TextScaled = false,
-		TextSize = 19,
+		TextSize = 20,
 		ZIndex = b.ZIndex + 1,
 	})
 	return b, cap
@@ -324,7 +324,7 @@ local function buildSideButtons(gui: ScreenGui)
 		Size = UDim2.new(1, 8, 0, 24),
 		Position = UDim2.new(0, -4, 1, -22),
 		TextScaled = false,
-		TextSize = 19,
+		TextSize = 20,
 		ZIndex = coll.ZIndex + 1,
 	})
 	local badge = UI.frame(coll, {
@@ -383,7 +383,7 @@ local function buildFeedButton(gui: ScreenGui)
 		Position = UDim2.fromOffset(86, 50),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 19,
+		TextSize = 20,
 		Font = UI.FontBody,
 		ZIndex = feed.ZIndex + 1,
 	})

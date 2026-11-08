@@ -23,20 +23,20 @@ local function rebuildCard(d: any)
 	if existing then
 		card = existing
 	else
-		card = UI.frame(list, { Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = UI.Colors.Panel })
+		card = UI.frame(list, { Size = UDim2.new(1, 0, 0, 58), BackgroundColor3 = UI.Colors.Panel })
 		UI.stroke(card, Config.Rarities[d.rarity].color, 2)
 		local title = UI.label(card, "", {
 			Name = "Title",
-			Size = UDim2.new(1, -12, 0, 20),
+			Size = UDim2.new(1, -12, 0, 26),
 			Position = UDim2.fromOffset(6, 2),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = Config.Rarities[d.rarity].color,
 		})
-		title.Text = Locale.fmt("drop_card", nil, { f = d.name, r = d.rarity, n = d.holdTime })
+		title.Text = Locale.fmt("drop_card", nil, { f = d.name, r = Locale.rarity(d.rarity), n = d.holdTime })
 		local rows = UI.frame(card, {
 			Name = "Rows",
-			Size = UDim2.new(1, -12, 1, -26),
-			Position = UDim2.fromOffset(6, 24),
+			Size = UDim2.new(1, -12, 1, -32),
+			Position = UDim2.fromOffset(6, 30),
 			BackgroundTransparency = 1,
 		})
 		local lay = Instance.new("UIListLayout")
@@ -61,7 +61,7 @@ local function rebuildCard(d: any)
 			break
 		end
 		n += 1
-		local row = UI.frame(rows, { Size = UDim2.new(1, 0, 0, 16), BackgroundColor3 = Color3.fromRGB(20, 20, 30) })
+		local row = UI.frame(rows, { Size = UDim2.new(1, 0, 0, 24), BackgroundColor3 = Color3.fromRGB(20, 20, 30) })
 		UI.corner(row, 6)
 		local fill = UI.frame(row, {
 			Size = UDim2.fromScale(math.clamp(c.progress, 0, 1), 1),
@@ -73,18 +73,18 @@ local function rebuildCard(d: any)
 		UI.label(
 			row,
 			string.format("%s %d%%", c.name, math.floor(c.progress * 100)),
-			{ Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 11 }
+			{ Size = UDim2.fromScale(1, 1), TextScaled = false, TextSize = 20 }
 		)
 	end
 	if n == 0 then
 		UI.label(
 			rows,
 			"Ninguém no círculo — CORRA!",
-			{ Size = UDim2.new(1, 0, 0, 16), TextScaled = false, TextSize = 11, TextColor3 = UI.Colors.Accent }
+			{ Size = UDim2.new(1, 0, 0, 24), TextScaled = false, TextSize = 20, TextColor3 = UI.Colors.Accent }
 		)
 		n = 1
 	end
-	card.Size = UDim2.new(1, 0, 0, 30 + n * 18)
+	card.Size = UDim2.new(1, 0, 0, 36 + n * 26)
 end
 
 local function refreshPanel()
@@ -96,7 +96,8 @@ end
 function Drops.init(gui: ScreenGui)
 	panel = UI.panel(gui, {
 		Name = "DropsPanel",
-		Size = UDim2.fromOffset(280, 220),
+		Size = UDim2.fromOffset(340, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Position = UDim2.new(1, -12, 0, 12),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundColor3 = UI.Colors.Bg,
@@ -111,10 +112,16 @@ function Drops.init(gui: ScreenGui)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Accent,
 	})
-	list = UI.frame(
-		panel,
-		{ Size = UDim2.new(1, -16, 1, -36), Position = UDim2.fromOffset(8, 32), BackgroundTransparency = 1 }
-	)
+	list = UI.frame(panel, {
+		Size = UDim2.new(1, -16, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Position = UDim2.fromOffset(8, 34),
+		BackgroundTransparency = 1,
+	})
+	-- O painel cresce com os cartões (antes: caixa fixa de 220 px quase vazia; revisão de UI 08/11).
+	local padBottom = Instance.new("UIPadding")
+	padBottom.PaddingBottom = UDim.new(0, 10)
+	padBottom.Parent = panel
 	local lay = Instance.new("UIListLayout")
 	lay.Padding = UDim.new(0, 6)
 	lay.Parent = list
@@ -127,7 +134,7 @@ function Drops.init(gui: ScreenGui)
 	})
 	-- Logo acima do botão ALIMENTAR (teste de 08/11: no topo cobria a faixa do tutorial).
 	local function placeArrow()
-		arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(130 * UI.deviceScale()))
+		arrow.Position = UDim2.new(0.5, 0, 1, -math.floor(160 * UI.deviceScale()))
 	end
 	placeArrow()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeArrow)
