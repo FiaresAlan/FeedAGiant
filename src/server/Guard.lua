@@ -24,6 +24,7 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Display = { burst = 4, perSecond = 1 }, -- expor/recolher gigante na base
 	Move = { burst = 3, perSecond = 2 }, -- golpe da batalha por turnos (1 por turno)
 	Battle = { burst = 2, perSecond = 0.2 }, -- pedir batalha de gigantes (a luta dura ~40 s)
+	Admin = { burst = 6, perSecond = 2 }, -- comandos do painel de admin
 	Meat = { burst = 4, perSecond = 2 }, -- cortar porção da Carne Gigante
 }
 

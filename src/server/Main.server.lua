@@ -25,6 +25,8 @@ local GiantBattleService = require(Services.GiantBattleService)
 local RosterService = require(Services.RosterService)
 local ProgressService = require(Services.ProgressService)
 local MeatService = require(Services.MeatService)
+local AdminService = require(Services.AdminService)
+local BotService = require(Services.BotService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -49,6 +51,9 @@ GiantBattleService.init()
 RosterService.init()
 ProgressService.init()
 MeatService.init()
+AdminService.init()
+BotService.init()
+AdminService.Bots = BotService
 -- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do
 -- Dragão desde 08/11/2026 (noite) e não ocupa mais o coliseu.
 GiantBattleService.IsArenaBusy = function()

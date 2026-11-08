@@ -289,6 +289,11 @@ function MeatService.run()
 	finish(f)
 end
 
+function MeatService.position(): Vector3?
+	local f = current
+	return if f and not f.over then f.pos else nil
+end
+
 function MeatService.isActive(): boolean
 	return current ~= nil
 end

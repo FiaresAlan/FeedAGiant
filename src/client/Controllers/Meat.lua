@@ -99,7 +99,7 @@ function Meat.init(gui: ScreenGui)
 		Position = UDim2.new(0.5, 0, 0, 150),
 		BackgroundColor3 = UI.Colors.Panel,
 		Visible = false,
-		ZIndex = 20,
+		ZIndex = 8, -- atrás das janelas (que começam no 10)
 	})
 	UI.autoScale(chip)
 	UI.corner(chip, 16)
@@ -110,7 +110,7 @@ function Meat.init(gui: ScreenGui)
 		TextScaled = false,
 		TextSize = 24,
 		TextWrapped = true,
-		ZIndex = 21,
+		ZIndex = 9,
 	})
 
 	Remotes.MeatState.OnClientEvent:Connect(function(e)

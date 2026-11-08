@@ -471,6 +471,26 @@ function BossService.run(duration: number)
 	finish(f, f.hp <= 0)
 end
 
+-- Bots ajudam com dano pequeno. Não entram em f.damage (prêmios só para jogadores reais).
+function BossService.botHit(damage: number): boolean
+	local f = current
+	if not f or f.over then
+		return false
+	end
+	f.hp = math.max(0, f.hp - math.clamp(damage, 0, 40))
+	updateBar(f)
+	if f.hp <= 0 then
+		current = nil
+		task.spawn(finish, f, true)
+	end
+	return true
+end
+
+function BossService.center(): Vector3?
+	local f = current
+	return if f and not f.over then f.center else nil
+end
+
 function BossService.isActive(): boolean
 	return current ~= nil or BossService.running
 end

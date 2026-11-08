@@ -20,6 +20,7 @@ export type BaseInfo = {
 	sign: TextLabel,
 	zone: Part,
 	owner: Player?,
+	botOwner: string?, -- nome do bot que ocupa a base (BotService)
 }
 
 MapService.Bases = {} :: { BaseInfo }
@@ -330,15 +331,57 @@ function MapService.getBaseOf(player: Player): BaseInfo?
 	return nil
 end
 
+-- Bots: o BotService tira um bot da base quando um jogador real precisa dela.
+MapService.EvictBot = nil :: ((base: BaseInfo) -> ())?
+
 function MapService.claimBase(player: Player): BaseInfo?
+	-- 1º: base livre de verdade; 2º: tira um bot (jogador real sempre tem prioridade)
+	local pick: BaseInfo? = nil
 	for _, base in MapService.Bases do
-		if base.owner == nil then
-			base.owner = player
-			base.sign.Text = Locale.fmt("owner_sign", Locale.of(player), { p = string.upper(player.DisplayName) })
+		if base.owner == nil and base.botOwner == nil then
+			pick = base
+			break
+		end
+	end
+	if not pick then
+		for _, base in MapService.Bases do
+			if base.owner == nil and base.botOwner ~= nil then
+				local evict = MapService.EvictBot
+				if evict then
+					evict(base)
+				end
+				base.botOwner = nil
+				pick = base
+				break
+			end
+		end
+	end
+	local base = pick
+	if base and base.owner == nil then
+		base.owner = player
+		base.sign.Text = Locale.fmt("owner_sign", Locale.of(player), { p = string.upper(player.DisplayName) })
+		return base
+	end
+	return nil
+end
+
+function MapService.claimBaseForBot(name: string): BaseInfo?
+	for i = #MapService.Bases, 1, -1 do
+		local base = MapService.Bases[i]
+		if base.owner == nil and base.botOwner == nil then
+			base.botOwner = name
+			base.sign.Text = string.upper(name)
 			return base
 		end
 	end
 	return nil
+end
+
+function MapService.releaseBotBase(base: BaseInfo)
+	if base.owner == nil then
+		base.botOwner = nil
+		base.sign.Text = "BASE LIVRE"
+	end
 end
 
 function MapService.releaseBase(player: Player)

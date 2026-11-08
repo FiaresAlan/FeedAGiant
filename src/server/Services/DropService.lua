@@ -574,6 +574,35 @@ function DropService.giveCarried(player: Player, foodId: string, at: Vector3): b
 	return true
 end
 
+-- BOTS (BotService): itens no chão, livres e já liberados. Só leitura.
+function DropService.freeItems(): { { id: number, pos: Vector3, rarity: string, foodId: string?, kind: string } }
+	local out: { any } = {}
+	for id, it in items do
+		if not it.done and not it.carrier and it.landed and os.clock() >= it.unlockAt then
+			table.insert(
+				out,
+				{ id = id, pos = it.holder.Position, rarity = it.rarity, foodId = it.foodId, kind = it.kind }
+			)
+		end
+	end
+	return out
+end
+
+-- Bot recolhe um drop de comida comum/incomum (o BotService só chama sem jogador real por perto).
+-- Devolve o foodId ou nil. Caixas e raridades altas ficam sempre para os jogadores.
+function DropService.botCollect(id: number): string?
+	local it = items[id]
+	if not it or it.done or it.carrier or not it.landed or it.kind ~= "food" then
+		return nil
+	end
+	if Config.Rarities[it.rarity].order > 2 then
+		return nil
+	end
+	local foodId = it.foodId
+	remove(it)
+	return foodId
+end
+
 -- Ponto aleatório na praça (entre o caldeirão e a loja), como antes.
 function DropService.plazaPoint(): Vector3
 	local a = math.random() * math.pi * 2

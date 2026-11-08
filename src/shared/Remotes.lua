@@ -54,6 +54,9 @@ local EVENTS = {
 	"RequestDisplay", -- client -> server: speciesId, on:boolean (expor gigante na base)
 	"MeatState", -- server -> all: {kind = Warn|Land|Update|End, pos, portions, endsAt}
 	"BossState", -- server -> all: {kind = Phase|Rewards, ...} (ilha do Dragão)
+	-- Painel de admin (08/11/2026): o servidor confere o papel em todo comando
+	"AdminCommand", -- client -> server: cmd:string, args:table
+	"AdminState", -- server -> admin: {kind = Result|Confirm, ...}
 }
 
 local FUNCTIONS = {

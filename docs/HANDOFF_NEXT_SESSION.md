@@ -72,6 +72,16 @@ câmera do jogador.
 - Emulador do Studio: para trocar de aparelho use a lista "Dispositivo" do viewport; os cliques automáticos nos ícones de categoria
   não funcionaram nesta sessão (ficou em Meta Quest 3).
 
+### Painel de admin e bots (08/11/2026, madrugada)
+- **Admin:** `src/server/AdminConfig.lua` (dono por UserId, só servidor) + `Services/AdminService.lua` + `client/Controllers/Admin.lua`
+  (botão ADM no canto superior direito, só para admins). Testado no Studio: moedas/nível/comida ok; teto de moedas bloqueou;
+  admin não se expulsa/bane; aviso filtrado; eventos e bots. Banir não foi aplicado de verdade (no Studio o BanAsync só valida).
+  NÃO testado: um não-admin tentando (o caminho existe: tentativa registrada e ignorada).
+- **Bots:** `Services/BotService.lua`. Testado: entram sozinhos completando 4 "pessoas", nomes conferidos como livres na Roblox,
+  base do fim da lista, gigante próprio, andam com as animações oficiais da Roblox, foram à Carne Gigante e alimentaram o
+  gigante (comida voando). NÃO testado: ida ao Dragão pela ponte (pathfinding longo), saída do bot quando o servidor lota.
+  Avatares só com cores e proporções (sem roupas do catálogo: não há IDs verificados).
+
 ### PRÓXIMA TAREFA PRIORITÁRIA
 1. ~~Teste com 2 jogadores~~ FEITO (evidências §9); painel final 7,5. Specs FEITAS: `tests/GameLogic.spec.luau` (33 testes do `src/server/GameLogic.lua`, 72/72 passando; evidências §10). Próximo: medir a ilha e a animação no emulador de celular e um novo painel de 3 revisores.
 2. **Testes automáticos** dos sistemas novos em `tests/` (sequência, transferência 30%, renda offline com teto, pendências idempotentes).
