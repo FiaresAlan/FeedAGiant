@@ -287,9 +287,11 @@ function PlotService.feed(player: Player, slot: number)
 	if not def then
 		return
 	end
+	local fromModel = foodModels[player] and foodModels[player][slot]
+	local from = if fromModel then fromModel:GetPivot().Position else nil
 	profile.plot[tostring(slot)] = nil
 	profile.totalFeeds += 1
-	GiantService.addXp(player, Config.Rarities[def.rarity].xp)
+	GiantService.addXp(player, Config.Rarities[def.rarity].xp, def.id, from)
 	PlotService.rebuildPlot(player)
 	PlotService.pushState(player)
 end
@@ -309,7 +311,9 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 	end
 	table.remove(profile.inventory, invIndex)
 	profile.totalFeeds += 1
-	GiantService.addXp(player, Config.Rarities[def.rarity].xp)
+	local char = player.Character
+	local from = if char then char:GetPivot().Position + Vector3.new(0, 2, 0) else nil
+	GiantService.addXp(player, Config.Rarities[def.rarity].xp, def.id, from)
 	PlotService.pushState(player)
 end
 

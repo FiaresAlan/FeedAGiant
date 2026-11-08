@@ -447,7 +447,9 @@ function GiantService.moodMultiplier(profile: DataService.Profile): number
 	return Config.Giant.MoodMultipliers.Fine
 end
 
-function GiantService.addXp(player: Player, amount: number)
+-- foodId/from (Fase 3, juice): qual comida foi dada e de onde ela sai, para o cliente animar a
+-- comida voando até a boca do gigante. Opcionais (eventos sem comida continuam funcionando).
+function GiantService.addXp(player: Player, amount: number, foodId: string?, from: Vector3?)
 	local profile = DataService.get(player)
 	if not profile then
 		return
@@ -473,7 +475,13 @@ function GiantService.addXp(player: Player, amount: number)
 		fx:Emit(20)
 	end
 	refreshVisual(player, true)
-	Remotes.GiantFed:FireAllClients({ userId = player.UserId, xp = amount, leveled = leveled })
+	Remotes.GiantFed:FireAllClients({
+		userId = player.UserId,
+		xp = amount,
+		leveled = leveled,
+		foodId = foodId,
+		from = from,
+	})
 	if leveled then
 		Remotes.Notify:FireClient(player, Locale.msg("levelup", { n = profile.level }, Color3.fromRGB(255, 220, 80)))
 	end
