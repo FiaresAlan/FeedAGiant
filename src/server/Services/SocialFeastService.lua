@@ -159,8 +159,8 @@ local function tryContribute(player: Player)
 	table.remove(profile.inventory, index)
 	firstProfile.coins += Rules.RewardCoins
 	profile.coins += Rules.RewardCoins
-	firstProfile.communityFeast = Rules.completed(ownedSlice(firstProfile), now)
-	profile.communityFeast = Rules.completed(slice, now)
+	(firstProfile :: any).communityFeast = Rules.completed(ownedSlice(firstProfile), now)
+	(profile :: any).communityFeast = Rules.completed(slice, now)
 	DataService.markDirty(firstPlayer)
 	DataService.markDirty(player)
 	GiantService.grantCoopBuff(firstPlayer, Rules.BuffSeconds, Rules.BuffMult)
