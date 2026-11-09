@@ -563,11 +563,12 @@ function GiantService.grantCoopBuff(player: Player, duration: number, mult: numb
 	local now = os.time()
 	local previous = coopBuffs[player.UserId]
 	local expiry = now + math.max(0, duration)
-	coopBuffs[player.UserId] = {
+	local entry = {
 		untilTime = math.max(expiry, if previous then previous.untilTime else 0),
 		mult = math.clamp(mult, 1, 1.25),
 	}
-	player:SetAttribute("CoopFeastUntil", coopBuffs[player.UserId].untilTime)
+	coopBuffs[player.UserId] = entry
+	player:SetAttribute("CoopFeastUntil", entry.untilTime)
 end
 
 function GiantService.addXp(
