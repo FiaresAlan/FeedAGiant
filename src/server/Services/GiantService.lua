@@ -514,7 +514,12 @@ local function refreshVisual(player: Player, pulse: boolean)
 		end
 	end
 	if lastStage[player] and lastStage[player] ~= stage.name and Config.stageForLevel(profile.level).minLevel > 1 then
-		Remotes.GiantEvolved:FireAllClients({ userId = player.UserId, stageName = stage.name, level = profile.level })
+		Remotes.GiantEvolved:FireAllClients({
+			userId = player.UserId,
+			stageName = stage.name,
+			previousStage = lastStage[player],
+			level = profile.level,
+		})
 		Remotes.Notify:FireAllClients(
 			Locale.msg("evolved_broadcast", { p = player.DisplayName, s = stage.name }, stage.eyeColor)
 		)
@@ -565,6 +570,7 @@ function GiantService.addXp(
 	end
 	amount = math.floor(amount * GiantService.species(profile).xpMult)
 	amount = math.floor(amount * GiantService.globalXpMult) -- bônus do servidor (Gigante Ancestral)
+	local levelBefore = profile.level
 	profile.xp += amount
 	profile.hunger = math.min(100, profile.hunger + Config.Giant.HungerPerFeed)
 	profile.lastFed = os.time()
@@ -589,6 +595,9 @@ function GiantService.addXp(
 		userId = player.UserId,
 		xp = amount,
 		leveled = leveled,
+		level = profile.level,
+		previousLevel = levelBefore,
+		feedNumber = if foodId ~= nil then profile.totalFeeds else nil,
 		foodId = foodId,
 		from = from,
 		crit = ex.crit == true,
