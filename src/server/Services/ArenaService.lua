@@ -16,6 +16,7 @@ local MapService = require(script.Parent.MapService)
 local CombatService = require(script.Parent.CombatService)
 local StealService = require(script.Parent.StealService)
 local DropService = require(script.Parent.DropService)
+local BotService = require(script.Parent.BotService)
 
 local A = Config.Arena
 local ArenaService = {}
@@ -113,6 +114,9 @@ local frozen: { [Player]: boolean } = {} -- na contagem (sem andar, pular nem so
 local arenaInUse = false
 -- Quem saiu no meio da luta (o castigo já foi aplicado ao sair, ver onReleasing).
 local leftMidFight: { [Player]: boolean } = {}
+-- Duelo contra bot (09/11, item 7): jogador -> uid do bot.
+local botFight: { [Player]: number } = {}
+local BOT_DUEL_HP = 150 -- mesma vida da "luta justa" de um jogador (CombatService.FAIR_HP)
 
 local function arenaSpots(): (CFrame?, CFrame?)
 	local map = Workspace:FindFirstChild("Map")
@@ -436,10 +440,191 @@ end
 -- Coliseu compartilhado (item 9.4): boxe, Dragão e gigantes, um de cada vez.
 ArenaService.OtherBusy = nil :: (() -> boolean)?
 function ArenaService.isBusy(): boolean
-	return next(fighting) ~= nil
+	return next(fighting) ~= nil or next(botFight) ~= nil
+end
+
+-- Luta de boxe contra um bot: mesma arena, contagem, tempo, nocaute e "fora do ringue" da luta entre
+-- jogadores. Ninguém perde comida para bot nem tira comida de bot: vale vitória/derrota e a sequência.
+local function botRingedOut(pos: Vector3?): boolean
+	if not pos then
+		return true
+	end
+	local c = World.Arena.center
+	local flat = Vector3.new(pos.X - c.X, 0, pos.Z - c.Z).Magnitude
+	return flat > World.Arena.floorR + 1 or pos.Y < World.Arena.floorTop - 4
+end
+
+local function botDuelBody(a: Player, bot: any)
+	local spotA, spotB = arenaSpots()
+	if not spotA or not spotB or not waitCharacter(a, 6) then
+		notify(a, "A arena não está disponível agora.", Color3.fromRGB(255, 120, 80))
+		return
+	end
+	if not BotService.duelStart(bot.uid, spotB, spotA.Position, BOT_DUEL_HP) then
+		notify(a, bot.name .. " já está em outra luta.", Color3.fromRGB(255, 170, 60))
+		return
+	end
+	botFight[a] = bot.uid
+	local pa = ArenaService.power(a)
+	Remotes.ArenaState:FireAllClients({
+		kind = "Start",
+		a = a.UserId,
+		b = bot.uid,
+		aName = a.DisplayName,
+		bName = bot.name,
+		powerA = math.floor(pa),
+		powerB = math.floor(pa * (0.85 + math.random() * 0.3)),
+		seconds = FIGHT_SECONDS,
+		countdown = COUNTDOWN,
+		real = true,
+		tournament = false,
+	})
+	StealService.dropCarried(a)
+	DropService.dropCarried(a)
+	CombatService.resetFighter(a)
+	CombatService.setFightMode(a, true)
+	sendTo(a, spotA, spotB.Position)
+	setFrozen(a, true)
+	task.wait(COUNTDOWN)
+	setFrozen(a, false)
+	BotService.duelGo(bot.uid, a, FIGHT_SECONDS)
+	local t0 = os.clock()
+	local lastTick = 0
+	local playerWon: boolean? = nil
+	local reason = "time"
+	while a.Parent do
+		task.wait(0.2)
+		local hpB, koB, posB = BotService.duelState(bot.uid)
+		if CombatService.isKO(a) or koB then
+			playerWon, reason = koB, "ko"
+			break
+		end
+		local outA, outB = ringedOut(a), botRingedOut(posB)
+		if outA or outB then
+			playerWon = if outA and outB then CombatService.hpFraction(a) >= hpB else outB
+			reason = "ring"
+			break
+		end
+		local now = os.clock()
+		if now - lastTick >= 0.5 then
+			lastTick = now
+			Remotes.ArenaState:FireAllClients({
+				kind = "Tick",
+				a = a.UserId,
+				b = bot.uid,
+				hpA = math.floor(CombatService.hpFraction(a) * 100),
+				hpB = math.floor(hpB * 100),
+				left = math.max(0, math.ceil(FIGHT_SECONDS - (now - t0))),
+			})
+		end
+		if now - t0 >= FIGHT_SECONDS then
+			local fa = CombatService.hpFraction(a)
+			playerWon = if fa == hpB then math.random() < 0.5 else fa > hpB
+			break
+		end
+	end
+	if playerWon == nil then
+		playerWon = false
+		reason = "left"
+	end
+	BotService.duelEnd(bot.uid)
+	BotService.arenaResult(bot.uid, not playerWon)
+	local prof = DataService.get(a)
+	if prof and reason ~= "left" then
+		if playerWon then
+			prof.arenaWins += 1
+			prof.arenaStreak += 1
+		else
+			prof.arenaLosses += 1
+			prof.arenaStreak = 0
+		end
+		DataService.markDirty(a)
+		PlotService.pushState(a)
+	end
+	Remotes.ArenaState:FireAllClients({
+		kind = "End",
+		a = a.UserId,
+		b = bot.uid,
+		winner = if playerWon then a.UserId else bot.uid,
+		winnerName = if playerWon then a.DisplayName else bot.name,
+		stolen = {},
+		tournament = false,
+		reason = reason,
+	})
+	Remotes.Notify:FireAllClients(Locale.msg("arena_won_broadcast", {
+		a = if playerWon then a.DisplayName else bot.name,
+		b = if playerWon then bot.name else a.DisplayName,
+	}, Color3.fromRGB(255, 200, 60)))
+	task.delay(3, function()
+		sendHome(a)
+	end)
+end
+
+local function runBotDuel(a: Player, bot: any)
+	busy[a] = true
+	arenaInUse = true
+	local ok, err = pcall(botDuelBody :: any, a, bot)
+	arenaInUse = false
+	botFight[a] = nil
+	setFrozen(a, false)
+	busy[a] = nil
+	if not ok then
+		warn("[ArenaService] duelo com bot:", err)
+		BotService.duelEnd(bot.uid)
+		Remotes.ArenaState:FireAllClients({ kind = "End", a = a.UserId, b = bot.uid, winner = 0, aborted = true })
+	end
+end
+
+-- Desafio a um bot: ele "pensa" 1,5 a 3 s e aceita, como um jogador faria.
+local function requestBotDuel(challenger: Player, uid: number)
+	local bot = BotService.byUid(uid)
+	if not bot then
+		return
+	end
+	local other = ArenaService.OtherBusy
+	if other and other() then
+		return notify(
+			challenger,
+			"O coliseu está ocupado (Dragão ou batalha de gigantes). Tente já já!",
+			Color3.fromRGB(255, 170, 60)
+		)
+	end
+	local ok, why = canFight(challenger)
+	if not ok then
+		return notify(challenger, why :: string, Color3.fromRGB(255, 120, 80))
+	end
+	local cd = cooldownLeft(challenger)
+	if cd > 0 then
+		return notify(
+			challenger,
+			Locale.fmt("arena_wait", Locale.of(challenger), { n = cd }),
+			Color3.fromRGB(255, 120, 80)
+		)
+	end
+	if arenaInUse or bot.inDuel then
+		return notify(challenger, "A arena está ocupada. Tente quando a luta acabar.", Color3.fromRGB(255, 120, 80))
+	end
+	Remotes.ArenaState:FireClient(challenger, { kind = "Sent", to = uid, toName = bot.name })
+	busy[challenger] = true
+	task.delay(1.5 + math.random() * 1.5, function()
+		busy[challenger] = nil
+		if not challenger.Parent or arenaInUse or not BotService.byUid(uid) then
+			Remotes.ArenaState:FireClient(challenger, { kind = "Declined", by = uid })
+			return
+		end
+		local cp = DataService.get(challenger)
+		if cp then
+			cp.lastDuel = os.time()
+		end
+		PlotService.pushState(challenger)
+		task.spawn(runBotDuel, challenger, bot)
+	end)
 end
 
 local function requestDuel(challenger: Player, targetId: number)
+	if targetId < 0 and BotService.byUid(targetId) then
+		return requestBotDuel(challenger, targetId)
+	end
 	local target = Players:GetPlayerByUserId(targetId)
 	if not target or target == challenger then
 		return
@@ -626,6 +811,9 @@ function ArenaService.init()
 	-- Isola a luta: lutadores só acertam o adversário; ninguém de fora acerta quem luta.
 	local previousFilter = CombatService.HitFilter
 	CombatService.HitFilter = function(attacker: Player, victim: Player): boolean
+		if botFight[attacker] or botFight[victim] then
+			return false -- luta contra bot: nenhum jogador acerta nem é acertado por outro jogador
+		end
 		local oa, ov = fighting[attacker], fighting[victim]
 		if oa or ov then
 			return oa == victim
@@ -633,7 +821,7 @@ function ArenaService.init()
 		return if previousFilter then previousFilter(attacker, victim) else true
 	end
 	CombatService.IgnoreSafeZone = function(victim: Player): boolean
-		return (fighting :: { [Player]: any })[victim] ~= nil
+		return (fighting :: { [Player]: any })[victim] ~= nil or botFight[victim] ~= nil
 	end
 	-- Na luta: sem soco durante a contagem e sem recuperar vida (senão quem só bloqueia ganha
 	-- no tempo: revisão independente, regen de ~16 HP/s > dano de quem ataca um bloqueio).
@@ -641,13 +829,18 @@ function ArenaService.init()
 		return not frozen[attacker]
 	end
 	CombatService.NoRegen = function(player: Player): boolean
-		return (fighting :: { [Player]: any })[player] ~= nil
+		return (fighting :: { [Player]: any })[player] ~= nil or botFight[player] ~= nil
 	end
 	CombatService.FairFight = function(player: Player): boolean
-		return (fighting :: { [Player]: any })[player] ~= nil
+		return (fighting :: { [Player]: any })[player] ~= nil or botFight[player] ~= nil
 	end
 	-- Sair do jogo no meio da luta = derrota com o mesmo castigo (aplicado ANTES do save final).
 	DataService.onReleasing(function(player: Player, data: DataService.Profile)
+		if botFight[player] then
+			data.arenaLosses += 1 -- saiu no meio da luta com bot: derrota, sem castigo de comida
+			data.arenaStreak = 0
+			return
+		end
 		local opponent = fighting[player]
 		if not opponent then
 			return

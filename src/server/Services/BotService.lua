@@ -16,6 +16,7 @@
 --   * jogador real sempre tem prioridade de base: se o servidor lota, um bot "sai" (MapService).
 -- Animações: as oficiais da Roblox que vêm dentro do próprio rig (Animate), tocadas no servidor;
 -- soco: as animações de boxe do projeto (AnimationIds).
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
 local Workspace = game:GetService("Workspace")
@@ -69,6 +70,8 @@ type Bot = {
 	-- placares e arena (09/11, itens 7 e 9): números coerentes com o tamanho do gigante do bot
 	rebirths: number,
 	arenaPts: number,
+	maxHp: number,
+	inDuel: boolean,
 }
 
 local BOT_HP = 110 -- um pouco menos que um jogador (150 na luta justa): dá para vencer, mas não é saco de pancada
@@ -371,7 +374,7 @@ local function walkTo(bot: Bot, pos: Vector3, maxSeconds: number?): boolean
 		points = { pos } -- sem caminho: vai reto
 	end
 	for i, p in points do
-		if not bot.alive or os.clock() > deadline or bot.fighting or bot.koUntil > os.clock() then
+		if not bot.alive or os.clock() > deadline or bot.fighting or bot.inDuel or bot.koUntil > os.clock() then
 			return false
 		end
 		if jumps[i] then
@@ -585,8 +588,10 @@ local function knockoutBot(bot: Bot, attacker: Player)
 	task.delay(Config.Combat.KOSeconds, function()
 		if bot.alive then
 			bot.hum.PlatformStand = false
-			bot.hp = BOT_HP
-			play(bot, "laugh")
+			bot.hp = bot.maxHp
+			if not bot.inDuel then
+				play(bot, "laugh")
+			end
 		end
 	end)
 end
@@ -603,7 +608,8 @@ local function hitBotTarget(
 	local best: Bot? = nil
 	local bestDot = 0.45
 	for _, b in bots do
-		if b.alive and b.koUntil <= now then
+		-- num duelo da arena, só o adversário acerta o bot
+		if b.alive and b.koUntil <= now and (not b.inDuel or b.aggro == attacker) then
 			local delta = b.root.Position - origin
 			local dist = delta.Magnitude
 			if dist <= range + 1 then
@@ -877,7 +883,12 @@ local function spawnBot(): Bot?
 		aggro = nil,
 		rebirths = 0,
 		arenaPts = 0,
+		maxHp = BOT_HP,
+		inDuel = false,
 	}
+	-- o cliente lista o bot na arena como qualquer oponente (item 7)
+	m:SetAttribute("BotUid", bot.uid)
+	CollectionService:AddTag(m, "FeedBot")
 	bot.rebirths = if bot.level > 18 then rng:NextInteger(0, 2) else 0
 	bot.arenaPts = bot.level * rng:NextInteger(3, 9)
 	-- anda/parado: troca entre as animações oficiais
@@ -906,7 +917,7 @@ local function spawnBot(): Bot?
 	task.spawn(function()
 		task.wait(rng:NextNumber(1, 3))
 		while bot.alive do
-			while bot.alive and (bot.fighting or bot.koUntil > os.clock()) do
+			while bot.alive and (bot.fighting or bot.inDuel or bot.koUntil > os.clock()) do
 				task.wait(0.3)
 			end
 			local ok, err = pcall(think :: any, bot)
@@ -974,6 +985,63 @@ function BotService.byUid(uid: number): any
 		end
 	end
 	return nil
+end
+
+-- Duelo de boxe na arena contra um bot (item 7). A ArenaService conduz; aqui só o corpo do bot.
+function BotService.duelStart(uid: number, at: CFrame, facing: Vector3, hp: number): boolean
+	local b = BotService.byUid(uid)
+	if not b or b.inDuel or b.koUntil > os.clock() then
+		return false
+	end
+	b.inDuel = true
+	b.fightUntil = 0
+	b.aggro = nil
+	b.maxHp = hp
+	b.hp = hp
+	local pos = at.Position + Vector3.new(0, 3, 0)
+	b.model:PivotTo(CFrame.lookAt(pos, Vector3.new(facing.X, pos.Y, facing.Z)))
+	b.hum:MoveTo(pos)
+	b.busy = "arena"
+	return true
+end
+
+function BotService.duelGo(uid: number, opponent: Player, seconds: number)
+	local b = BotService.byUid(uid)
+	if not b then
+		return
+	end
+	b.aggro = opponent
+	b.fightUntil = os.clock() + seconds
+	if not b.fighting then
+		task.spawn(fightBack, b)
+	end
+end
+
+-- Vida em 0..1, nocauteado?, posição (para o "fora do ringue").
+function BotService.duelState(uid: number): (number, boolean, Vector3?)
+	local b = BotService.byUid(uid)
+	if not b then
+		return 0, true, nil
+	end
+	return b.hp / math.max(1, b.maxHp), b.koUntil > os.clock(), b.root.Position
+end
+
+function BotService.duelEnd(uid: number)
+	local b = BotService.byUid(uid)
+	if not b then
+		return
+	end
+	b.fightUntil = 0
+	b.aggro = nil
+	task.delay(3, function()
+		if b.alive then
+			b.inDuel = false
+			b.maxHp = BOT_HP
+			b.hp = BOT_HP
+			b.hum.PlatformStand = false
+			b.model:PivotTo(b.base.origin * CFrame.new(0, 6, 20))
+		end
+	end)
 end
 
 -- A arena avisa o resultado de uma luta contra bot (pontos sobem/descem como os de um jogador).

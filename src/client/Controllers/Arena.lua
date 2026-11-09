@@ -1,5 +1,6 @@
 --!strict
 -- Arena.lua — janela "GIANT CLASH": lista jogadores para desafiar, popup de desafio recebido, overlay da luta com barras de HP.
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -48,14 +49,27 @@ local function rebuildList()
 			c:Destroy()
 		end
 	end
-	local n = 0
+	-- Oponentes: jogadores do servidor e os bots (09/11, item 7), na mesma lista e do mesmo jeito.
+	local opponents: { { id: number, name: string } } = {}
 	for _, p in Players:GetPlayers() do
-		if p == player then
-			continue
+		if p ~= player then
+			table.insert(opponents, { id = p.UserId, name = p.DisplayName })
 		end
+	end
+	for _, m in CollectionService:GetTagged("FeedBot") do
+		local uid = m:GetAttribute("BotUid")
+		if type(uid) == "number" and m:IsA("Model") and m.Parent then
+			table.insert(opponents, { id = uid, name = m.Name })
+		end
+	end
+	table.sort(opponents, function(x, y)
+		return x.name:lower() < y.name:lower()
+	end)
+	local n = 0
+	for _, p in opponents do
 		n += 1
 		local row = UI.frame(listFrame, { Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = UI.Colors.Panel })
-		UI.label(row, p.DisplayName, {
+		UI.label(row, p.name, {
 			Size = UDim2.new(1, -170, 1, 0),
 			Position = UDim2.fromOffset(12, 0),
 			TextXAlignment = Enum.TextXAlignment.Left,
@@ -67,7 +81,7 @@ local function rebuildList()
 			{ Size = UDim2.fromOffset(150, 40), Position = UDim2.new(1, -158, 0.5, -20) }
 		)
 		b.Activated:Connect(function()
-			Remotes.RequestDuel:FireServer(p.UserId)
+			Remotes.RequestDuel:FireServer(p.id)
 		end)
 	end
 	if n == 0 then
