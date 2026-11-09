@@ -1,0 +1,630 @@
+[
+ {
+  "file": "Egg_01_White.001.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 3,
+  "imgs": [],
+  "size": [
+   1.68,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_01_White.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 3,
+  "imgs": [],
+  "size": [
+   1.68,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_02_Brown.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   5.18,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_03_Charcoal.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   8.68,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_04_Golden.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   12.18,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_05_Silver.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   15.68,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_06_Spotted.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 4,
+  "imgs": [],
+  "size": [
+   19.18,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_07_Zebra.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 9,
+  "imgs": [],
+  "size": [
+   22.68,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_08_Fluffy.glb",
+  "objs": 2,
+  "tris": 6420,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   26.287,
+   1.911,
+   2.33
+  ]
+ },
+ {
+  "file": "Egg_09_Yellow.glb",
+  "objs": 2,
+  "tris": 3168,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   29.63,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_10_Professor.glb",
+  "objs": 2,
+  "tris": 3336,
+  "mats": 9,
+  "imgs": [],
+  "size": [
+   33.645,
+   1.68,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_11_King.glb",
+  "objs": 2,
+  "tris": 3692,
+  "mats": 13,
+  "imgs": [],
+  "size": [
+   1.775,
+   5.53,
+   2.435
+  ]
+ },
+ {
+  "file": "Egg_12_Pirate.glb",
+  "objs": 2,
+  "tris": 3440,
+  "mats": 14,
+  "imgs": [],
+  "size": [
+   5.384,
+   5.565,
+   2.72
+  ]
+ },
+ {
+  "file": "Egg_13_Knight.glb",
+  "objs": 2,
+  "tris": 3424,
+  "mats": 17,
+  "imgs": [],
+  "size": [
+   8.68,
+   5.566,
+   2.525
+  ]
+ },
+ {
+  "file": "Egg_14_Wizard.glb",
+  "objs": 2,
+  "tris": 3516,
+  "mats": 8,
+  "imgs": [],
+  "size": [
+   12.282,
+   5.567,
+   2.97
+  ]
+ },
+ {
+  "file": "Egg_15_Witch.glb",
+  "objs": 2,
+  "tris": 3348,
+  "mats": 8,
+  "imgs": [],
+  "size": [
+   15.782,
+   5.517,
+   2.97
+  ]
+ },
+ {
+  "file": "Egg_16_Farmer.glb",
+  "objs": 2,
+  "tris": 3328,
+  "mats": 10,
+  "imgs": [],
+  "size": [
+   19.282,
+   5.535,
+   2.44
+  ]
+ },
+ {
+  "file": "Egg_17_Chef.glb",
+  "objs": 2,
+  "tris": 3396,
+  "mats": 9,
+  "imgs": [],
+  "size": [
+   22.68,
+   5.58,
+   2.78
+  ]
+ },
+ {
+  "file": "Egg_18_Detective.glb",
+  "objs": 2,
+  "tris": 3432,
+  "mats": 16,
+  "imgs": [],
+  "size": [
+   26.52,
+   5.555,
+   2.43
+  ]
+ },
+ {
+  "file": "Egg_19_Astronaut.glb",
+  "objs": 2,
+  "tris": 3336,
+  "mats": 15,
+  "imgs": [],
+  "size": [
+   29.68,
+   5.607,
+   2.24
+  ]
+ },
+ {
+  "file": "Egg_20_Robot.glb",
+  "objs": 2,
+  "tris": 3324,
+  "mats": 11,
+  "imgs": [],
+  "size": [
+   33.18,
+   5.593,
+   2.555
+  ]
+ },
+ {
+  "file": "Egg_21_Dark_Robot.glb",
+  "objs": 2,
+  "tris": 3360,
+  "mats": 18,
+  "imgs": [],
+  "size": [
+   1.84,
+   9.342,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_22_Steampunk.glb",
+  "objs": 2,
+  "tris": 3764,
+  "mats": 16,
+  "imgs": [],
+  "size": [
+   5.18,
+   9.36,
+   2.59
+  ]
+ },
+ {
+  "file": "Egg_23_Zombie.glb",
+  "objs": 2,
+  "tris": 3384,
+  "mats": 11,
+  "imgs": [],
+  "size": [
+   8.68,
+   9.353,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_24_Skeleton.glb",
+  "objs": 2,
+  "tris": 3816,
+  "mats": 8,
+  "imgs": [],
+  "size": [
+   12.18,
+   9.353,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_25_Angel.glb",
+  "objs": 2,
+  "tris": 3476,
+  "mats": 8,
+  "imgs": [],
+  "size": [
+   16.001,
+   9.357,
+   2.54
+  ]
+ },
+ {
+  "file": "Egg_26_Devil.glb",
+  "objs": 2,
+  "tris": 3360,
+  "mats": 13,
+  "imgs": [],
+  "size": [
+   19.83,
+   9.355,
+   2.676
+  ]
+ },
+ {
+  "file": "Egg_27_Ninja.glb",
+  "objs": 2,
+  "tris": 3240,
+  "mats": 11,
+  "imgs": [],
+  "size": [
+   22.86,
+   9.34,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_28_Samurai.glb",
+  "objs": 2,
+  "tris": 3372,
+  "mats": 10,
+  "imgs": [],
+  "size": [
+   26.18,
+   9.36,
+   2.75
+  ]
+ },
+ {
+  "file": "Egg_29_Cowboy.glb",
+  "objs": 2,
+  "tris": 3328,
+  "mats": 14,
+  "imgs": [],
+  "size": [
+   29.885,
+   9.347,
+   2.47
+  ]
+ },
+ {
+  "file": "Egg_30_Viking.glb",
+  "objs": 2,
+  "tris": 3516,
+  "mats": 19,
+  "imgs": [],
+  "size": [
+   33.498,
+   9.465,
+   2.583
+  ]
+ },
+ {
+  "file": "Egg_31_Princess.glb",
+  "objs": 2,
+  "tris": 3760,
+  "mats": 15,
+  "imgs": [],
+  "size": [
+   1.79,
+   13.18,
+   2.435
+  ]
+ },
+ {
+  "file": "Egg_32_Royal_King.glb",
+  "objs": 2,
+  "tris": 3692,
+  "mats": 13,
+  "imgs": [],
+  "size": [
+   5.23,
+   13.157,
+   2.435
+  ]
+ },
+ {
+  "file": "Egg_33_Punk.glb",
+  "objs": 2,
+  "tris": 3412,
+  "mats": 15,
+  "imgs": [],
+  "size": [
+   8.68,
+   13.08,
+   2.663
+  ]
+ },
+ {
+  "file": "Egg_34_Rocker.glb",
+  "objs": 2,
+  "tris": 3560,
+  "mats": 12,
+  "imgs": [],
+  "size": [
+   12.18,
+   13.414,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_35_Sport.glb",
+  "objs": 2,
+  "tris": 3324,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   15.68,
+   13.153,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_36_Firefighter.glb",
+  "objs": 2,
+  "tris": 3268,
+  "mats": 11,
+  "imgs": [],
+  "size": [
+   19.264,
+   13.08,
+   2.5
+  ]
+ },
+ {
+  "file": "Egg_37_Police.glb",
+  "objs": 2,
+  "tris": 3304,
+  "mats": 11,
+  "imgs": [],
+  "size": [
+   22.68,
+   13.16,
+   2.34
+  ]
+ },
+ {
+  "file": "Egg_38_Doctor.glb",
+  "objs": 2,
+  "tris": 3456,
+  "mats": 6,
+  "imgs": [],
+  "size": [
+   26.18,
+   13.195,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_39_Construction.glb",
+  "objs": 2,
+  "tris": 3276,
+  "mats": 14,
+  "imgs": [],
+  "size": [
+   29.727,
+   13.08,
+   2.42
+  ]
+ },
+ {
+  "file": "Egg_40_Miner.glb",
+  "objs": 2,
+  "tris": 3420,
+  "mats": 17,
+  "imgs": [],
+  "size": [
+   33.558,
+   13.123,
+   2.48
+  ]
+ },
+ {
+  "file": "Egg_41_Scientist.glb",
+  "objs": 2,
+  "tris": 3500,
+  "mats": 10,
+  "imgs": [],
+  "size": [
+   1.697,
+   17.082,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_42_Magician.glb",
+  "objs": 2,
+  "tris": 3340,
+  "mats": 12,
+  "imgs": [],
+  "size": [
+   5.422,
+   16.98,
+   2.75
+  ]
+ },
+ {
+  "file": "Egg_43_Winter.glb",
+  "objs": 2,
+  "tris": 3924,
+  "mats": 10,
+  "imgs": [],
+  "size": [
+   8.68,
+   16.953,
+   2.6
+  ]
+ },
+ {
+  "file": "Egg_44_Tropical.glb",
+  "objs": 2,
+  "tris": 4080,
+  "mats": 16,
+  "imgs": [],
+  "size": [
+   12.195,
+   17.105,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_45_Desert.glb",
+  "objs": 2,
+  "tris": 3248,
+  "mats": 16,
+  "imgs": [],
+  "size": [
+   15.68,
+   17.027,
+   2.31
+  ]
+ },
+ {
+  "file": "Egg_46_Moss.glb",
+  "objs": 2,
+  "tris": 4824,
+  "mats": 13,
+  "imgs": [],
+  "size": [
+   19.272,
+   16.962,
+   2.285
+  ]
+ },
+ {
+  "file": "Egg_47_Ice.glb",
+  "objs": 2,
+  "tris": 8748,
+  "mats": 7,
+  "imgs": [],
+  "size": [
+   22.715,
+   16.915,
+   2.55
+  ]
+ },
+ {
+  "file": "Egg_48_Lava.glb",
+  "objs": 2,
+  "tris": 6732,
+  "mats": 11,
+  "imgs": [],
+  "size": [
+   26.291,
+   16.933,
+   2.405
+  ]
+ },
+ {
+  "file": "Egg_49_Lightning.glb",
+  "objs": 2,
+  "tris": 6480,
+  "mats": 10,
+  "imgs": [],
+  "size": [
+   29.806,
+   16.996,
+   2.823
+  ]
+ },
+ {
+  "file": "Egg_50_Rainbow.glb",
+  "objs": 2,
+  "tris": 3204,
+  "mats": 24,
+  "imgs": [],
+  "size": [
+   33.18,
+   16.88,
+   2.405
+  ]
+ },
+ {
+  "file": "Ninho de 1 lugar.glb",
+  "objs": 1,
+  "tris": 468562,
+  "mats": 1,
+  "imgs": [
+   "magic_rune_circle_3d_model_basecolor.jpg:4096x4096",
+   "magic_rune_circle_3d_model_normal.png:4096x4096",
+   "magic_rune_circle_3d_model_rm.jpg:4096x4096"
+  ],
+  "size": [
+   1.0,
+   0.998,
+   0.408
+  ]
+ }
+]
