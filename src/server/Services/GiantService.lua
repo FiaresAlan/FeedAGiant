@@ -485,6 +485,7 @@ local function refreshVisual(player: Player, pulse: boolean)
 		model:ScaleTo(prevScale)
 		Util.tweenScale(model, scale, 0.6)
 	else
+		Util.cancelScaleTween(model)
 		model:ScaleTo(scale)
 	end
 	-- Para a animação no cliente (GiantAnim): personalidade da espécie e humor (birra de fome).

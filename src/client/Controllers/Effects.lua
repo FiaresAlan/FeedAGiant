@@ -271,12 +271,13 @@ function Effects.init(gui: ScreenGui)
 	confettiHolder.ZIndex = 45
 	confettiHolder.Parent = gui
 	banner = UI.title(gui, "", {
-		Size = UDim2.fromOffset(700, 60),
+		Size = UDim2.new(0.9, 0, 0, 60),
 		Position = UDim2.fromScale(0.5, 0.18),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextColor3 = UI.Colors.Accent,
 		Visible = false,
 	})
+	local bannerSerial = 0
 	Remotes.GiantEvolved.OnClientEvent:Connect(function(e)
 		if type(e) ~= "table" then
 			return
@@ -288,6 +289,8 @@ function Effects.init(gui: ScreenGui)
 			shockwave(m, Color3.fromRGB(255, 220, 80))
 		end
 		if e.userId == player.UserId then
+			bannerSerial += 1
+			local serial = bannerSerial
 			-- Comparação explícita: o jogador percebe o ANTES e o DEPOIS da transformação.
 			-- A barra já usa o mesmo evento visual do jogo, sem abrir janela sobre o gameplay.
 			local previous = if type(e.previousStage) == "string" then e.previousStage else nil
@@ -307,7 +310,9 @@ function Effects.init(gui: ScreenGui)
 			UI.sfx("Evolve", 1)
 			UI.sfx("VO_Evolved", 1)
 			task.delay(4, function()
-				banner.Visible = false
+				if bannerSerial == serial then
+					banner.Visible = false
+				end
 			end)
 		end
 	end)

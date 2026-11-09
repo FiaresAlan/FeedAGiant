@@ -406,11 +406,11 @@ local function visitorYaw(t: Track, now: number): number
 				local horizontal = Vector3.new(off.X, 0, off.Z)
 				local dist = horizontal.Magnitude
 				if dist > 4 and dist < nearest then
-					local localPos = t.base:VectorToObjectSpace(horizontal)
+					local localPos = t.giant:GetPivot():VectorToObjectSpace(horizontal)
 					local ang = math.deg(math.atan2(localPos.X, -localPos.Z))
 					if math.abs(ang) <= 85 then
 						nearest = dist
-						t.watchTarget = math.clamp(ang, -17, 17)
+						t.watchTarget = math.clamp(-ang, -17, 17)
 					end
 				end
 			end

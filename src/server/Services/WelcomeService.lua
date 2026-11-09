@@ -94,7 +94,7 @@ function WelcomeService.onJoin(player: Player)
 			return
 		end
 		-- conta nova (primeira entrada) não recebe: ela tem o primeiro acesso
-		if p.totalFeeds == 0 and p.totalBoxes == 0 then
+		if p.starterSpecies == "?" or (p.totalFeeds == 0 and p.totalBoxes == 0) then
 			return
 		end
 		local lines = WelcomeService.summary(p, away, offlineGain[player] or 0, os.time())

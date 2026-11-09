@@ -387,6 +387,7 @@ function Arena.init(gui: ScreenGui)
 			hpB.BackgroundColor3 = UI.Colors.Red
 			previousHpA, previousHpB = 100, 100
 			fightSerial += 1
+			countdownLabel.Visible = false
 			curA, curB = e.a, e.b
 			realFight = e.real == true
 			timerLabel.Text = if realFight then tostring(e.seconds or "") else ""
@@ -400,18 +401,24 @@ function Arena.init(gui: ScreenGui)
 			if realFight and involved then
 				-- Contagem regressiva (o servidor segura os lutadores parados nesse tempo)
 				local n = math.max(1, math.floor(tonumber(e.countdown) or 3))
+				local serial = fightSerial
 				task.spawn(function()
 					countdownLabel.Visible = true
 					for i = n, 1, -1 do
 						countdownLabel.Text = tostring(i)
 						UI.pop(countdownLabel)
 						task.wait(1)
+						if fightSerial ~= serial then
+							return
+						end
 					end
 					countdownLabel.Text = Locale.t("LUTEM!")
 					UI.pop(countdownLabel)
 					UI.sfx("VO_Fight", 1)
 					task.wait(0.8)
-					countdownLabel.Visible = false
+					if fightSerial == serial then
+						countdownLabel.Visible = false
+					end
 				end)
 			else
 				UI.sfx("VO_Fight", if involved then 1 else 0.6)
@@ -445,8 +452,15 @@ function Arena.init(gui: ScreenGui)
 			if e.a ~= curA or e.b ~= curB then
 				return
 			end
+			fightSerial += 1
 			local serial = fightSerial
+			countdownLabel.Visible = false
+			local involved = curA == player.UserId or curB == player.UserId
+			curA, curB = 0, 0
 			if e.aborted and (e.winner == 0 or e.winner == nil) then
+				if involved and Arena.OnFight then
+					Arena.OnFight(false, nil)
+				end
 				fightTitle.Text = Locale.t("Luta cancelada.")
 				timerLabel.Text = ""
 				task.delay(3, function()
@@ -456,7 +470,7 @@ function Arena.init(gui: ScreenGui)
 				end)
 				return
 			end
-			if Arena.OnFight and (curA == player.UserId or curB == player.UserId) then
+			if Arena.OnFight and involved then
 				Arena.OnFight(false, e.winner == player.UserId)
 			end
 			if e.winner == player.UserId then

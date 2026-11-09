@@ -555,8 +555,10 @@ local function hatchShards(parent: Frame, color: Color3, amount: number)
 		shard.Parent = parent
 		TweenService:Create(shard, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			Position = UDim2.new(
-				0.5, math.cos(angle) * (130 + (i % 3) * 26) * uiScale,
-				0.44, math.sin(angle) * (100 + (i % 4) * 16) * uiScale
+				0.5,
+				math.cos(angle) * (130 + (i % 3) * 26) * uiScale,
+				0.44,
+				math.sin(angle) * (100 + (i % 4) * 16) * uiScale
 			),
 			BackgroundTransparency = 1,
 			Rotation = shard.Rotation + 100,
@@ -589,10 +591,11 @@ local function speciesPreview(parent: Frame, speciesId: any): ViewportFrame?
 		return nil
 	end
 	local clone = original:Clone()
+	if not clone then
+		return nil
+	end
 	for _, item in clone:GetDescendants() do
-		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("ModuleScript") then
-			item:Destroy()
-		elseif item:IsA("ParticleEmitter") or item:IsA("Sound") or item:IsA("PointLight") then
+		if item:IsA("LuaSourceContainer") or item:IsA("ParticleEmitter") or item:IsA("Sound") or item:IsA("Light") then
 			item:Destroy()
 		elseif item:IsA("BasePart") then
 			item.Anchored = true
@@ -623,7 +626,10 @@ local function speciesPreview(parent: Frame, speciesId: any): ViewportFrame?
 	clone.Parent = world
 	local cam = Instance.new("Camera")
 	cam.FieldOfView = 42
-	cam.CFrame = CFrame.lookAt(Vector3.new(diameter * 0.25, diameter * 0.04, diameter * 1.75), Vector3.zero)
+	local pivot = statue:GetPivot().Position
+	local facing = Vector3.new(-pivot.X, 0, -pivot.Z)
+	local direction = if facing.Magnitude > 0.01 then facing.Unit else Vector3.zAxis
+	cam.CFrame = CFrame.lookAt((direction * 1.75 + Vector3.yAxis * 0.04) * diameter, Vector3.zero)
 	cam.Parent = vf
 	vf.CurrentCamera = cam
 	vf.Parent = parent
@@ -673,6 +679,7 @@ local function playHatch(data: { [string]: any })
 		}):Play()
 	end
 	local cracks = 0
+	local crackLines: { Frame } = {}
 	local function crack()
 		cracks += 1
 		local line = Instance.new("Frame")
@@ -684,6 +691,7 @@ local function playHatch(data: { [string]: any })
 		line.BorderSizePixel = 0
 		line.ZIndex = 43
 		line.Parent = hatchGui
+		table.insert(crackLines, line)
 		UI.stroke(line, color, 1)
 		UI.sfx("Whoosh", 0.35)
 	end
@@ -697,11 +705,7 @@ local function playHatch(data: { [string]: any })
 		conn = RunService.RenderStepped:Connect(function()
 			local k = math.clamp((os.clock() - t0) / crackTime, 0, 1)
 			vf.Rotation = math.sin(os.clock() * (9 + 32 * k)) * (3 + 14 * k)
-			if cracks == 0 and k >= 0.32 then
-				crack()
-			elseif cracks == 1 and k >= 0.61 then
-				crack()
-			elseif cracks == 2 and k >= 0.84 then
+			if (cracks == 0 and k >= 0.32) or (cracks == 1 and k >= 0.61) or (cracks == 2 and k >= 0.84) then
 				crack()
 			end
 		end)
@@ -711,20 +715,25 @@ local function playHatch(data: { [string]: any })
 	vf:Destroy()
 	ring:Destroy()
 	headline:Destroy()
+	for _, line in crackLines do
+		line:Destroy()
+	end
 	if not reduced then
 		hatchShards(hatchGui, color, if order >= 4 then 18 else 10)
 	end
 	UI.sfx(if order >= 4 then "Evolve" else "Bell", if order >= 4 then 0.9 else 0.65)
 	local sp = if type(data.speciesId) == "string" then Config.SpeciesById[data.speciesId] else nil
-	local preview = speciesPreview(hatchGui, data.speciesId)
+	local previewOk, viewport = pcall(speciesPreview, hatchGui, data.speciesId)
+	local preview = previewOk and viewport ~= nil
 	local st = math.clamp(tonumber(data.stars) or 0, 0, 3)
-	local title = UI.title(hatchGui, (if data.duplicate then "GIGANTE REPETIDO" else "NOVO GIGANTE!") .. "  " .. starText(st), {
-		Size = UDim2.new(0.9, 0, 0, 66),
-		Position = UDim2.fromScale(0.5, if preview then 0.24 else 0.38),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		TextColor3 = color,
-		ZIndex = 45,
-	})
+	local title =
+		UI.title(hatchGui, (if data.duplicate then "GIGANTE REPETIDO" else "NOVO GIGANTE!") .. "  " .. starText(st), {
+			Size = UDim2.new(0.9, 0, 0, 66),
+			Position = UDim2.fromScale(0.5, if preview then 0.24 else 0.38),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			TextColor3 = color,
+			ZIndex = 45,
+		})
 	local line = if data.duplicate
 		then string.format(
 			"%s ganhou %s XP · nível %d",
@@ -744,8 +753,6 @@ local function playHatch(data: { [string]: any })
 		UI.pop(title)
 	end
 	task.wait(if reduced then 1.4 else 2)
-	hatchGui.Visible = false
-	clear(hatchGui)
 end
 
 ---------------------------------------------------------------------------
@@ -810,7 +817,12 @@ function Eggs.init(gui: ScreenGui)
 					while #hatchQueue > 0 do
 						local nextData = table.remove(hatchQueue, 1)
 						if nextData then
-							playHatch(nextData)
+							local ok, err = pcall(playHatch :: any, nextData)
+							hatchGui.Visible = false
+							clear(hatchGui)
+							if not ok then
+								warn("[Eggs] Efeito de eclosão interrompido:", err)
+							end
 						end
 					end
 					hatchRunning = false

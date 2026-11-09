@@ -276,7 +276,6 @@ function Drops.init(gui: ScreenGui)
 			return
 		end
 		UI.sfx("Bell", 0.6)
-		task.delay(0.3, openBoxWindow) -- mostra a opção de abrir (não abre sozinha)
 	end)
 
 	placeAll(gui)
@@ -291,7 +290,8 @@ function Drops.init(gui: ScreenGui)
 		if d.removed then
 			drops[d.id] = nil
 		else
-			if not drops[d.id] then
+			local previous = drops[d.id]
+			if not previous then
 				-- Pedido do usuário (09/11, item 14): a VOZ não fala mais a cada drop (só quando começa a
 				-- Chuva de Comida, abaixo). Aqui, só um sino, e só se o item é importante (Épico+) ou cai perto.
 				local rar = Config.Rarities[d.rarity]
@@ -300,6 +300,8 @@ function Drops.init(gui: ScreenGui)
 				if (rar and rar.order >= 4) or near then
 					UI.sfx("Bell", 0.35)
 				end
+			end
+			if d.kind == "food" and d.landed and not (previous and previous.landed) then
 				signalRareDrop(d)
 			end
 			drops[d.id] = d

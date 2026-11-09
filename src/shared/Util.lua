@@ -41,12 +41,24 @@ function Util.weightedPick(weights: { [string]: number }, bonus: number?): strin
 	return last
 end
 
+local scaleTargets: { [Model]: { scale: number } } = {}
+
+function Util.cancelScaleTween(model: Model)
+	scaleTargets[model] = nil
+end
+
 function Util.tweenScale(model: Model, targetScale: number, duration: number)
+	local current = scaleTargets[model]
+	if current and current.scale == targetScale then
+		return
+	end
+	local target = { scale = targetScale }
+	scaleTargets[model] = target
 	local TweenService = game:GetService("TweenService")
 	local start = model:GetScale()
 	local t0 = os.clock()
 	task.spawn(function()
-		while true do
+		while model.Parent and scaleTargets[model] == target do
 			local alpha = math.clamp((os.clock() - t0) / duration, 0, 1)
 			local eased = TweenService:GetValue(alpha, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 			local s = start + (targetScale - start) * eased
@@ -57,6 +69,9 @@ function Util.tweenScale(model: Model, targetScale: number, duration: number)
 				break
 			end
 			task.wait()
+		end
+		if scaleTargets[model] == target then
+			scaleTargets[model] = nil
 		end
 	end)
 end
