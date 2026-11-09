@@ -801,6 +801,37 @@ local function buildFeedButton(gui: ScreenGui)
 		end)
 	end)
 
+	-- Selo discreto do Banquete em Dupla. Só é visível perto do próprio gigante;
+	-- convida o jogador a voltar a alimentar, sem bloquear a câmera ou a interface.
+	local coopChip = UI.frame(holder, {
+		Name = "CoopFeastChip",
+		Size = UDim2.fromOffset(310, 35),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -52),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.25,
+		Visible = false,
+	})
+	UI.corner(coopChip, 12)
+	local coopText = UI.label(coopChip, "", {
+		Size = UDim2.new(1, -10, 1, 0),
+		Position = UDim2.fromOffset(5, 0),
+		TextScaled = false,
+		TextSize = 19,
+		TextColor3 = Color3.fromRGB(255, 220, 110),
+	})
+	task.spawn(function()
+		while coopChip.Parent do
+			local untilTime = player:GetAttribute("CoopFeastUntil")
+			local remaining = if type(untilTime) == "number" then math.max(0, untilTime - os.time()) else 0
+			coopChip.Visible = remaining > 0
+			if remaining > 0 then
+				coopText.Text = string.format("%s +15%% XP  %d:%02d", Locale.t("BANQUETE"), remaining // 60, remaining % 60)
+			end
+			task.wait(1)
+		end
+	end)
+
 	-- Pulso de atenção só quando há comida e o gigante não está feliz (via UIScale, não Size)
 	local press = Instance.new("UIScale")
 	press.Name = "Pulse"
