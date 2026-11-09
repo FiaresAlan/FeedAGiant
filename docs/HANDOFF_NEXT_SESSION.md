@@ -11,7 +11,18 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
-## A0000000. Prompt v4 (09/11/2026) — parte liberada feita
+## 🚨 A00000000. ALERTA DE SEGURANÇA (09/11/2026) — LER PRIMEIRO
+O place "Alimente um Gigante" (115578986093768) contém **`Workspace.MainModule`**, que NÃO é do projeto:
+- é um ModuleScript com `module.load(racismo)`: faz aparecer o modelo **"Racista"** (NPCs com armas, "Made by
+  Dhani3mran") em cima de um jogador escolhido pelo nome. É um payload típico de porta dos fundos;
+- tem mais de 10 mil instâncias, **99 scripts de servidor ativos** que rodam quando o jogo inicia, 145 RemoteEvents,
+  456 sons e uso de `string.char` (comum em código ofuscado);
+- nenhum outro script do place o chama (varredura completa). Provavelmente foi inserido da Loja do Criador.
+**Ação do dono:** apagar `Workspace.MainModule`, salvar e, se o place já foi publicado com ele, publicar de novo sem
+ele. Depois rodar a auditoria do vault ("Creator Store and Toolbox Safety" §6). O diretor NÃO apagou: o place é do
+usuário e a regra é não escrever nele.
+
+## A0000000. Prompt v4## A0000000. Prompt v4 (09/11/2026) — parte liberada feita
 - **Feito:**
   - flags `TutorialEgg`, `Revange`, `WeeklyQuest` e `DragonRaidPhase1` (todas desligadas);
   - campos `mysteryChest`, `revangeTarget`, `weeklyQuest` e `eggNotifyHatchAt`;
@@ -25,6 +36,11 @@
   - o Goblin ficou fora das faixas;
   - as espécies iniciais podem ser feitas por cor no Blender, sem a cópia de teste;
   - na revanche, o "50%" de um roubo de COMIDA ainda não foi definido.
+- **Auras da Loja do Criador (09/11):** `src/shared/AuraPresets.lua`. As receitas foram copiadas de GritoRageModeVFX,
+  Ice Wizard e Earth Elemental (auditados, 0 scripts). O jogo não consegue carregar modelos de outros criadores por ID
+  (medido), por isso as receitas ficam no código. Teto de 60 partículas por gigante.
+- **Ovos v2 (09/11):** `docs/OVOS_V2_DESIGN.md` traz as estrelas de cuidado (o laço = alimentar o próprio gigante),
+  4% dos drops do mapa como Ovo Pequeno, faixas revisadas e o anúncio de eclosão Épica+. Testado no Play; suíte 133/133.
 - **Espécies iniciais FEITAS** (`StarterSpecies`, desligada): variação do Humano por Highlight + aura, nota 7,1. Ver `VALIDACAO_ESPEC_V4.md` §6.
 - **Bloqueado até a cópia de teste do place:** ovo de tutorial (§1), §3.1, §3.2, §4.1, §4.3 e os testes com 2 jogadores e no celular.
 
