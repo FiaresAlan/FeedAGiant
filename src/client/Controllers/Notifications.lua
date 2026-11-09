@@ -145,7 +145,7 @@ local function tickBanner()
 		-- Último minuto: o chip pisca na cor do evento (expectativa), menos com "Movimento reduzido".
 		local urgent = left <= 60
 		if left == 10 then
-			announce() -- "falta pouco": aparece no centro e volta para o canto
+			announce() -- "falta pouco": a faixa cresce no topo e volta para o canto
 		end
 		bannerStroke.Color = if urgent then nextColor else Color3.fromRGB(90, 100, 170)
 		bannerTimer.TextColor3 = if urgent then nextColor else UI.Colors.Accent
@@ -157,12 +157,121 @@ local function tickBanner()
 	end
 end
 
+-- ANÚNCIO GRANDE (pedido do usuário, 09/11): evento, Dragão ou chefe começando aparece GRANDE no meio
+-- da tela, com pulo e brilho, fica ~2,6 s e então VOA para o canto superior direito (onde mora a faixa)
+-- encolhendo e sumindo. Não bloqueia cliques (Active = false). Um por vez: o seguinte espera.
+local calloutFrame: Frame
+local calloutTitle: TextLabel
+local calloutSub: TextLabel
+local calloutStroke: UIStroke
+local calloutQueue: { { title: string, sub: string, color: Color3 } } = {}
+local calloutBusy = false
+local CALLOUT_SIZE = UDim2.new(0.7, 0, 0, 150)
+
+local function playCallout(c: { title: string, sub: string, color: Color3 })
+	calloutBusy = true
+	calloutTitle.Text = c.title
+	calloutSub.Text = c.sub
+	calloutTitle.TextColor3 = Color3.new(1, 1, 1)
+	calloutStroke.Color = c.color
+	calloutFrame.BackgroundColor3 = c.color:Lerp(Color3.new(0, 0, 0), 0.35)
+	calloutFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	calloutFrame.Position = UDim2.fromScale(0.5, 0.36)
+	calloutFrame.BackgroundTransparency = 0.25
+	calloutTitle.TextTransparency = 0
+	calloutSub.TextTransparency = 0
+	calloutFrame.Visible = true
+	UI.sfx("Bell", 0.8)
+	if UI.reducedMotion() then
+		calloutFrame.Size = CALLOUT_SIZE
+		task.wait(3)
+	else
+		calloutFrame.Size = UDim2.new(0.2, 0, 0, 40)
+		TweenService:Create(calloutFrame, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = CALLOUT_SIZE,
+		}):Play()
+		-- "respira" 2 vezes para chamar atenção
+		task.wait(0.5)
+		for _ = 1, 2 do
+			TweenService:Create(calloutFrame, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {
+				Size = UDim2.new(0.73, 0, 0, 158),
+			}):Play()
+			task.wait(0.5)
+			TweenService:Create(calloutFrame, TweenInfo.new(0.5, Enum.EasingStyle.Sine), { Size = CALLOUT_SIZE }):Play()
+			task.wait(0.55)
+		end
+		-- voa para o canto da faixa
+		calloutFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		local fly = TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		TweenService:Create(calloutFrame, fly, {
+			Position = UDim2.new(1, -180, 0, 80),
+			Size = UDim2.fromOffset(330, 46),
+			BackgroundTransparency = 1,
+		}):Play()
+		TweenService:Create(calloutTitle, fly, { TextTransparency = 1 }):Play()
+		TweenService:Create(calloutSub, fly, { TextTransparency = 1 }):Play()
+		task.wait(0.72)
+	end
+	calloutFrame.Visible = false
+	if banner.Visible then
+		UI.pop(banner)
+	end
+	calloutBusy = false
+	local nextOne = table.remove(calloutQueue, 1)
+	if nextOne then
+		task.spawn(playCallout, nextOne)
+	end
+end
+
+function Notifications.callout(title: string, sub: string?, color: Color3?)
+	local c = { title = title, sub = sub or "", color = color or UI.Colors.Accent }
+	if calloutBusy then
+		if #calloutQueue < 3 then
+			table.insert(calloutQueue, c)
+		end
+		return
+	end
+	task.spawn(playCallout, c)
+end
+
+local function buildCallout()
+	calloutFrame = UI.frame(gui, {
+		Name = "Callout",
+		Size = CALLOUT_SIZE,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.36),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.25,
+		Visible = false,
+		ZIndex = 60,
+	})
+	calloutFrame.Active = false
+	local cap = Instance.new("UISizeConstraint")
+	cap.MaxSize = Vector2.new(900, 170)
+	cap.Parent = calloutFrame
+	UI.corner(calloutFrame, 22)
+	calloutStroke = UI.stroke(calloutFrame, UI.Colors.Accent, 4)
+	calloutTitle = UI.label(calloutFrame, "", {
+		Size = UDim2.new(1, -24, 0.62, 0),
+		Position = UDim2.fromOffset(12, 6),
+		ZIndex = 61,
+	})
+	calloutTitle.TextStrokeTransparency = 0
+	calloutSub = UI.label(calloutFrame, "", {
+		Size = UDim2.new(1, -24, 0.3, 0),
+		Position = UDim2.new(0, 12, 0.64, 0),
+		ZIndex = 61,
+		TextColor3 = Color3.fromRGB(255, 240, 200),
+	})
+	calloutSub.TextStrokeTransparency = 0.2
+end
+
 local function showBanner(name: string, duration: number, color: Color3)
 	activeEventEnd = os.clock() + duration
 	activeName = name
 	activeColor = color
 	tickBanner()
-	announce()
+	Notifications.callout(Locale.upper(Locale.t(name)) .. "!", "EVENTO COMEÇOU — vamos lá!", color)
 end
 
 local function hideBanner()
@@ -262,6 +371,16 @@ function Notifications.init(parentGui: ScreenGui)
 		end
 	end)
 	Remotes.EventEnded.OnClientEvent:Connect(hideBanner)
+	buildCallout()
+	Remotes.Callout.OnClientEvent:Connect(function(data)
+		if type(data) == "table" and type(data.title) == "string" then
+			Notifications.callout(
+				data.title,
+				if type(data.sub) == "string" then data.sub else nil,
+				if typeof(data.color) == "Color3" then data.color else nil
+			)
+		end
+	end)
 	Remotes.StealAlert.OnClientEvent:Connect(function(data)
 		if type(data) == "table" then
 			stealAlert(tostring(data.thiefName), tostring(data.food or "comida"))

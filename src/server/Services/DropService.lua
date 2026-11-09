@@ -20,6 +20,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Speed = require(script.Parent.Parent.Speed)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -328,24 +329,9 @@ local function marker(it: Item)
 	blip.Anchored = true
 end
 
+-- Carregar drop deixa mais lento: só declara o multiplicador (Speed.lua soma com eventos e ponte).
 local function setSpeed(player: Player, mult: number?)
-	local char = player.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if not hum then
-		return
-	end
-	if mult then
-		if not baseSpeed[player] then
-			baseSpeed[player] = hum.WalkSpeed
-		end
-		hum.WalkSpeed = (baseSpeed[player] :: number) * mult
-	else
-		local b = baseSpeed[player]
-		if b then
-			hum.WalkSpeed = b
-		end
-		baseSpeed[player] = nil
-	end
+	Speed.set(player, "carry", mult)
 end
 
 local function speedFor(it: Item): number

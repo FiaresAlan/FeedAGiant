@@ -180,6 +180,11 @@ local function wake()
 		text = "O GIGANTE ANCESTRAL ACORDOU! Comida chovendo na praça e +25% de XP para todos por 5 minutos!",
 		color = Color3.fromRGB(255, 200, 80),
 	})
+	Remotes.Callout:FireAllClients({
+		title = "O GIGANTE ANCESTRAL ACORDOU!",
+		sub = "Comida chovendo na praça e +25% de XP por 5 min",
+		color = Color3.fromRGB(255, 200, 80),
+	})
 	-- buff de XP para o servidor inteiro
 	-- ficha: só o ÚLTIMO despertar desliga o bônus (revisão cega: comparar horários era frágil)
 	buffToken += 1

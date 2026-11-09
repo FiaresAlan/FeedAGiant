@@ -435,6 +435,11 @@ function BossService.run(duration: number)
 	model.Parent = Workspace
 	current = f
 	Remotes.Notify:FireAllClients(Locale.msg("boss_spawned", nil, Color3.fromRGB(255, 90, 90)))
+	Remotes.Callout:FireAllClients({
+		title = "O DRAGÃO NASCEU!",
+		sub = "Vamos jogar! Prêmio: Lunchbox Épica + 1 ovo",
+		color = Color3.fromRGB(255, 80, 60),
+	})
 	-- Convite para o servidor inteiro (09/11, item 11): cartão com o time (N de 4) e o botão JOGAR.
 	local function team()
 		Remotes.BossState:FireAllClients({

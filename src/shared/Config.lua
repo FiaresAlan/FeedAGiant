@@ -105,6 +105,8 @@ Config.Events = {
 		{ id = "GoldenHour", name = "Golden Hour", duration = 90, color = Color3.fromRGB(255, 200, 40) },
 		{ id = "FoodRain", name = "Chuva de Comida", duration = 60, color = Color3.fromRGB(80, 200, 255) },
 		{ id = "LuckyBoxes", name = "Lucky Boxes", duration = 60, color = Color3.fromRGB(120, 255, 120) },
+		-- 09/11 (pedido do usuário): do nada, TODO MUNDO corre mais (×1,6) por 60 s
+		{ id = "SpeedRush", name = "Corrida Turbo", duration = 60, color = Color3.fromRGB(255, 120, 40) },
 	},
 }
 

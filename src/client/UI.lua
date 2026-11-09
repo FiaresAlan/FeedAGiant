@@ -2,6 +2,7 @@
 -- UI.lua — kit visual próprio do Feed a Giant. Nada de "painel colorido com fonte branca":
 -- painéis 9-slice com faixa dourada, gradientes, glow neon, ícones em sprite-sheet, botões com sombra "chunky" 3D,
 -- barras com brilho animado e texto com gradiente. Tudo degrada graciosamente se Config.Assets.* = 0.
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local GuiService = game:GetService("GuiService")
@@ -479,6 +480,43 @@ local function bindEscape()
 end
 
 -- Janela modal com cabeçalho dourado, fechamento animado e fundo escurecido
+-- Fundo colorido animado das janelas (09/11). Cores médias/escuras para o texto branco seguir legível;
+-- um só laço gira todos os degradês visíveis (barato), parado com "Movimento reduzido".
+local WINDOW_COLORS = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(88, 40, 190)),
+	ColorSequenceKeypoint.new(0.35, Color3.fromRGB(30, 95, 205)),
+	ColorSequenceKeypoint.new(0.65, Color3.fromRGB(16, 140, 160)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 45, 140)),
+})
+local animated: { UIGradient } = {}
+local animLoop: RBXScriptConnection? = nil
+function UI.animatedBackground(frame: GuiObject)
+	frame.BackgroundColor3 = Color3.new(1, 1, 1)
+	local grad: UIGradient = frame:FindFirstChildOfClass("UIGradient") or Instance.new("UIGradient")
+	grad.Parent = frame
+	grad.Color = WINDOW_COLORS
+	grad.Rotation = 35
+	table.insert(animated, grad)
+	if not animLoop then
+		animLoop = RunService.RenderStepped:Connect(function()
+			if UI.reducedMotion() then
+				return
+			end
+			local t = os.clock()
+			for i = #animated, 1, -1 do
+				local gr = animated[i]
+				local owner = gr.Parent
+				if not owner then
+					table.remove(animated, i)
+				elseif (owner :: GuiObject).Visible then
+					gr.Rotation = (35 + t * 18) % 360
+					gr.Offset = Vector2.new(math.sin(t * 0.7) * 0.18, math.cos(t * 0.5) * 0.12)
+				end
+			end
+		end)
+	end
+end
+
 function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Frame)
 	local dim = Instance.new("Frame")
 	dim.Name = "Dim_" .. titleText
@@ -503,9 +541,11 @@ function UI.window(gui: ScreenGui, titleText: string, size: UDim2): (Frame, Fram
 		-- `if not win.Visible then UI.pop(win)` nunca rodava e NENHUM botão da HUD abria nada.
 		Visible = false,
 	})
-	-- Sombra suave só atrás do painel (substitui o escurecimento da tela inteira) + brilho laranja.
-	UI.glow(win, Color3.new(0, 0, 0), 34, 0.55)
-	UI.glow(win, UI.Colors.Orange, 22, 0.82)
+	-- Pedido do usuário (09/11): nada de fundo PRETO com sombra preta. A janela tem um degradê
+	-- COLORIDO que gira devagar (dá sensação de agitação) e um brilho colorido em volta.
+	UI.animatedBackground(win)
+	UI.glow(win, Color3.fromRGB(150, 70, 255), 34, 0.6)
+	UI.glow(win, Color3.fromRGB(255, 120, 200), 20, 0.75)
 	local header = Instance.new("Frame")
 	header.BackgroundColor3 = UI.Colors.Accent
 	header.BorderSizePixel = 0

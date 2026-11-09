@@ -23,6 +23,7 @@ local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Guard = require(script.Parent.Parent.Guard)
+local Speed = require(script.Parent.Parent.Speed)
 local World = require(script.Parent.Parent.World)
 local MapService = require(script.Parent.MapService)
 local CombatService = require(script.Parent.CombatService)
@@ -398,23 +399,23 @@ local function bridgeTick()
 		-- fwjelaa-ignore: findfirstchild-chain (conferido logo abaixo)
 		local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if not hum or not root then
-			boosted[player] = nil
+			if boosted[player] then
+				boosted[player] = nil
+				Speed.set(player, "bridge", nil)
+			end
 			continue
 		end
 		local want = onBridge(root.Position)
 			and not DropService.isCarrying(player)
 			and not StealService.isCarrying(player)
-		local saved = boosted[player]
-		if want and not saved and hum.WalkSpeed > 0 then
-			boosted[player] = hum.WalkSpeed
-			hum.WalkSpeed = hum.WalkSpeed * BRIDGE_MULT
+		local on = boosted[player] ~= nil
+		if want and not on then
+			boosted[player] = 1
+			Speed.set(player, "bridge", BRIDGE_MULT)
 			Remotes.TravelDone:FireClient(player, { turbo = true })
-		elseif not want and saved then
+		elseif not want and on then
 			boosted[player] = nil
-			-- só devolve se ninguém mexeu na velocidade enquanto isso (arena congelou, carregou drop...)
-			if math.abs(hum.WalkSpeed - saved * BRIDGE_MULT) < 0.01 then
-				hum.WalkSpeed = saved
-			end
+			Speed.set(player, "bridge", nil)
 		end
 	end
 end

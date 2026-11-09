@@ -3,6 +3,7 @@
 -- Abre quando o jogador pisa num blip (círculo brilhante). Um botão grande por lugar, com a cor do
 -- blip de lá. O servidor confere tudo; aqui só o menu, o escurecer da tela e o aviso do turbo.
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
@@ -116,6 +117,24 @@ function Travel.init(gui: ScreenGui)
 		ZIndex = 40,
 	})
 	turboChip.TextStrokeTransparency = 0.2
+
+	-- Corrida Turbo (evento): a câmera abre um pouco (sensação de velocidade) e volta no fim.
+	local function fov(to: number)
+		local cam = Workspace.CurrentCamera
+		if cam and not UI.reducedMotion() then
+			TweenService:Create(cam, TweenInfo.new(0.6, Enum.EasingStyle.Quad), { FieldOfView = to }):Play()
+		end
+	end
+	Remotes.EventStarted.OnClientEvent:Connect(function(data)
+		if type(data) == "table" and data.id == "SpeedRush" then
+			fov(84)
+		end
+	end)
+	Remotes.EventEnded.OnClientEvent:Connect(function(data)
+		if type(data) == "table" and data.id == "SpeedRush" then
+			fov(70)
+		end
+	end)
 
 	Remotes.TravelMenu.OnClientEvent:Connect(function(data)
 		if type(data) == "table" and type(data.spots) == "table" then

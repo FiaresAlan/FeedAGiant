@@ -37,6 +37,7 @@ local AncestralService = require(Services.AncestralService)
 local WelcomeService = require(Services.WelcomeService)
 local TravelService = require(Services.TravelService)
 local WorldFx = require(script.Parent.WorldFx)
+local Speed = require(script.Parent.Speed)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
 print("[FeedAGiant] Iniciando servidor...")
@@ -70,6 +71,7 @@ MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
 WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
 TravelService.init() -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
+Speed.init() -- 09/11: dono único da velocidade (carga, ponte, Corrida Turbo)
 TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
 -- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do

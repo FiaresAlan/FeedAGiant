@@ -10,6 +10,7 @@ local ShopService = require(script.Parent.ShopService)
 local GiantService = require(script.Parent.GiantService)
 local DropService = require(script.Parent.DropService)
 local WorldFx = require(script.Parent.Parent.WorldFx)
+local Speed = require(script.Parent.Parent.Speed)
 
 local EventService = {}
 local active: string? = nil
@@ -61,10 +62,22 @@ local function runFoodRain(def)
 	end
 end
 
+-- Corrida Turbo (09/11): todos andam 1,6x mais rápido durante o evento (Speed.lua soma com o resto).
+local SPEED_RUSH_MULT = 1.6
+local function runSpeedRush(def)
+	Speed.setGlobal("rush", SPEED_RUSH_MULT)
+	local ok, err = pcall(task.wait, def.duration)
+	Speed.setGlobal("rush", nil) -- sempre desliga, mesmo com erro
+	if not ok then
+		warn("[EventService] turbo:", err)
+	end
+end
+
 local RUNNERS = {
 	GoldenHour = runGoldenHour,
 	LuckyBoxes = runLuckyBoxes,
 	FoodRain = runFoodRain,
+	SpeedRush = runSpeedRush,
 }
 
 -- Evento rolando agora (nil se nenhum). Usado pelas Mutações.
