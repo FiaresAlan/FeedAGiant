@@ -23,6 +23,7 @@ local SocialFeastService = {}
 type Reservation = { player: Player, foodUid: string, untilTime: number }
 local reservation: Reservation? = nil
 local cooldownUntil = 0
+local individualCooldown: { [number]: number } = {}
 local stand: BasePart? = nil
 local label: TextLabel? = nil
 local prompt: ProximityPrompt? = nil
@@ -95,6 +96,11 @@ local function tryContribute(player: Player)
 	if now < cooldownUntil then
 		return
 	end
+	local nextAt = individualCooldown[player.UserId] or 0
+	if now < nextAt then
+		notify(player, string.format("Você já ajudou! Próximo banquete em %d s.", nextAt - now))
+		return
+	end
 	local profile = DataService.get(player)
 	if not profile then
 		return
@@ -142,7 +148,8 @@ local function tryContribute(player: Player)
 		return
 	end
 	local firstProfile = DataService.get(firstPlayer)
-	if not firstProfile or not Rules.available(ownedSlice(firstProfile), now) then
+	if not firstProfile or not Rules.available(ownedSlice(firstProfile), now)
+		or now < (individualCooldown[firstPlayer.UserId] or 0) then
 		reservation = nil
 		updateDisplay(now)
 		return
@@ -168,7 +175,9 @@ local function tryContribute(player: Player)
 	PlotService.pushState(firstPlayer)
 	PlotService.pushState(player)
 	reservation = nil
-	cooldownUntil = now + Rules.CooldownSeconds
+	cooldownUntil = now + Rules.GlobalResetSeconds
+	individualCooldown[firstPlayer.UserId] = now + Rules.CooldownSeconds
+	individualCooldown[player.UserId] = now + Rules.CooldownSeconds
 	if sparks then
 		sparks:Emit(28)
 	end
