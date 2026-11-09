@@ -819,7 +819,7 @@ local function buildFeedButton(gui: ScreenGui)
 		feed.Active = hasFood
 		local fav = if type(favoriteId) == "string" then Config.FoodById[favoriteId] else nil
 		sub.Text = if hasFood and fav
-			then string.format("%s: %s (+%d%% XP)", Locale.t("PREFERE"), fav.name, math.floor((FoodPreference.BonusMult - 1) * 100 + 0.5))
+			then string.format("%s: %s (+%d%% XP)", Locale.t("PREFERE"), Locale.t(fav.name), math.floor((FoodPreference.BonusMult - 1) * 100 + 0.5))
 			elseif hasFood then Locale.t("Alimenta sem consumir comida rara")
 			elseif hasSpecial then Locale.t("Comida especial: selecione em ITENS")
 			else Locale.t("Compre comida na LOJA")
