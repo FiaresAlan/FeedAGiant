@@ -39,6 +39,13 @@ function EggOdds.roll(size: string, r: number): string
 	return odds[#odds].id
 end
 
+-- Estrelas de cuidado de um ovo no ninho (Ovos v2): alimentado, aquecido e laço com o gigante.
+-- Uma função só: o servidor (GameLogic.eggStars) e a janela do cliente usam esta.
+function EggOdds.stars(slot: { [string]: any }): number
+	local need = GameRules.Eggs.BondFeeds[slot.size] or math.huge
+	return (if slot.fed then 1 else 0) + (if slot.warmed then 1 else 0) + (if (slot.bond or 0) >= need then 1 else 0)
+end
+
 -- "12,5%" (arredondado para exibição).
 function EggOdds.format(p: number): string
 	local pct = p * 100

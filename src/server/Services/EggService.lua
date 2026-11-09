@@ -579,6 +579,12 @@ function EggService.init()
 		if not on() then
 			return false
 		end
+		-- confere o espaço ANTES: sem lugar, o DropService devolve o ovo ao chão com o aviso dele
+		-- (antes saíam dois avisos contraditórios; revisão cega 09/11)
+		local profile = DataService.get(player)
+		if not profile or #profile.eggs >= E.MaxStoredHard then
+			return false
+		end
 		local ok = EggService.giveEgg(player, size, "drop")
 		if ok then
 			Analytics.event(player, "egg_drop_delivered", 1, { size })

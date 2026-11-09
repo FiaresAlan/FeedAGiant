@@ -54,3 +54,16 @@ um Gigante Hidra!". No máximo 1 aviso a cada 10 s.
 
 ## Métricas novas
 `egg_care_star` (qual estrela), `egg_hatched` passa a levar o número de estrelas, `egg_drop_delivered`.
+
+## Resultado (09/11/2026)
+- **Testado no Play** (função ligada só na sessão):
+  - 8 alimentações do gigante deram a estrela de laço (8/8), e o ovo ficou com 3 estrelas;
+  - um Grande com 3 estrelas chocou um Águia novo no nível 18 (a herança de 30% era maior que 10+3; vale o maior);
+  - o ovo do mapa caiu com o modelo 3D e a entrega levou de 0 para 1 ovo guardado;
+  - suíte **134 passed, 0 failed**.
+- **Revisão cega: 7,5** (rascunho). Já corrigido:
+  - a entrega confere o espaço antes, sem dois avisos contraditórios;
+  - as estrelas usam uma função só (`EggOdds.stars`), a mesma no servidor e na janela.
+- **Mantido de propósito:** o anúncio raro tem limite de 1 a cada 10 s no servidor inteiro, para não virar spam.
+- **Falta para 8,5:** teste automático da integração (alimentar o gigante → laço; entrega do mapa), e testes com 2
+  jogadores e no celular.

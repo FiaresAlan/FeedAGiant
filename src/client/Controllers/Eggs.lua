@@ -47,10 +47,7 @@ end
 
 -- Ovos v2: estrelas de cuidado (alimentado, aquecido, laço com o gigante). Mesma regra do servidor
 -- (GameLogic.eggStars); aqui só para mostrar.
-local function starsOf(slot: { [string]: any }): number
-	local need = E.BondFeeds[slot.size] or math.huge
-	return (if slot.fed then 1 else 0) + (if slot.warmed then 1 else 0) + (if (slot.bond or 0) >= need then 1 else 0)
-end
+local starsOf = EggOdds.stars
 
 local function starText(n: number): string
 	return string.rep("★", n) .. string.rep("☆", 3 - n)
