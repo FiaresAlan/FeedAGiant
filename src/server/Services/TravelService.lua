@@ -28,6 +28,7 @@ local MapService = require(script.Parent.MapService)
 local CombatService = require(script.Parent.CombatService)
 local DropService = require(script.Parent.DropService)
 local StealService = require(script.Parent.StealService)
+local BossService = require(script.Parent.BossService)
 
 local TravelService = {}
 
@@ -300,7 +301,7 @@ local function inArenaRing(root: BasePart): boolean
 	return flat < World.Arena.floorR + 2 and root.Position.Y < World.Arena.floorTop + 12
 end
 
-local function travel(player: Player, id: string)
+local function travel(player: Player, id: string, invite: boolean?)
 	local char = player.Character
 	-- fwjelaa-ignore: findfirstchild-chain (conferido logo abaixo)
 	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -311,7 +312,12 @@ local function travel(player: Player, id: string)
 	if now - (lastTravel[player] or 0) < COOLDOWN then
 		return
 	end
-	if not nearPad(player) then
+	-- Convite do Dragão (botão JOGAR): vale de qualquer lugar, mas só enquanto o Dragão está vivo.
+	if invite then
+		if id ~= "dragon" or not BossService.center() then
+			return
+		end
+	elseif not nearPad(player) then
 		return -- longe de qualquer blip: pedido falso
 	end
 	if StealService.isCarrying(player) or DropService.isCarrying(player) then
@@ -390,6 +396,11 @@ function TravelService.init()
 	Remotes.RequestTravel.OnServerEvent:Connect(function(player, id)
 		if type(id) == "string" and #id <= 20 and Guard.allow(player, "Travel") then
 			travel(player, id)
+		end
+	end)
+	Remotes.RequestBossJoin.OnServerEvent:Connect(function(player)
+		if Guard.allow(player, "Travel") then
+			travel(player, "dragon", true)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

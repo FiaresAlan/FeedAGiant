@@ -41,6 +41,7 @@ local GameLogic = require(script.Parent.Parent.GameLogic)
 local ProgressService = require(script.Parent.ProgressService)
 local Features = require(game.ReplicatedStorage.Shared.Features)
 local rewardRng = Random.new()
+local TEAM_GOAL = 4 -- "time ideal" mostrado no convite (1 de 4 ... 4 de 4); a vida escala com quem entra
 
 local BossService = {}
 
@@ -105,9 +106,12 @@ local function updateBar(f: Fight)
 	f.label.Text = string.format("DRAGÃO FAMINTO  %d / %d", math.ceil(f.hp), f.maxHp)
 end
 
--- Modelo: o dragão de cristal (malha enviada na Fase 2, sem uso como espécie). Sem ele, não há chefe.
+-- Modelo: 09/11 (item 15) o dragão de cristal parecia "em cacos" (a malha é feita de lascas). Agora é
+-- o dragão vermelho inteiro, maior e com um contorno escuro (não confunde com o Gigante Dragão da loja).
+-- A ANIMAÇÃO é do cliente (Controllers/Dragon.lua): o servidor não gira mais a malha, só publica para
+-- onde ela olha (atributo FaceYaw) e avisa os ataques (BossState Telegraph/Over).
 local function buildBoss(center: Vector3, floorY: number): (Model?, Part?)
-	local t = GiantService.template("crystal-dragon") or GiantService.template("hydra")
+	local t = GiantService.template("dragon") or GiantService.template("crystal-dragon")
 	if not t then
 		return nil, nil
 	end
@@ -127,6 +131,14 @@ local function buildBoss(center: Vector3, floorY: number): (Model?, Part?)
 			d.CanTouch = false
 		end
 	end
+	local hl = Instance.new("Highlight")
+	hl.FillTransparency = 1
+	hl.OutlineColor = Color3.fromRGB(60, 10, 20)
+	hl.OutlineTransparency = 0.2
+	hl.DepthMode = Enum.HighlightDepthMode.Occluded
+	hl.Parent = model
+	model:SetAttribute("FaceYaw", 0)
+	model:SetAttribute("BossDragon", true)
 	-- Corpo sólido invisível: ninguém atravessa o dragão.
 	local hitbox = Instance.new("Part")
 	hitbox.Name = "BossHitbox"
@@ -198,9 +210,8 @@ local function faceTowards(f: Fight, pos: Vector3)
 		return
 	end
 	local _, yaw, _ = CFrame.lookAt(pivot.Position, flat):ToEulerAnglesYXZ()
-	local hb = f.hitbox.CFrame
-	f.model:PivotTo(CFrame.new(pivot.Position) * CFrame.Angles(0, yaw, 0))
-	f.hitbox.CFrame = hb -- o cilindro sólido não gira (não empurra ninguém de lado)
+	-- O cliente gira a malha com suavidade (Controllers/Dragon.lua); o cilindro sólido nunca gira.
+	f.model:SetAttribute("FaceYaw", yaw)
 end
 
 -- Círculo de aviso no chão e pisão 1,4 s depois (em um jogador ou num ponto: chuva de fogo).
@@ -221,6 +232,8 @@ local function stompAt(f: Fight, pos: Vector3, turn: boolean)
 	ring.Color = Color3.fromRGB(255, 40, 40)
 	ring.Transparency = 0.55
 	ring.Parent = Workspace
+	-- o cliente faz o dragão empinar agora e bater no chão quando o círculo explode
+	Remotes.BossState:FireAllClients({ kind = "Telegraph", pos = pos, dur = B.TelegraphSeconds })
 	TweenService:Create(ring, TweenInfo.new(B.TelegraphSeconds), { Transparency = 0.15 }):Play()
 	task.wait(B.TelegraphSeconds)
 	ring:Destroy()
@@ -375,7 +388,9 @@ local function finish(f: Fight, won: boolean)
 	else
 		Remotes.Notify:FireAllClients(Locale.msg("boss_fled", nil, Color3.fromRGB(255, 120, 90)))
 	end
-	task.delay(if won then 1.5 else 0.2, function()
+	-- o cliente anima a queda (vitória) ou o voo de fuga; a malha some depois disso
+	Remotes.BossState:FireAllClients({ kind = "Over", won = won })
+	task.delay(3.2, function()
 		f.model:Destroy()
 	end)
 end
@@ -420,6 +435,17 @@ function BossService.run(duration: number)
 	model.Parent = Workspace
 	current = f
 	Remotes.Notify:FireAllClients(Locale.msg("boss_spawned", nil, Color3.fromRGB(255, 90, 90)))
+	-- Convite para o servidor inteiro (09/11, item 11): cartão com o time (N de 4) e o botão JOGAR.
+	local function team()
+		Remotes.BossState:FireAllClients({
+			kind = "Team",
+			n = #fighters(f),
+			goal = TEAM_GOAL,
+			prize = "Lunchbox Épica (4 a 5 comidas) + 1 ovo",
+		})
+	end
+	team()
+	local lastTeam = os.clock()
 
 	local t0 = os.clock()
 	local lastStomp = os.clock()
@@ -427,6 +453,10 @@ function BossService.run(duration: number)
 	local BI = GameRules.BossIsland
 	while not f.over and os.clock() - t0 < duration do
 		task.wait(0.25)
+		if os.clock() - lastTeam >= 2 then
+			lastTeam = os.clock()
+			team()
+		end
 		local list = fighters(f)
 		for _, p in list do
 			if not CombatService.inFightMode(p) then

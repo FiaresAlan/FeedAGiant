@@ -74,6 +74,7 @@ local EVENTS = {
 	"TravelMenu", -- server -> client: {from, spots = {{id, name, color}}} (blip de viagem rápida, 09/11)
 	"RequestTravel", -- client -> server: spotId (o servidor confere se está num blip)
 	"TravelDone", -- server -> client: {id} (escurece a tela) | {turbo = true} (turbo da ponte)
+	"RequestBossJoin", -- client -> server: botão JOGAR do convite do Dragão (leva para a ilha)
 }
 
 local FUNCTIONS = {
