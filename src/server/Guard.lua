@@ -26,6 +26,7 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Battle = { burst = 2, perSecond = 0.2 }, -- pedir batalha de gigantes (a luta dura ~40 s)
 	Admin = { burst = 6, perSecond = 2 }, -- comandos do painel de admin
 	Meat = { burst = 4, perSecond = 2 }, -- cortar porção da Carne Gigante
+	Egg = { burst = 3, perSecond = 1 }, -- ninho de ovos: comprar, colocar, alimentar, chocar
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.

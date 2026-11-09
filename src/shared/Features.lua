@@ -18,6 +18,14 @@ local Features = {
 	OnboardingV2 = false,
 	-- Roubo: proteção de novato (nível < 5) e até 3 roubos bem-sucedidos por dia por ladrão.
 	StealProtection = false,
+	-- Sistema de Ovos: ninho na praça, 5 tamanhos, loja de moedas, prêmios do Dragão e marcos.
+	EggSystem = false,
+	-- Efeitos visuais dos ovos por raridade (desligar alivia celulares fracos).
+	EggVFX = false,
+	-- Notificação "ovo pronto" (Open Cloud): NÃO implementada; exige jogo publicado com 100 visitas.
+	EggNotifications = false,
+	-- Escolha de 1 das 3 espécies iniciais no primeiro acesso (ainda sem os 3 modelos).
+	StarterSpecies = false,
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).

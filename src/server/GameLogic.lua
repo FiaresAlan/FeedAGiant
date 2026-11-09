@@ -4,6 +4,7 @@
 -- (S6 da rubrica: "teste automatizado sem publicar"). Nada aqui guarda estado.
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local EggOdds = require(game.ReplicatedStorage.Shared.EggOdds)
 
 local GameLogic = {}
 
@@ -274,6 +275,60 @@ function GameLogic.dailyStreakBase(
 		return streak, backups - 1, true
 	end
 	return 0, backups, false
+end
+
+---------------------------------------------------------------------------
+-- Sistema de Ovos (regras puras; EggService chama, tests/Eggs.spec.luau testa)
+---------------------------------------------------------------------------
+-- Chances e sorteio: o módulo compartilhado EggOdds (a janela do cliente mostra a mesma tabela).
+GameLogic.eggOdds = EggOdds.odds
+GameLogic.eggRoll = EggOdds.roll
+
+-- XP de "repetido": o equivalente a subir do nível 1 até o nível do ovo.
+function GameLogic.eggDupXp(eggLevel: number): number
+	local xp = 0
+	for l = 1, math.max(1, eggLevel) do
+		xp += Config.xpNeeded(l)
+	end
+	return xp
+end
+
+-- Soma XP a um gigante (nível, xp) e devolve o novo par, respeitando o nível máximo.
+function GameLogic.addXp(level: number, xp: number, amount: number): (number, number)
+	xp += math.max(0, amount)
+	while level < Config.Giant.MaxLevel and xp >= Config.xpNeeded(level) do
+		xp -= Config.xpNeeded(level)
+		level += 1
+	end
+	return level, xp
+end
+
+-- Eclosão para uma espécie. `rec` = progresso atual dela (nil = nova). Nova: nasce no nível do
+-- ovo. Repetida: ganha o XP equivalente (nunca perde nível). Devolve (nível, xp, repetida, xpGanho).
+function GameLogic.eggApply(rec: { level: number, xp: number }?, eggLevel: number): (number, number, boolean, number)
+	if rec == nil then
+		return eggLevel, 0, false, 0
+	end
+	local gain = GameLogic.eggDupXp(eggLevel)
+	local level, xp = GameLogic.addXp(rec.level, rec.xp, gain)
+	return level, xp, true, gain
+end
+
+-- Quantos lugares do ninho estão abertos para quem já chegou ao nível `peakLevel`.
+function GameLogic.eggSlots(peakLevel: number): number
+	local n = 0
+	for _, lvl in GameRules.Eggs.SlotLevels do
+		if peakLevel >= lvl then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Acelera: corta `fraction` do tempo que FALTA. Nunca volta antes de agora.
+function GameLogic.eggSpeedUp(hatchAt: number, now: number, fraction: number): number
+	local left = math.max(0, hatchAt - now)
+	return now + math.floor(left * (1 - fraction) + 0.5)
 end
 
 return GameLogic

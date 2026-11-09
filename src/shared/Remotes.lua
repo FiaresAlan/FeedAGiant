@@ -61,6 +61,10 @@ local EVENTS = {
 	-- do cliente, então nenhum remote novo a proteger contra spam).
 	"ObjectiveHint", -- server -> client: {id, text, category = now|soon|short|long|none}
 	"OnboardingV2", -- server -> client: {kind = Arrival|FirstFeed|Done}
+	-- Sistema de Ovos (Features.EggSystem)
+	"RequestEgg", -- client -> server: action ("open"|"buy"|"place"|"feed"|"hatch"), arg (tamanho/índice/lugar)
+	"EggState", -- server -> client: {eggs, nest, slots, now, commonFood, prices}
+	"EggHatched", -- server -> client: {size, speciesId, level, duplicate, xp} (DEPOIS de entregar e salvar)
 }
 
 local FUNCTIONS = {

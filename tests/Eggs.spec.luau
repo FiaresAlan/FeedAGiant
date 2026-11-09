@@ -1,0 +1,159 @@
+--!nonstrict
+-- Specs do Sistema de Ovos (08/11/2026): chances, sorteio, repetidos, lugares do ninho, aceleração,
+-- regras de economia aprovadas e migração de perfil. Mesmo código do EggService (GameLogic/EggOdds).
+-- Rodar: require(game.ServerScriptService.FwjelaaTests.Runner)()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local GameRules = require(ReplicatedStorage.Shared.GameRules)
+local EggOdds = require(ReplicatedStorage.Shared.EggOdds)
+local Features = require(ReplicatedStorage.Shared.Features)
+local GameLogic = require(ServerScriptService.Server.GameLogic)
+local PlayerData = require(ServerScriptService:WaitForChild("fwjelaa").PlayerData)
+
+local E = GameRules.Eggs
+
+local function rarityOrderOf(id)
+	local tag = Config.SpeciesById[id].rarityTag
+	local map = { ["Comum"] = 1, ["Incomum"] = 2, ["Raro"] = 3, ["Épico"] = 4, ["Lendário"] = 5, ["Mítico"] = 6 }
+	return map[tag] or 99
+end
+
+return function()
+	describe("Ovos: regras aprovadas", function()
+		it("5 tamanhos com tempo e nível 3/5/8/12/20 min e 1/5/10/20/30", function()
+			local mins = { small = 3, medium = 5, large = 8, huge = 12, massive = 20 }
+			local lv = { small = 1, medium = 5, large = 10, huge = 20, massive = 30 }
+			for _, size in E.Order do
+				expect(E.Sizes[size].seconds).to.equal(mins[size] * 60)
+				expect(E.Sizes[size].level).to.equal(lv[size])
+			end
+		end)
+		it("só Pequeno (3.000) e Médio (12.000) vendem por moedas", function()
+			expect(E.Sizes.small.price).to.equal(3000)
+			expect(E.Sizes.medium.price).to.equal(12000)
+			expect(E.Sizes.large.price).to.equal(nil)
+			expect(E.Sizes.huge.price).to.equal(nil)
+			expect(E.Sizes.massive.price).to.equal(nil)
+		end)
+		it("Pequeno e Médio: só Comum a Raro; Grande+: só Épico a Mítico", function()
+			for _, size in { "small", "medium" } do
+				for id in E.Sizes[size].weights do
+					expect(rarityOrderOf(id) <= 3).to.equal(true)
+				end
+			end
+			for _, size in { "large", "huge", "massive" } do
+				for id in E.Sizes[size].weights do
+					local o = rarityOrderOf(id)
+					expect(o >= 4 and o <= 6).to.equal(true)
+				end
+			end
+		end)
+		it("Dragão e Fênix (Robux) nunca saem de ovo; toda espécie do ovo existe", function()
+			for _, size in E.Order do
+				for id in E.Sizes[size].weights do
+					expect(Config.SpeciesById[id]).to.be.ok()
+					expect(Config.SpeciesById[id].robux).to.equal(false)
+				end
+			end
+		end)
+		it("funções de ovo nascem desligadas", function()
+			expect(Features.flags.EggSystem).to.equal(false)
+			expect(Features.flags.EggVFX).to.equal(false)
+			expect(Features.flags.EggNotifications).to.equal(false)
+			expect(Features.flags.StarterSpecies).to.equal(false)
+		end)
+	end)
+
+	describe("Ovos: chances e sorteio", function()
+		it("as chances de cada tamanho somam 100%", function()
+			for _, size in E.Order do
+				local t = 0
+				for _, e in EggOdds.odds(size) do
+					t += e.p
+				end
+				expect(t).to.be.near(1, 1e-9)
+			end
+		end)
+		it("o servidor sorteia pela mesma tabela que a janela mostra", function()
+			expect(GameLogic.eggOdds).to.equal(EggOdds.odds)
+			expect(GameLogic.eggRoll).to.equal(EggOdds.roll)
+		end)
+		it("simulação: frequência sorteada ≈ chance mostrada (20.000 Pequenos)", function()
+			local rng = Random.new(7)
+			local n, count = 20000, {}
+			for _ = 1, n do
+				local id = EggOdds.roll("small", rng:NextNumber())
+				count[id] = (count[id] or 0) + 1
+			end
+			for _, e in EggOdds.odds("small") do
+				expect((count[e.id] or 0) / n).to.be.near(e.p, 0.015)
+			end
+		end)
+		it("bordas do sorteio (r=0 e r quase 1) devolvem espécies válidas", function()
+			expect(Config.SpeciesById[EggOdds.roll("massive", 0)]).to.be.ok()
+			expect(Config.SpeciesById[EggOdds.roll("massive", 0.9999999)]).to.be.ok()
+		end)
+	end)
+
+	describe("Ovos: eclosão", function()
+		it("espécie nova nasce no nível do ovo", function()
+			local level, xp, dup, gain = GameLogic.eggApply(nil, 10)
+			expect(level).to.equal(10)
+			expect(xp).to.equal(0)
+			expect(dup).to.equal(false)
+			expect(gain).to.equal(0)
+		end)
+		it("repetida ganha o XP equivalente e nunca perde nível", function()
+			local level, _, dup, gain = GameLogic.eggApply({ level = 40, xp = 0 }, 10)
+			expect(dup).to.equal(true)
+			expect(gain).to.equal(GameLogic.eggDupXp(10))
+			expect(level >= 40).to.equal(true)
+		end)
+		it("repetida de nível 1 com ovo Grande sobe pelo menos até perto do 10", function()
+			local level = GameLogic.eggApply({ level = 1, xp = 0 }, 10)
+			expect(level).to.equal(11)
+		end)
+		it("XP somado respeita o nível máximo", function()
+			local level = GameLogic.addXp(Config.Giant.MaxLevel, 0, 1e12)
+			expect(level).to.equal(Config.Giant.MaxLevel)
+		end)
+	end)
+
+	describe("Ovos: ninho e aceleração", function()
+		it("lugares: 1 sempre, 2 no nível 25, 3 no nível 50", function()
+			expect(GameLogic.eggSlots(1)).to.equal(1)
+			expect(GameLogic.eggSlots(24)).to.equal(1)
+			expect(GameLogic.eggSlots(25)).to.equal(2)
+			expect(GameLogic.eggSlots(50)).to.equal(3)
+			expect(GameLogic.eggSlots(250)).to.equal(3)
+		end)
+		it("fome corta 20% e calor 10% do tempo que FALTA", function()
+			expect(GameLogic.eggSpeedUp(1000 + 600, 1000, 0.2)).to.equal(1000 + 480)
+			expect(GameLogic.eggSpeedUp(1000 + 600, 1000, 0.1)).to.equal(1000 + 540)
+		end)
+		it("aceleração juntas = -28% (no máximo -30% do pedido)", function()
+			local t = GameLogic.eggSpeedUp(GameLogic.eggSpeedUp(1000, 0, 0.2), 0, 0.1)
+			expect(t).to.equal(720)
+		end)
+		it("ovo já pronto não volta no tempo", function()
+			expect(GameLogic.eggSpeedUp(500, 1000, 0.2)).to.equal(1000)
+		end)
+	end)
+
+	describe("Ovos: migração de perfil", function()
+		it("perfil antigo ganha os campos dos ovos sem perder nada", function()
+			local DataService = require(ServerScriptService.Server.Services.DataService)
+			local old = { coins = 777, level = 12, ownedSpecies = { human = true }, pendingBoxes = { "epic" } }
+			PlayerData.reconcile(old, DataService.defaultProfile())
+			expect(old.coins).to.equal(777)
+			expect(old.level).to.equal(12)
+			expect(old.pendingBoxes[1]).to.equal("epic")
+			expect(#old.eggs).to.equal(0)
+			expect(next(old.nest)).to.equal(nil)
+			expect(old.eggsHatched).to.equal(0)
+			expect(old.starterSpecies).to.equal("")
+		end)
+	end)
+end

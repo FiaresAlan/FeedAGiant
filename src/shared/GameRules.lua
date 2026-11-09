@@ -373,4 +373,74 @@ GameRules.Onboarding = {
 	ArrivalSeconds = 2.5,
 }
 
+---------------------------------------------------------------------------
+-- Sistema de Ovos (aprovado 08/11/2026; docs/VALIDACAO_OVOS_V1.md). Atrás de Features.EggSystem.
+---------------------------------------------------------------------------
+-- Ovos dão GIGANTES (espécies). O tamanho decide raridade, tempo, nível inicial e de onde vem.
+-- Chances por espécie (pesos): a MESMA tabela é sorteada no servidor e mostrada na janela.
+-- Espécies iniciais (Fogo/Gelo/Pedra), Dragão e Fênix nunca entram aqui.
+GameRules.Eggs = {
+	Order = { "small", "medium", "large", "huge", "massive" },
+	Sizes = {
+		small = {
+			name = "Ovo Pequeno",
+			rarity = "Common",
+			seconds = 180,
+			level = 1,
+			price = 3000, -- loja de moedas
+			scale = 2.6, -- altura em studs no ninho
+			model = "egg-small",
+			weights = { human = 50, goblin = 35, gator = 10, zombie = 5 },
+		},
+		medium = {
+			name = "Ovo Médio",
+			rarity = "Rare",
+			seconds = 300,
+			level = 5,
+			price = 12000,
+			scale = 3.2,
+			model = "egg-medium",
+			weights = { human = 15, goblin = 40, gator = 25, zombie = 20 },
+		},
+		large = {
+			name = "Ovo Grande",
+			rarity = "Epic",
+			seconds = 480,
+			level = 10,
+			scale = 3.8,
+			model = "egg-large",
+			weights = { eagle = 45, troll = 35, golem = 10, wyvern = 8, slime = 1.5, hydra = 0.5 },
+		},
+		huge = {
+			name = "Ovo Enorme",
+			rarity = "Legendary",
+			seconds = 720,
+			level = 20,
+			scale = 4.4,
+			model = "egg-huge",
+			weights = { eagle = 20, troll = 20, golem = 25, wyvern = 25, slime = 6, hydra = 4 },
+		},
+		massive = {
+			name = "Ovo Colossal",
+			rarity = "Mythic",
+			seconds = 1200,
+			level = 30,
+			scale = 5.2,
+			model = "egg-massive",
+			weights = { eagle = 10, troll = 10, golem = 20, wyvern = 20, slime = 20, hydra = 20 },
+		},
+	} :: { [string]: any },
+	MaxStored = 3, -- ovos guardados comprados na loja
+	MaxStoredHard = 6, -- prêmios (Dragão, marcos) passam do limite até aqui, nunca somem em silêncio
+	SlotLevels = { 1, 25, 50 }, -- maior nível já alcançado para abrir o 1º, 2º e 3º lugar do ninho
+	FeedCut = 0.20, -- alimentar com comida Comum: -20% do tempo que falta (1 vez por ovo)
+	WarmCut = 0.10, -- ficar perto por WarmSeconds: -10% do tempo que falta (1 vez por ovo)
+	WarmSeconds = 30,
+	WarmRadius = 10, -- studs do centro do ninho (conferido no servidor)
+	NestReach = 24, -- distância máxima para usar o ninho (servidor)
+	BossEggSize = "large", -- vitória sobre o Dragão: 1 Ovo Grande por dia
+	Milestones = { { level = 100, size = "huge" }, { level = 200, size = "massive" } },
+	TutorialSeconds = 75, -- ovo do primeiro acesso (Médio, 60-90 s)
+}
+
 return GameRules

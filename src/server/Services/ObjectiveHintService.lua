@@ -105,6 +105,27 @@ local providers: { (Player, any, number) -> Hint? } = {
 		end
 		return nil
 	end,
+	-- 1) agora / 3) curta: ovos no ninho (Sistema de Ovos)
+	function(_player, profile, now)
+		if not Features.on("EggSystem") then
+			return nil
+		end
+		local soonest: number? = nil
+		for _, slot in profile.nest or {} do
+			if now >= slot.hatchAt then
+				return { id = "egg_ready", text = "Seu ovo está pronto: vá ao NINHO!", category = "now" }
+			end
+			soonest = math.min(soonest or math.huge, slot.hatchAt - now)
+		end
+		if soonest and soonest <= 3600 then
+			return {
+				id = "egg_soon",
+				text = string.format("Seu ovo choca em %d min", math.max(1, math.ceil(soonest / 60))),
+				category = "short",
+			}
+		end
+		return nil
+	end,
 	-- 3) curta: gigante com fome
 	function(_player, profile)
 		if (profile.hunger or 100) < 30 then

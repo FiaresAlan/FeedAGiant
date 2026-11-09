@@ -99,6 +99,13 @@ export type Profile = {
 	stealsToday: number, -- roubos bem-sucedidos nesse dia (GameRules.StealLimits)
 	onboardingAt: number, -- 0 = nunca marcado; -1 = entrou como novato (v3); >0 = os.time() do fim
 	welcomeGiven: boolean, -- presente de boas-vindas já entregue (fica guardado até abrir)
+	-- Sistema de Ovos (08/11/2026, Features.EggSystem). Chaves de texto: nada de tabela numérica esparsa.
+	eggs: { string }, -- ovos guardados (tamanho), fora do ninho
+	nest: { [string]: { size: string, hatchAt: number, fed: boolean, warmed: boolean, species: string? } },
+	eggsHatched: number,
+	eggBossDay: number, -- dia UTC do último Ovo Grande ganho no Dragão
+	eggMilestones: { [string]: boolean }, -- marcos de nível já premiados
+	starterSpecies: string, -- espécie inicial escolhida ("" = não escolheu)
 }
 
 local DataService = {}
@@ -161,6 +168,12 @@ local function defaultProfile(): Profile
 		stealsToday = 0,
 		onboardingAt = 0,
 		welcomeGiven = false,
+		eggs = {},
+		nest = {},
+		eggsHatched = 0,
+		eggBossDay = 0,
+		eggMilestones = {},
+		starterSpecies = "",
 	}
 end
 DataService.defaultProfile = defaultProfile
@@ -216,6 +229,21 @@ local function sanitize(player: Player, profile: Profile)
 	profile.pityCount = num(profile.pityCount, 0, GameRules.Pity.Hard, 0)
 	profile.streakBackups = num(profile.streakBackups, 0, GameRules.StreakBackup.Max, 0)
 	profile.stealsToday = num(profile.stealsToday, 0, 1e6, 0)
+	-- Ovos: só tamanhos conhecidos; lugares do ninho "1".."3" com dados válidos.
+	local Sizes = GameRules.Eggs.Sizes
+	local eggs = {}
+	for _, size in profile.eggs do
+		if type(size) == "string" and Sizes[size] and #eggs < GameRules.Eggs.MaxStoredHard then
+			table.insert(eggs, size)
+		end
+	end
+	profile.eggs = eggs
+	for key, slot in profile.nest do
+		local okKey = key == "1" or key == "2" or key == "3"
+		if not okKey or type(slot) ~= "table" or not Sizes[slot.size] or type(slot.hatchAt) ~= "number" then
+			profile.nest[key] = nil
+		end
+	end
 	-- Exposição: só espécies possuídas, sem a ativa, sem repetição, até o limite.
 	local seen: { [string]: boolean } = {}
 	local clean = {}
