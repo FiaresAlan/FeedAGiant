@@ -145,7 +145,9 @@ local function addStarterAura(part: BasePart, kind: string, color: Color3)
 	local pe = Instance.new("ParticleEmitter")
 	pe.Name = "StarterAura"
 	pe.LightInfluence = 0
-	pe.Rate = 6
+	-- tamanho proporcional ao gigante (cresce de ~10 a 100+ studs); no máximo ~16 partículas vivas
+	local k = math.max(1, part.Size.Y / 10)
+	pe.Rate = 8
 	pe.Lifetime = NumberRange.new(1.2, 2)
 	pe.SpreadAngle = Vector2.new(60, 60)
 	pe.EmissionDirection = Enum.NormalId.Top
@@ -153,19 +155,19 @@ local function addStarterAura(part: BasePart, kind: string, color: Color3)
 	if kind == "fire" then
 		pe.Texture = "rbxasset://textures/particles/fire_main.dds"
 		pe.LightEmission = 0.8
-		pe.Size = NumberSequence.new(1.6, 0)
-		pe.Speed = NumberRange.new(2, 4)
+		pe.Size = NumberSequence.new(1.6 * k, 0)
+		pe.Speed = NumberRange.new(2 * k, 4 * k)
 	elseif kind == "ice" then
 		pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 		pe.LightEmission = 0.6
-		pe.Size = NumberSequence.new(0.8, 0)
-		pe.Speed = NumberRange.new(0.5, 1.5)
+		pe.Size = NumberSequence.new(0.9 * k, 0)
+		pe.Speed = NumberRange.new(0.5 * k, 1.5 * k)
 	else -- stone: poeira
 		pe.Texture = "rbxasset://textures/particles/smoke_main.dds"
 		pe.LightEmission = 0
 		pe.Transparency = NumberSequence.new(0.5, 1)
-		pe.Size = NumberSequence.new(1.4, 2.4)
-		pe.Speed = NumberRange.new(0.3, 1)
+		pe.Size = NumberSequence.new(1.4 * k, 2.4 * k)
+		pe.Speed = NumberRange.new(0.3 * k, 1 * k)
 	end
 	pe.Parent = att
 end
@@ -191,16 +193,27 @@ local function ensureCreatureMesh(player: Player, model: Model, speciesId: strin
 	mesh.Name = "CreatureMesh"
 	mesh:SetAttribute("File", file)
 	mesh:SetAttribute("Species", speciesId)
-	-- Espécie inicial: a cor da MeshPart multiplica a textura (tinta) + aura própria (StarterSpecies).
+	-- Espécie inicial: tinta + contorno pela cor do elemento (Highlight) e aura própria (StarterSpecies).
+	-- Medido no Studio (09/11): com TextureID a cor da MeshPart NÃO aparece (a textura cobre), então a
+	-- tinta vem de um Highlight (1 por gigante; o limite atual é 255 por cliente, vault "Highlights and
+	-- Selection Effects"). Fill/Outline/DepthMode explícitos.
 	local starter = StarterSpecies.ById[speciesId]
 	if starter then
 		local first: BasePart? = nil
 		for _, d in mesh:GetDescendants() do
 			if d:IsA("MeshPart") then
-				d.Color = starter.tint
 				first = first or d
 			end
 		end
+		local h = Instance.new("Highlight")
+		h.Name = "StarterTint"
+		h.Adornee = mesh
+		h.FillColor = starter.tint
+		h.FillTransparency = 0.5
+		h.OutlineColor = starter.color
+		h.OutlineTransparency = 0.3
+		h.DepthMode = Enum.HighlightDepthMode.Occluded
+		h.Parent = mesh
 		if first then
 			addStarterAura(first, starter.aura, starter.color)
 		end

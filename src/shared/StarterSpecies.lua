@@ -8,8 +8,9 @@
 -- O servidor só aceita estes 3 ids em GiantService.grantStarterSpecies, uma vez por conta.
 --
 -- Arte: "variação de cor do modelo existente" (pedido do usuário). Os gigantes são uma malha só, sem
--- esqueleto; a malha do Humano é reaproveitada e TINGIDA pela cor da MeshPart (a cor multiplica a
--- textura), mais uma aura de partículas própria. Nenhum modelo novo, nenhum upload.
+-- esqueleto; a malha do Humano é reaproveitada e TINGIDA por um Highlight da cor do elemento (com
+-- textura, a cor da MeshPart não aparece: medido em 09/11), mais uma aura de partículas própria.
+-- Nenhum modelo novo, nenhum upload.
 -- Atributos = os do Humano (grátis) + 1 bônus pequeno de identidade, para nunca ficarem melhores que as
 -- espécies pagas.
 local StarterSpecies = {}
@@ -34,7 +35,7 @@ StarterSpecies.List = {
 		decayImmune = false,
 		bodyShape = "Humanoid",
 		starter = true,
-		tint = Color3.fromRGB(255, 165, 120),
+		tint = Color3.fromRGB(255, 125, 75),
 		aura = "fire",
 	},
 	{
@@ -54,7 +55,7 @@ StarterSpecies.List = {
 		decayImmune = false,
 		bodyShape = "Humanoid",
 		starter = true,
-		tint = Color3.fromRGB(165, 210, 255),
+		tint = Color3.fromRGB(120, 185, 255),
 		aura = "ice",
 	},
 	{
@@ -74,7 +75,7 @@ StarterSpecies.List = {
 		decayImmune = false,
 		bodyShape = "Humanoid",
 		starter = true,
-		tint = Color3.fromRGB(175, 168, 158),
+		tint = Color3.fromRGB(105, 105, 112),
 		aura = "stone",
 	},
 }
