@@ -34,6 +34,7 @@ local EggService = require(Services.EggService)
 local EggNotificationService = require(Services.EggNotificationService)
 local MutationService = require(Services.MutationService)
 local AncestralService = require(Services.AncestralService)
+local WelcomeService = require(Services.WelcomeService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -66,6 +67,7 @@ EggService.init()
 EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até publicar)
 MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (flag)
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
+WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
 TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
 -- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do
@@ -108,6 +110,7 @@ local function onPlayerAdded(player: Player)
 	PlotService.pushState(player)
 	OnboardingService.onJoin(player) -- v3: câmera de chegada e 1ª alimentação mais forte (flag)
 	EggService.onJoin(player) -- ovos: estado do ninho e marcos de nível (flag)
+	WelcomeService.onJoin(player) -- resumo de quem volta (flag)
 
 	-- Teleporta o jogador para sua base ao (re)nascer
 	player.CharacterAdded:Connect(function(char)

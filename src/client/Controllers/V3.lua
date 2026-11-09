@@ -202,8 +202,91 @@ local function showStarterChoice(options: { any })
 	end
 end
 
+-- "Bem-vindo de volta" (noite 09/11): 1 janela com o que está pronto e 1 botão por coisa.
+local welcomeWin: Frame? = nil
+local welcomeBody: Frame? = nil
+V3.OnOpenDiary = nil :: (() -> ())?
+local function awayText(sec: number): string
+	if sec >= 86400 then
+		return string.format("%d dia(s)", sec // 86400)
+	elseif sec >= 3600 then
+		return string.format("%d hora(s)", sec // 3600)
+	end
+	return string.format("%d minuto(s)", sec // 60)
+end
+local function showWelcome(data: { [string]: any })
+	local w, body = welcomeWin, welcomeBody
+	if not w or not body or type(data.lines) ~= "table" then
+		return
+	end
+	for _, c in body:GetChildren() do
+		if c:IsA("GuiObject") then
+			c:Destroy()
+		end
+	end
+	UI.label(body, "Você ficou fora " .. awayText(tonumber(data.away) or 0) .. ". Olha o que te espera:", {
+		Size = UDim2.new(1, 0, 0, 36),
+		TextScaled = false,
+		TextSize = 22,
+		TextColor3 = UI.Colors.Accent,
+		ZIndex = 14,
+	})
+	for i, line in data.lines :: { any } do
+		if i > 6 then
+			break
+		end
+		local y = 44 + (i - 1) * 62
+		local row = UI.frame(body, {
+			Size = UDim2.new(1, 0, 0, 56),
+			Position = UDim2.fromOffset(0, y),
+			BackgroundColor3 = UI.Colors.Panel2,
+			ZIndex = 13,
+		})
+		UI.corner(row, 10)
+		UI.label(row, tostring(line.text), {
+			Size = UDim2.new(1, -170, 1, 0),
+			Position = UDim2.fromOffset(12, 0),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextScaled = false,
+			TextSize = 19,
+			TextWrapped = true,
+			ZIndex = 14,
+		})
+		local action = line.action
+		if action == "diary" or action == "nest" then
+			local b = UI.button(row, if action == "diary" then "DIÁRIO" else "NINHO", UI.Colors.Green, {
+				Size = UDim2.fromOffset(140, 44),
+				Position = UDim2.new(1, -150, 0.5, -22),
+				TextScaled = false,
+				TextSize = 20,
+				ZIndex = 15,
+			})
+			b.Activated:Connect(function()
+				w.Visible = false
+				if action == "diary" then
+					local open = V3.OnOpenDiary
+					if open then
+						open()
+					end
+				else
+					Remotes.RequestEgg:FireServer("open")
+				end
+			end)
+		end
+	end
+	if not w.Visible then
+		UI.pop(w)
+	end
+end
+
 function V3.init(gui: ScreenGui?)
 	if gui then
+		welcomeWin, welcomeBody = UI.window(gui, "BEM-VINDO DE VOLTA!", UDim2.fromOffset(760, 500))
+		Remotes.WelcomeBack.OnClientEvent:Connect(function(data: any)
+			if type(data) == "table" then
+				showWelcome(data)
+			end
+		end)
 		local w, body = UI.window(gui, "SEU GIGANTE", UDim2.fromOffset(820, 440))
 		starterWin, starterBody = w, body
 		-- A escolha é obrigatória (revisão cega): sem o X, e se o ESC fechar a janela com a escolha

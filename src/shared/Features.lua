@@ -33,6 +33,7 @@ local Features = {
 	DragonRaidPhase1 = false, -- fase 1 do Dragão (alimentar para enfraquecer) — aguardando a cópia de teste
 	-- Noite de 09/11/2026 (melhorias autônomas)
 	Mutations = false, -- comida exposta ganha mutação durante os eventos (Dourada, Suculenta, Arco-íris)
+	WelcomeBack = false, -- resumo "Bem-vindo de volta" ao entrar depois de 10+ min fora
 	Fusion = false, -- 3 comidas iguais da mochila viram 1 Gigantesca (renda e XP x3,2)
 	Ancestral = false, -- Gigante Ancestral: banquete coletivo do servidor, chuva de comida e +XP para todos
 }

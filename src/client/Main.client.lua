@@ -93,6 +93,7 @@ HUD.OnOpenCodes = Shop.openCodes
 HUD.OnOpenArena = Arena.open
 HUD.OnOpenCollection = Collection.open
 HUD.OnOpenDiary = Diary.open
+V3.OnOpenDiary = Diary.open -- botão DIÁRIO do "Bem-vindo de volta"
 Diary.OnClaimable = HUD.setDiaryClaimable
 Collection.OnNewDiscovery = function(_n: number)
 	HUD.markNewDiscovery()

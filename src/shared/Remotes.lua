@@ -70,6 +70,7 @@ local EVENTS = {
 	-- Espécies iniciais (Features.StarterSpecies)
 	"RequestStarter", -- client -> server: speciesId (só os 3 iniciais, 1 vez por conta; servidor valida)
 	"RequestFuse", -- client -> server: foodId (3 iguais da mochila → 1 Gigantesca; Features.Fusion)
+	"WelcomeBack", -- server -> client: {away, lines = {{id, text, action?}}} (Features.WelcomeBack)
 }
 
 local FUNCTIONS = {
