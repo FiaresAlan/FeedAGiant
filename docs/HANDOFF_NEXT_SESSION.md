@@ -19,8 +19,10 @@ O place "Alimente um Gigante" (115578986093768) contém **`Workspace.MainModule`
   456 sons e uso de `string.char` (comum em código ofuscado);
 - nenhum outro script do place o chama (varredura completa). Provavelmente foi inserido da Loja do Criador.
 **Ação do dono:** apagar `Workspace.MainModule`, salvar e, se o place já foi publicado com ele, publicar de novo sem
-ele. Depois rodar a auditoria do vault ("Creator Store and Toolbox Safety" §6). O diretor NÃO apagou: o place é do
-usuário e a regra é não escrever nele.
+ele. Depois rodar a auditoria do vault ("Creator Store and Toolbox Safety" §6).
+**ATUALIZAÇÃO 09/11:** com a autorização do usuário ("Sim, apague"), o diretor apagou `Workspace.MainModule` no Studio
+(10.876 instâncias). No Play seguinte, os erros e sons dele sumiram do console. **O dono precisa SALVAR o place (Ctrl+S)**
+e publicar de novo, se a versão publicada tinha o módulo.
 
 ## A0000000. Prompt v4## A0000000. Prompt v4 (09/11/2026) — parte liberada feita
 - **Feito:**
