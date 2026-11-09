@@ -281,8 +281,16 @@ function PlotService.getFoodModel(player: Player, slot: number): Model?
 	return foodModels[player] and foodModels[player][slot]
 end
 
-function PlotService.hasInventorySpace(profile: DataService.Profile, count: number?): boolean
-	return #profile.inventory + (count or 1) <= Config.MaxInventory
+-- Um lote é aceito só se couber INTEIRO. Prêmios gratuitos podem usar o teto estendido;
+-- recibos pagos mantêm a entrega garantida independentemente do espaço.
+function PlotService.hasInventorySpace(
+	profile: DataService.Profile,
+	count: number?,
+	force: boolean?,
+	paid: boolean?
+): boolean
+	local cap = if paid then math.huge elseif force then Config.MaxInventoryHard else Config.MaxInventory
+	return #profile.inventory + (count or 1) <= cap
 end
 
 -- Dá uma comida. Com a mochila cheia (MaxInventory), recusa (retorna false e avisa).
@@ -341,6 +349,15 @@ function PlotService.pickup(player: Player, slot: number)
 	end
 	local item = profile.plot[tostring(slot)]
 	if not item then
+		return
+	end
+	-- Impede usar o pátio para ultrapassar o limite normal da mochila.
+	-- O item permanece intacto no pátio se a retirada não couber.
+	if not PlotService.hasInventorySpace(profile) then
+		Remotes.Notify:FireClient(player, {
+			text = "Mochila cheia! Alimente seu Gigante antes de recolher mais comida.",
+			color = Color3.fromRGB(255, 170, 60),
+		})
 		return
 	end
 	profile.plot[tostring(slot)] = nil
@@ -419,6 +436,13 @@ local function doFeed(
 		streakMult = streakMult,
 		trait = if trait then trait.id else nil,
 	})
+	-- Funil do primeiro minuto: exatamente uma vez por conta para a 1ª e a 2ª alimentação.
+	-- Não envia o inventário nem dados pessoais; ajuda a medir se o loop central é compreendido.
+	if profile.totalFeeds == 1 then
+		Analytics.event(player, "ftue_first_feed", 1, { def.rarity, if levels > 0 then "leveled" else "no_level" })
+	elseif profile.totalFeeds == 2 then
+		Analytics.event(player, "ftue_second_feed", 1, { def.rarity })
+	end
 	Hooks.fire("fed", player, { xp = xp, crit = crit, streak = st.n, levels = levels, foodId = def.id })
 	TutorialService.signal(player, "Fed")
 	TutorialService.refresh(player) -- passo "grow" (nível 3) completa sozinho
