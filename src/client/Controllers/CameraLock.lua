@@ -39,6 +39,7 @@ local function setLocked(on: boolean)
 	end
 	crosshair.Visible = on
 	button.Text = if on then "MIRA TRAVADA (C)" else "TRAVAR MIRA (C)"
+	button.TextColor3 = Color3.new(1, 1, 1)
 	button.BackgroundColor3 = if on then Color3.fromRGB(40, 170, 90) else Color3.fromRGB(70, 80, 110)
 	UI.sfx("Click", 0.5)
 end
@@ -58,6 +59,8 @@ function CameraLock.init(gui: ScreenGui)
 		TextScaled = false,
 		TextSize = 18,
 	})
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextStrokeTransparency = 0.3
 	button.Activated:Connect(function()
 		setLocked(not locked)
 	end)

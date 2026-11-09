@@ -558,10 +558,11 @@ end
 ---------------------------------------------------------------------------
 -- 09/11: NINHO EM CADA BASE + ROUBO LEVE DE OVO (GameRules.EggSteal)
 ---------------------------------------------------------------------------
-local NEST_SPOT = CFrame.new(22, 0, 6) -- canto livre da base (pátio x ±13,5; escudo em 22,-18)
-local NEST_WIDTH_BASE = 11
-local BASE_EGG_SCALE = 1.25
-local NEST_OFFSETS = { Vector3.new(0, 0, 0), Vector3.new(-3, 0, 1.6), Vector3.new(3, 0, 1.6) }
+local NEST_SPOT = CFrame.new(23, 0, 6) -- canto livre da base (pátio até x 16,5; escudo em 22,-18)
+local NEST_WIDTH_BASE = 13
+local BASE_EGG_SCALE = 1.15
+-- ovos em triângulo, afastados (o Grande chega a ~4 studs de largura): não encostam um no outro
+local NEST_OFFSETS = { Vector3.new(0, 0, -2.6), Vector3.new(-4.2, 0, 2.2), Vector3.new(4.2, 0, 2.2) }
 
 type EggCarry = {
 	size: string,
