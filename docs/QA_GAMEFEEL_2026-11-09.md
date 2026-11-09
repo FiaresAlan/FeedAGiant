@@ -43,3 +43,37 @@
 
 ## Go / No-Go
 Lançamento de teste apenas se: lugar sem módulo suspeito, compilação/suíte verdes, eclosão no celular e em multiplayer funcionando, primeira alimentação fluida, DataStore persistindo e produtos pagos corretos. Qualquer falha de segurança, dados ou recibos = **no-go**. Publicidade paga somente após métricas observadas de aquisição e retenção.
+
+## Rodada local de 09/11/2026
+
+O trabalho partiu do PR #1 no commit `40de2d6`. A branch foi clonada em pasta separada. Os diretórios locais preexistentes, os dois backups do PR e o place oficial foram preservados. A build de QA foi gerada a partir do código da branch e executada no Studio com `PlaceId = 0`.
+
+### Alterações e verificações
+
+| Área | Alteração | Evidência |
+|---|---|---|
+| Alimentação e evolução | Campos de analytics tipados, uma animação de escala por gigante, banner que cabe na largura do HUD e respeita a duração da evolução mais recente. | Duas alimentações consecutivas consumiram dois itens e incrementaram o contador no Studio. Transformação visual e desempenho em celular pendentes. |
+| Eclosão | Prévia 3D opcional protegida, rachaduras removidas na revelação e limpeza da fila por item, inclusive quando um efeito falha. | Duas solicitações reais de eclosão pelo cliente, com ovos preparados no ninho da praça. O servidor removeu ambos e contabilizou as recompensas. O cliente mostrou dois resultados e escondeu a fila. Enquadramento 3D, assets, raridades altas e movimento reduzido pendentes. |
+| Disputa e bases | Aviso de comida rara no pouso. Gigante gira para o lado do visitante usando a orientação de repouso. | Lógica revisada e compilada. Pouso, giro e desempenho com várias bases pendentes em sessão visual. |
+| Arena | Cancelamento limpa contagem e música. Transferência conserva UID, mutação e tamanho, e só retira itens que cabem no vencedor. | Lógica revisada. Dano, cancelamento e transferência com dois jogadores ainda pendentes. |
+| Onboarding | Caixa pendente usa o botão existente e o aviso sonoro, sem abrir janela. Retorno adia o resumo quando a espécie inicial está pendente. | Cliente recebeu a escolha e o servidor aceitou a espécie inicial. Primeiro minuto observado com jogador novo e sobreposições em celular pendentes. |
+| Ovos e carga | Proteções são revalidadas ao terminar o roubo. A vítima que sai recebe o ovo antes do save, inclusive acima do limite de aquisição. Cargas de ovo e comida são mutuamente exclusivas. | Regras de roubo cobertas pela suíte existente. Corrida entre dois ladrões, saída da vítima, carga simultânea e reentrada reais pendentes. |
+| Lunchboxes e mochila | Lote montado antes da cobrança, uma atualização de mochila por abertura, caixas de determinadas recompensas guardadas se não couberem, acesso a índices válidos acima do limite normal e limite de solicitações de estado completo. | Compra comum perto do teto recusada sem cobrança, compra subsequente entrega o lote completo e recompensa Épica fica guardada no teto estendido. Recibos reais e abertura de caixas guardadas acima da sexta posição pendentes. |
+
+### Ferramentas
+
+- **Luau 0.745.0:** 118 arquivos de `src` e `tests` compilados. **Luau LSP:** análise do código de jogo aprovada, com aviso preexistente de variável sombreada em `MapKit/Scatter.luau`.
+- **Verificador do projeto:** `overall PASS (101 files)`, incluindo a checagem de padrões Roblox.
+- **Selene 0.32.0:** zero erros, avisos ou falhas de sintaxe em `src`. **StyLua 2.6.0:** `stylua --check src tests` aprovado.
+- **Rojo 7.7.1:** builds de produção e teste aprovadas. Sourcemap gerado. `rojo serve` local respondeu às consultas de metadados e árvore. Sincronização ao vivo pelo plugin no Studio não foi executada.
+- **Roblox Studio:** `167 passed, 0 failed, 16 spec modules` em Play solo com os testes de integração da tabela. O DataStore caiu no modo em memória por se tratar de place local. IDs de produtos estão como placeholders. O console registrou falhas de carregamento de alguns assets, incluindo representações ainda em geração, e IDs associados ao plugin Ecos Tools.
+- **Inspeção do place:** ausência de `Workspace.MainModule` na build Rojo de QA. Os três arquivos XML inspecionados (repositório, pasta local e backup local) também não contêm scripts sob Workspace. As cópias XML têm código histórico. O place oficial e os binários locais não foram inspecionados.
+
+### Pendências antes de publicar
+
+1. Em cópia de teste, usar três jogadores para dois roubos simultâneos em um ninho com dois ovos. Só uma retirada deve ocorrer. Testar ainda saída da vítima durante o transporte e devolução com bolsa de ovos acima do teto.
+2. Usar dois clientes para disputa, escudo, arena, nocaute e desconexão. Na arena, validar um item mutado ou Gigantesco e um vencedor com mochila cheia.
+3. Verificar o place oficial e confirmar o carregamento dos assets e a experiência em celular físico, incluindo eclosão, movimento reduzido e primeiros cinco minutos.
+4. Validar DataStore persistente e os recibos num ambiente de teste autorizado. A devolução de ovos em desligamento abrupto do servidor ainda não é durável entre perfis. A caixa do Dragão com raridade mínima em todo o lote ainda pode falhar com mochila no teto, pois a fila atual guarda apenas IDs de caixas.
+
+Status da rodada **rascunho, sem aprovação de lançamento**. As revisões independentes desta rodada foram de código. A avaliação visual, multiplayer e de prontidão segue pendente.
