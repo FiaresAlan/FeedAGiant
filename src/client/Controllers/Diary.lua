@@ -197,10 +197,11 @@ local function render(st: { [string]: any })
 	if type(wk) == "table" then
 		section(
 			string.format(
-				"%s  (%s %s)",
+				"%s  (%s %dd %dh)",
 				Locale.t("MISSÃO DA SEMANA"),
 				Locale.t("novas em"),
-				hms(tonumber(wk.resetIn) or 0)
+				(tonumber(wk.resetIn) or 0) // 86400,
+				((tonumber(wk.resetIn) or 0) % 86400) // 3600
 			),
 			10
 		)
