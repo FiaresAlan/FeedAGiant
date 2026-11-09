@@ -630,7 +630,10 @@ function DropService.spawnAt(pos: Vector3, kind: Kind?, id: string?, silent: boo
 	it.prompt.Triggered:Connect(function(player)
 		tryPickup(player, it)
 	end)
-	if not silent then
+	-- Aviso de texto só para drop importante (Épico ou melhor, caixa ou ovo): comida comum caindo não
+	-- spamma mais a tela de todo mundo (pedido do usuário, 09/11, item 14).
+	local important = it.kind ~= "food" or (Config.Rarities[it.rarity] and Config.Rarities[it.rarity].order >= 4)
+	if not silent and important then
 		Remotes.Notify:FireAllClients(
 			Locale.msg("drop_incoming2", { f = it.name, r = it.rarity, n = math.floor(it.unlockAt) }, it.color)
 		)

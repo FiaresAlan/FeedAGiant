@@ -78,6 +78,52 @@ local function mmss(sec: number): string
 	return string.format("%d:%02d", sec // 60, sec % 60)
 end
 
+-- Pedido do usuário (09/11, item 12): a faixa NÃO fica no meio do topo tampando a tela. Ela mora pequena
+-- no canto superior direito; ao anunciar algo importante (evento começando ou a 10 s de começar), aparece
+-- grande e animada no centro por 2,5 s e desliza de volta para o canto.
+local DOCK_POS = UDim2.new(1, -16, 0, 56)
+local DOCK_SIZE = UDim2.fromOffset(330, 46)
+local BIG_POS = UDim2.fromScale(0.5, 0.16)
+local BIG_SIZE = UDim2.fromOffset(560, 72)
+local announcing = false
+local function dock(instant: boolean?)
+	banner.AnchorPoint = Vector2.new(1, 0)
+	if instant or UI.reducedMotion() then
+		banner.Position = DOCK_POS
+		banner.Size = DOCK_SIZE
+		return
+	end
+	TweenService:Create(banner, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+		Position = DOCK_POS,
+		Size = DOCK_SIZE,
+	}):Play()
+end
+local function announce()
+	if announcing then
+		return
+	end
+	announcing = true
+	banner.Visible = true
+	-- vai para o centro (âncora no meio), cresce, espera e volta para o canto
+	banner.AnchorPoint = Vector2.new(0.5, 0)
+	if UI.reducedMotion() then
+		banner.Position = BIG_POS
+		banner.Size = BIG_SIZE
+	else
+		banner.Position = BIG_POS
+		banner.Size = UDim2.fromOffset(330, 46)
+		TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = BIG_SIZE,
+		}):Play()
+	end
+	task.delay(2.5, function()
+		dock(false)
+		task.delay(0.6, function()
+			announcing = false
+		end)
+	end)
+end
+
 -- Um só laço atualiza o chip: evento ativo (cor do evento) ou contagem do próximo.
 local function tickBanner()
 	if os.clock() < activeEventEnd then
@@ -95,6 +141,9 @@ local function tickBanner()
 		bannerTimer.Text = mmss(left)
 		-- Último minuto: o chip pisca na cor do evento (expectativa), menos com "Movimento reduzido".
 		local urgent = left <= 60
+		if left == 10 then
+			announce() -- "falta pouco": aparece no centro e volta para o canto
+		end
 		bannerStroke.Color = if urgent then nextColor else Color3.fromRGB(90, 100, 170)
 		bannerTimer.TextColor3 = if urgent then nextColor else UI.Colors.Accent
 		if urgent and not UI.reducedMotion() and left % 2 == 0 then
@@ -110,7 +159,7 @@ local function showBanner(name: string, duration: number, color: Color3)
 	activeName = name
 	activeColor = color
 	tickBanner()
-	UI.pop(banner)
+	announce()
 end
 
 local function hideBanner()
@@ -139,7 +188,7 @@ function Notifications.init(parentGui: ScreenGui)
 	stack = UI.frame(gui, {
 		Name = "Toasts",
 		Size = UDim2.fromOffset(320, 300),
-		Position = UDim2.new(1, -16, 0, 90),
+		Position = UDim2.new(1, -16, 0, 112),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 1,
 	})
@@ -152,9 +201,9 @@ function Notifications.init(parentGui: ScreenGui)
 	-- Chip do evento no canto superior esquerdo (antes ficava no meio do topo, em cima da HUD).
 	banner = UI.frame(gui, {
 		Name = "EventBanner",
-		Size = UDim2.fromOffset(520, 60),
-		Position = UDim2.new(0.5, 0, 0, 8),
-		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(330, 46),
+		Position = UDim2.new(1, -16, 0, 56),
+		AnchorPoint = Vector2.new(1, 0),
 		BackgroundColor3 = UI.Colors.Panel,
 		Visible = false,
 	})
@@ -165,13 +214,12 @@ function Notifications.init(parentGui: ScreenGui)
 		Size = UDim2.new(1, -112, 1, -12),
 		Position = UDim2.fromOffset(12, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextScaled = false,
-		TextSize = 24,
+		TextScaled = true, -- cabe no tamanho pequeno (canto) e no grande (anúncio)
 		TextWrapped = true,
 	})
 	bannerTimer = UI.title(banner, "0:00", {
-		Size = UDim2.fromOffset(96, 48),
-		Position = UDim2.new(1, -104, 0, 6),
+		Size = UDim2.new(0, 90, 1, -8),
+		Position = UDim2.new(1, -96, 0, 4),
 	})
 	-- HUD nova: a coluna da esquerda é das estatísticas; o chip do evento fica no meio do topo.
 	task.spawn(function()

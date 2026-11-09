@@ -80,7 +80,9 @@ end
 
 local function refresh()
 	local d, _ = nearest()
-	card.Visible = d ~= nil
+	-- Pedido do usuário (09/11, item 13): o cartão "DISPUTA DE COMIDA" embaixo no meio saiu de vez.
+	-- Cada item já mostra o nome e o tempo em cima dele no mundo.
+	card.Visible = false
 	if not d then
 		arrow.Visible = false
 		return
@@ -245,12 +247,25 @@ function Drops.init(gui: ScreenGui)
 			drops[d.id] = nil
 		else
 			if not drops[d.id] then
-				UI.sfx("VO_Drop", 0.9)
-				UI.sfx("Bell", 0.4)
+				-- Pedido do usuário (09/11, item 14): a VOZ não fala mais a cada drop (só quando começa a
+				-- Chuva de Comida, abaixo). Aqui, só um sino, e só se o item é importante (Épico+) ou cai perto.
+				local rar = Config.Rarities[d.rarity]
+				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+				local near = root ~= nil and typeof(d.pos) == "Vector3" and (d.pos - root.Position).Magnitude < 120
+				if (rar and rar.order >= 4) or near then
+					UI.sfx("Bell", 0.35)
+				end
 			end
 			drops[d.id] = d
 		end
 		refresh()
+	end)
+
+	-- A voz "comida caindo do céu" só no começo da Chuva de Comida (evento de verdade).
+	Remotes.EventStarted.OnClientEvent:Connect(function(data)
+		if type(data) == "table" and data.id == "FoodRain" then
+			UI.sfx("VO_Drop", 0.9)
+		end
 	end)
 
 	task.spawn(function()
@@ -268,13 +283,13 @@ function Drops.init(gui: ScreenGui)
 			arrow.Visible = false
 			return
 		end
+		-- Seta só quando você CARREGA algo (aponta a sua base). Antes ela aparecia sempre, para o item
+		-- mais próximo do mapa inteiro, e virava ruído na tela (pedido do usuário, 09/11).
 		local target: Vector3? = nil
 		local label = tostring(d.name)
 		if d.carrierId == player.UserId then
 			target = myBasePos()
 			label = "SUA BASE"
-		elseif typeof(d.pos) == "Vector3" then
-			target = d.pos
 		end
 		if not target then
 			arrow.Visible = false
