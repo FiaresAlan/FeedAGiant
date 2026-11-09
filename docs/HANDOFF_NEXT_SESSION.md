@@ -11,6 +11,17 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A000000. Sistema de Ovos (08/11/2026, madrugada): VALIDADO, NÃO IMPLEMENTADO
+- **Pedido do usuário:**
+  - ovos de 5 tamanhos num Ninho na praça;
+  - efeito visual por raridade;
+  - 3 espécies iniciais fora da loja;
+  - ovo de tutorial;
+  - notificação de "ovo pronto".
+- **Pacote de assets:** pasta "50 Stylized Eggs – Free 3D Asset Pack" em Pictures. Licença comercial, mas sem redistribuir, então o upload tem de ser privado.
+- **Validação:** `docs/VALIDACAO_OVOS_V1.md` traz a análise do pacote e **9 perguntas pendentes**.
+- **Estado:** o próprio pedido proíbe codar antes das respostas. Nada foi implementado nem enviado.
+
 ## A00000. Especificação v3 (08/11/2026, fim da noite) — parte 1 entregue
 O usuário mandou a "Especificação Final v2.1 → v3.0" (com esqueletos em `src/shared/Config/`) e pediu: validar e implementar.
 - **Validação completa, item por item:** `docs/VALIDACAO_ESPEC_V3.md` (aprovado / adaptado / adiado / conflito, com motivos).
