@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local FoodPreference = require(game.ReplicatedStorage.Shared.FoodPreference)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
@@ -73,6 +74,7 @@ function PlotService.pushState(player: Player)
 	Remotes.StateChanged:FireClient(player, {
 		discovered = profile.discovered,
 		pendingBoxes = (profile :: any).pendingBoxes,
+		favoriteFoodId = FoodPreference.favorite(profile.species, os.time()),
 		coins = profile.coins,
 		level = profile.level,
 		xp = profile.xp,
@@ -422,6 +424,10 @@ local function doFeed(
 	streaks[player] = st
 	local xp, crit, streakMult = GameLogic.feedXp(def.id, def.rarity, st.n, math.random())
 	xp = math.floor(xp * GameRules.mutationXp(mut)) -- comida com mutação dá mais XP
+	local favorite = def.id == FoodPreference.favorite(profile.species, os.time())
+	if favorite then
+		xp = math.floor(xp * FoodPreference.BonusMult)
+	end
 	if big then
 		xp = math.floor(xp * GameRules.Fusion.Mult) -- Gigantesca (Fusão)
 	end
@@ -434,6 +440,7 @@ local function doFeed(
 		streak = st.n,
 		streakMult = streakMult,
 		trait = if trait then trait.id else nil,
+		favorite = favorite,
 	})
 	-- Funil do primeiro minuto: exatamente uma vez por conta para a 1ª e a 2ª alimentação.
 	-- Não envia o inventário nem dados pessoais; ajuda a medir se o loop central é compreendido.
