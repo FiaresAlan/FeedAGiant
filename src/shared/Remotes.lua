@@ -69,6 +69,7 @@ local EVENTS = {
 	"RequestWeekly", -- client -> server: action ("choose"|"swap"|"claim"), id (missão)
 	-- Espécies iniciais (Features.StarterSpecies)
 	"RequestStarter", -- client -> server: speciesId (só os 3 iniciais, 1 vez por conta; servidor valida)
+	"RequestFuse", -- client -> server: foodId (3 iguais da mochila → 1 Gigantesca; Features.Fusion)
 }
 
 local FUNCTIONS = {

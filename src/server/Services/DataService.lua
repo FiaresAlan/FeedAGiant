@@ -31,7 +31,7 @@ local STORE_NAME = "FeedAGiant_Profiles_v1"
 local SCHEMA_VERSION = 1
 local LEADERBOARD_INTERVAL = 120
 
-export type FoodInstance = { id: string, uid: string, mut: string? } -- mut: Mutação (GameRules.Mutations)
+export type FoodInstance = { id: string, uid: string, mut: string?, big: boolean? } -- mut: Mutação; big: Gigantesca (Fusão)
 export type Profile = {
 	coins: number,
 	level: number,
@@ -249,6 +249,9 @@ local function sanitize(player: Player, profile: Profile)
 	local function cleanMut(f: any)
 		if type(f) == "table" and f.mut ~= nil and not GameRules.Mutations[f.mut] then
 			f.mut = nil
+		end
+		if type(f) == "table" and f.big ~= nil and f.big ~= true then
+			f.big = nil
 		end
 	end
 	for _, f in profile.inventory do

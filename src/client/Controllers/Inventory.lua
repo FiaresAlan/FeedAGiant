@@ -2,6 +2,7 @@
 -- Inventory.lua — janela de Inventário (comidas na mochila) e Pátio (slots ocupados), com ações Colocar / Alimentar / Recolher.
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Features = require(game.ReplicatedStorage.Shared.Features)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local UI = require(script.Parent.Parent.UI)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
@@ -52,7 +53,8 @@ local function foodRow(
 	def: Config.FoodDef,
 	order: number,
 	actions: { { text: string, color: Color3, cb: () -> () } },
-	mut: string?
+	mut: string?,
+	big: boolean?
 ): Frame
 	local rar = Config.Rarities[def.rarity]
 	local row =
@@ -75,7 +77,7 @@ local function foodRow(
 	end
 	-- Mutação (noite 09/11): nome na frente, na cor dela, e contorno da cor
 	local m = mut and GameRules.Mutations[mut]
-	UI.label(row, (if m then m.name .. " · " else "") .. def.name, {
+	UI.label(row, (if big then "XL " else "") .. def.name, {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 26),
 		Position = UDim2.fromOffset(56, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -87,9 +89,14 @@ local function foodRow(
 	-- 4.3: a característica muda o XP (ao comer) e a renda (exposta): mostra os valores JÁ ajustados
 	-- e o selo colorido da característica no nome.
 	local trait = GameRules.traitOf(def.id)
-	local xpShown = math.floor(rar.xp * (if trait then trait.xpMult else 1))
-	local cpsShown = math.floor(rar.cps * (if trait then trait.incomeMult else 1) * 10 + 0.5) / 10
-	if trait then
+	-- Mutação e Fusão (noite 09/11) entram nos valores mostrados e como etiqueta na 2ª linha
+	local extra = (if big then GameRules.Fusion.Mult else 1)
+	local xpShown = math.floor(rar.xp * (if trait then trait.xpMult else 1) * GameRules.mutationXp(mut) * extra)
+	local cpsShown = math.floor(
+		rar.cps * (if trait then trait.incomeMult else 1) * GameRules.mutationIncome(mut) * extra * 10 + 0.5
+	) / 10
+	local tags = (if m then "  ·  " .. m.name else "") .. (if big then "  ·  Gigantesca" else "")
+	if trait and #actions < 3 then -- com 3 botões (FUNDIR) não sobra espaço: o nome tem prioridade
 		UI.label(row, trait.icon .. " " .. Locale.t(trait.name), {
 			Size = UDim2.fromOffset(150, 22),
 			Position = UDim2.new(1, -(150 + #actions * 92), 0, 6),
@@ -99,7 +106,7 @@ local function foodRow(
 			TextColor3 = trait.color,
 		})
 	end
-	UI.label(row, Locale.fmt("food_row", nil, { r = Locale.rarity(def.rarity), x = xpShown, c = cpsShown }), {
+	UI.label(row, Locale.fmt("food_row", nil, { r = Locale.rarity(def.rarity), x = xpShown, c = cpsShown }) .. tags, {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 20),
 		Position = UDim2.fromOffset(56, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -129,11 +136,36 @@ local function refresh(s: State.PlayerState)
 	invTitle.Text = Locale.fmt("backpack_n", nil, { n = #s.inventory })
 	plotTitle.Text = Locale.fmt("yard_n", nil, { n = State.plotCount(), m = s.maxSlots })
 
+	-- Fusão (noite 09/11): quantas iguais (sem fusão) há de cada comida; FUNDIR aparece com 3+
+	local sameCount: { [string]: number } = {}
+	for _, food in s.inventory do
+		if not (food :: any).big then
+			sameCount[food.id] = (sameCount[food.id] or 0) + 1
+		end
+	end
+	local fuseShown: { [string]: boolean } = {}
 	for i, food in s.inventory do
 		local def = Config.FoodById[food.id]
 		if def then
 			local idx = i
-			foodRow(invList, def, i, {
+			local actions = {}
+			if
+				Features.on("Fusion")
+				and not (food :: any).big
+				and (sameCount[food.id] or 0) >= GameRules.Fusion.Count
+				and not fuseShown[food.id]
+			then
+				fuseShown[food.id] = true -- 1 botão por tipo de comida
+				local fid = food.id
+				table.insert(actions, {
+					text = "FUNDIR",
+					color = UI.Colors.Orange,
+					cb = function()
+						Remotes.RequestFuse:FireServer(fid)
+					end,
+				})
+			end
+			local rowActions = {
 				{
 					text = "COLOCAR",
 					color = UI.Colors.Blue,
@@ -148,7 +180,11 @@ local function refresh(s: State.PlayerState)
 						Remotes.RequestFeed:FireServer({ inv = idx })
 					end,
 				},
-			}, (food :: any).mut)
+			}
+			for _, a in actions do
+				table.insert(rowActions, a)
+			end
+			foodRow(invList, def, i, rowActions, (food :: any).mut, (food :: any).big)
 		end
 	end
 	if #s.inventory == 0 then
@@ -184,7 +220,7 @@ local function refresh(s: State.PlayerState)
 						Remotes.RequestFeed:FireServer(slotIdx)
 					end,
 				},
-			}, (food :: any).mut)
+			}, (food :: any).mut, (food :: any).big)
 		end
 	end
 	if #keys == 0 then

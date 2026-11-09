@@ -397,6 +397,53 @@ function GameLogic.weeklyClaim(wq: Weekly, week: number): GameRules.ObjectiveDef
 end
 
 ---------------------------------------------------------------------------
+-- Fusão (noite de 09/11): 3 iguais → 1 Gigantesca
+---------------------------------------------------------------------------
+-- Índices (na mochila) de Count comidas com este id e sem fusão, preferindo as COM mutação (para não
+-- desperdiçar), ou nil se não houver o bastante.
+function GameLogic.fusionPick(inventory: { { id: string, mut: string?, big: boolean? } }, foodId: string): { number }?
+	local cand = {}
+	for i, f in inventory do
+		if f.id == foodId and not f.big then
+			table.insert(cand, i)
+		end
+	end
+	if #cand < GameRules.Fusion.Count then
+		return nil
+	end
+	table.sort(cand, function(a, b)
+		local ma = GameRules.mutationIncome(inventory[a].mut)
+		local mb = GameRules.mutationIncome(inventory[b].mut)
+		if ma ~= mb then
+			return ma > mb
+		end
+		return a < b
+	end)
+	local out = {}
+	for k = 1, GameRules.Fusion.Count do
+		table.insert(out, cand[k])
+	end
+	return out
+end
+
+-- A melhor mutação entre as escolhidas (maior renda), ou nil.
+function GameLogic.fusionMutation(inventory: { { mut: string? } }, picks: { number }): string?
+	local best: string? = nil
+	for _, i in picks do
+		local m = inventory[i].mut
+		if m and GameRules.mutationIncome(m) > GameRules.mutationIncome(best) then
+			best = m
+		end
+	end
+	return best
+end
+
+-- Multiplicador de uma comida pela fusão (1 = normal).
+function GameLogic.fusionMult(food: { big: boolean? }): number
+	return if food.big then GameRules.Fusion.Mult else 1
+end
+
+---------------------------------------------------------------------------
 -- Gigante Ancestral (noite de 09/11): banquete coletivo do servidor
 ---------------------------------------------------------------------------
 -- Meta de pontos para acordar (cresce com o número de jogadores reais).

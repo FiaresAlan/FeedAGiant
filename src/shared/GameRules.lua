@@ -555,6 +555,17 @@ GameRules.Ancestral = {
 	Height = 110, -- altura em studs
 }
 
+---------------------------------------------------------------------------
+-- Fusão (noite de 09/11/2026; Features.Fusion). 3 comidas IGUAIS (mesmo id, nenhuma já fundida) da
+-- mochila viram 1 "Gigantesca": ocupa 1 vaga e vale um pouco mais que as 3 juntas. Determinístico
+-- (sem sorteio). Mutação: a Gigantesca fica com a MELHOR das três (maior renda).
+---------------------------------------------------------------------------
+GameRules.Fusion = {
+	Count = 3,
+	Mult = 3.2, -- renda e XP da Gigantesca (3 comidas = 3,0; +0,2 de prêmio por juntar)
+	Scale = 1.45, -- tamanho no pátio
+}
+
 GameRules.MutationTick = 15 -- segundos entre sorteios durante o evento (chance acima é por sorteio e por comida)
 
 -- Mutação que um evento pode dar (nil se nenhum).

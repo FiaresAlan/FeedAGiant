@@ -13,6 +13,8 @@ local TutorialService = require(script.Parent.TutorialService)
 local Guard = require(script.Parent.Parent.Guard)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
+local Analytics = require(script.Parent.Parent.Analytics)
+local Features = require(game.ReplicatedStorage.Shared.Features)
 local Hooks = require(script.Parent.Parent.Hooks)
 local GameLogic = require(script.Parent.Parent.GameLogic)
 
@@ -124,7 +126,7 @@ function PlotService.coinsPerSecond(player: Player): number
 			local trait = GameRules.traitOf(def.id)
 			total += Config.Rarities[def.rarity].cps * (if trait then trait.incomeMult else 1) * GameRules.mutationIncome(
 				(food :: any).mut
-			) -- Mutações (noite 09/11)
+			) -- Mutações (noite 09/11) * GameLogic.fusionMult(food :: any) -- Fusão: Gigantesca
 		end
 	end
 	local sp = GiantService.species(profile)
@@ -146,10 +148,11 @@ local PLOT_FOOD_SIZE = 4.4 -- maior dimensão da comida 3D no pátio (vaga de 6x
 -- Letreiro da comida só de perto (antes: 400 studs; 16 nomes por base poluíam a tela).
 local FOOD_LABEL_DISTANCE = 30
 
-local function buildFoodModel(def: Config.FoodDef, slot: Part, mut: string?): Model
+local function buildFoodModel(def: Config.FoodDef, slot: Part, mut: string?, big: boolean?): Model
 	local model = Instance.new("Model")
 	model.Name = "Food_" .. def.id
-	local bounds = FoodModels.boundsFor(def.id, PLOT_FOOD_SIZE)
+	local size = PLOT_FOOD_SIZE * (if big then GameRules.Fusion.Scale else 1)
+	local bounds = FoodModels.boundsFor(def.id, size)
 	local p = Util.makePart({
 		Name = "Body",
 		Size = if bounds then bounds:Max(Vector3.new(1, 1, 1)) else Vector3.new(3, 3, 3),
@@ -162,7 +165,7 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part, mut: string?): Mo
 	})
 	if bounds then
 		-- Fase 2: comida 3D (Grab3D CC0). A peça fica invisível e do tamanho da malha (clique certo).
-		FoodModels.dress(p, def.id, PLOT_FOOD_SIZE)
+		FoodModels.dress(p, def.id, size)
 	elseif def.shape == "Ball" then
 		p.Shape = Enum.PartType.Ball
 	elseif def.shape == "Cylinder" then
@@ -216,6 +219,10 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part, mut: string?): Mo
 		sel.LineThickness = 0.05
 		sel.Parent = p
 	end
+	if big then
+		label.Text = "Gigantesca · " .. label.Text
+		model:SetAttribute("Fused", true)
+	end
 	-- Mutação: brilho da cor dela + nome na etiqueta (barato: 1 luz e 1 emissor leve por comida)
 	local m = mut and GameRules.Mutations[mut]
 	if m then
@@ -262,7 +269,7 @@ function PlotService.rebuildPlot(player: Player)
 		local idx = tonumber(key)
 		local def = Config.FoodById[food.id]
 		if idx and def and base.slots[idx] then
-			local model = buildFoodModel(def, base.slots[idx], (food :: any).mut)
+			local model = buildFoodModel(def, base.slots[idx], (food :: any).mut, (food :: any).big)
 			model:SetAttribute("OwnerUserId", player.UserId)
 			foodModels[player][idx] = model
 		end
@@ -377,7 +384,14 @@ end
 --   * 4.3 traço da comida (Crescimento / Renda / Picante / Doce, GameRules.Traits);
 --   * 4.4 crítica: chance pequena (x3 com Picante) de x2,5 de crescimento.
 local streaks: { [Player]: { n: number, at: number } } = {}
-local function doFeed(player: Player, profile: DataService.Profile, def: Config.FoodDef, from: Vector3?, mut: string?)
+local function doFeed(
+	player: Player,
+	profile: DataService.Profile,
+	def: Config.FoodDef,
+	from: Vector3?,
+	mut: string?,
+	big: boolean?
+)
 	local now = os.clock()
 	local trait = GameRules.traitOf(def.id)
 	local prev = streaks[player]
@@ -391,6 +405,9 @@ local function doFeed(player: Player, profile: DataService.Profile, def: Config.
 	streaks[player] = st
 	local xp, crit, streakMult = GameLogic.feedXp(def.id, def.rarity, st.n, math.random())
 	xp = math.floor(xp * GameRules.mutationXp(mut)) -- comida com mutação dá mais XP
+	if big then
+		xp = math.floor(xp * GameRules.Fusion.Mult) -- Gigantesca (Fusão)
+	end
 	if trait and trait.fillHunger then
 		profile.hunger = 100
 	end
@@ -431,7 +448,7 @@ function PlotService.feed(player: Player, slot: number)
 	local fromModel = foodModels[player] and foodModels[player][slot]
 	local from = if fromModel then fromModel:GetPivot().Position else nil
 	profile.plot[tostring(slot)] = nil
-	local ok, err = pcall(doFeed :: any, player, profile, def, from, (item :: any).mut)
+	local ok, err = pcall(doFeed :: any, player, profile, def, from, (item :: any).mut, (item :: any).big)
 	if not ok then
 		profile.plot[tostring(slot)] = item -- devolve a comida: nada se perde por um erro
 		warn("[PlotService] alimentar falhou:", err)
@@ -456,12 +473,53 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 	table.remove(profile.inventory, invIndex)
 	local char = player.Character
 	local from = if char then char:GetPivot().Position + Vector3.new(0, 2, 0) else nil
-	local ok, err = pcall(doFeed :: any, player, profile, def, from, (item :: any).mut)
+	local ok, err = pcall(doFeed :: any, player, profile, def, from, (item :: any).mut, (item :: any).big)
 	if not ok then
 		table.insert(profile.inventory, invIndex, item)
 		warn("[PlotService] alimentar falhou:", err)
 	end
 	PlotService.pushState(player)
+end
+
+-- Fusão (noite 09/11; Features.Fusion): 3 comidas iguais da mochila → 1 Gigantesca. Tudo no servidor,
+-- sem nenhum yield entre tirar as 3 e pôr a nova (nada some, nada duplica).
+function PlotService.fuse(player: Player, foodId: any)
+	if not Features.on("Fusion") or type(foodId) ~= "string" or not Config.FoodById[foodId] then
+		return
+	end
+	local profile = DataService.get(player)
+	if not profile then
+		return
+	end
+	local picks = GameLogic.fusionPick(profile.inventory :: any, foodId)
+	if not picks then
+		Remotes.Notify:FireClient(player, {
+			text = string.format("Precisa de %d iguais na mochila para fundir.", GameRules.Fusion.Count),
+			color = Color3.fromRGB(255, 170, 60),
+		})
+		return
+	end
+	local mut = GameLogic.fusionMutation(profile.inventory :: any, picks)
+	table.sort(picks, function(a, b)
+		return a > b
+	end)
+	for _, i in picks do
+		table.remove(profile.inventory, i)
+	end
+	table.insert(profile.inventory, { id = foodId, uid = DataService.newUid(), mut = mut, big = true } :: any)
+	DataService.markDirty(player)
+	PlotService.pushState(player)
+	local def = Config.FoodById[foodId]
+	Remotes.Notify:FireClient(player, {
+		text = string.format(
+			"FUSÃO! 3x %s viraram 1 %s GIGANTESCA (renda e XP x%s).",
+			def.name,
+			def.name,
+			tostring(GameRules.Fusion.Mult)
+		),
+		color = Color3.fromRGB(255, 220, 120),
+	})
+	Analytics.event(player, "food_fused", 1, { def.rarity :: string, mut or "none" })
 end
 
 function PlotService.init()
@@ -471,6 +529,11 @@ function PlotService.init()
 	FoodModels.whenReady(function()
 		for _, player in Players:GetPlayers() do
 			PlotService.rebuildPlot(player)
+		end
+	end)
+	Remotes.RequestFuse.OnServerEvent:Connect(function(player, foodId)
+		if Guard.allow(player, "Plot") then
+			PlotService.fuse(player, foodId)
 		end
 	end)
 	Remotes.RequestPlace.OnServerEvent:Connect(function(player, invIndex)
