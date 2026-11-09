@@ -5,6 +5,7 @@
 -- O servidor é dono da lista (profile.discovered, marcado em PlotService.pushState); aqui só exibe.
 -- Sem recompensa por enquanto (economia: decisão registrada no handoff como sugestão).
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local StarterSpecies = require(game.ReplicatedStorage.Shared.StarterSpecies)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -19,7 +20,10 @@ local foodGrid: ScrollingFrame
 local countLabel: TextLabel
 local progressFill: Frame
 local cards: { [string]: { card: Frame, view: Frame, name: TextLabel, shown: string? } } = {}
-local speciesCards: { [string]: { card: Frame, state: TextLabel, expose: TextButton } } = {}
+local speciesCards: {
+	[string]: { card: Frame, state: TextLabel, expose: TextButton, use: TextButton?, starter: boolean },
+} =
+	{}
 local displayInfo: TextLabel
 local lastSeenCount = -1
 local startedAt = os.clock() -- comidas entregues na entrada (mochila inicial) não acendem o selo
@@ -116,6 +120,12 @@ local function refresh(s: State.PlayerState)
 		local shown = table.find(display, id) ~= nil
 		sc.expose.Visible = has and not active
 		sc.expose.Text = if shown then Locale.t("RECOLHER") else Locale.t("EXPOR")
+		if sc.starter then
+			sc.card.Visible = has -- inicial: só aparece para quem a tem
+			if sc.use then
+				sc.use.Visible = has and not active
+			end
+		end
 		sc.expose.BackgroundColor3 = if shown then Color3.fromRGB(96, 102, 118) else UI.Colors.Blue
 	end
 	displayInfo.Text = Locale.fmt(
@@ -244,7 +254,13 @@ function Collection.init(gui: ScreenGui)
 		ZIndex = 13,
 	})
 	local species = grid(5, Vector2.new(210, 128))
-	for i, sp in Config.Species do
+	-- Espécies iniciais (StarterSpecies) entram no fim, só visíveis para quem tem (com botão USAR, já
+	-- que elas não aparecem na LOJA DE GIGANTES, onde as outras são equipadas).
+	local speciesList: { any } = table.clone(Config.Species) :: any
+	for _, st in StarterSpecies.List do
+		table.insert(speciesList, st)
+	end
+	for i, sp in speciesList do
 		local card = UI.frame(species, { LayoutOrder = i, BackgroundColor3 = UI.Colors.Bg, ZIndex = 13 })
 		UI.corner(card, 14)
 		UI.stroke(card, sp.color, 3)
@@ -283,7 +299,24 @@ function Collection.init(gui: ScreenGui)
 			local shown = table.find(State.current.display or {}, spId) ~= nil
 			Remotes.RequestDisplay:FireServer(spId, not shown)
 		end)
-		speciesCards[sp.id] = { card = card, state = state, expose = expose }
+		local use: TextButton? = nil
+		if sp.starter then
+			card.Visible = false
+			expose.Size = UDim2.new(0.5, -12, 0, 40)
+			local b = UI.button(card, Locale.t("USAR"), UI.Colors.Green, {
+				Size = UDim2.new(0.5, -12, 0, 40),
+				Position = UDim2.new(0.5, 4, 1, -46),
+				TextScaled = false,
+				TextSize = 20,
+				ZIndex = 15,
+				Visible = false,
+			})
+			b.Activated:Connect(function()
+				Remotes.RequestEquipSpecies:FireServer(spId)
+			end)
+			use = b
+		end
+		speciesCards[sp.id] = { card = card, state = state, expose = expose, use = use, starter = sp.starter == true }
 	end
 
 	State.onChanged(refresh)

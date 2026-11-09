@@ -64,7 +64,7 @@ GiantBattle.init(gui)
 Diary.init(gui)
 Meat.init(gui)
 Admin.init(gui)
-V3.init()
+V3.init(gui)
 Eggs.init(gui)
 Arena.OnOpenGiantBattle = GiantBattle.open
 -- Música: trilha mais baixa durante as lutas; fanfarra de vitória só no fim (item 3, regra 9)

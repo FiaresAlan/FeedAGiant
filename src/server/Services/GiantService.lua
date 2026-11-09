@@ -12,6 +12,8 @@ local GameLogic = require(script.Parent.Parent.GameLogic)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
+local StarterSpecies = require(game.ReplicatedStorage.Shared.StarterSpecies)
+local Analytics = require(script.Parent.Parent.Analytics)
 local InsertService = game:GetService("InsertService")
 local AssetService = game:GetService("AssetService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -134,10 +136,45 @@ local function setPrimitivesHidden(model: Model, hidden: boolean)
 end
 
 -- Coloca/troca a malha da espécie (chamar com o modelo em escala 1, depois do applyStage).
+-- Aura da espécie inicial: 1 emissor leve (≤ 12 partículas vivas), sem luz extra.
+local function addStarterAura(part: BasePart, kind: string, color: Color3)
+	local att = Instance.new("Attachment")
+	att.Name = "StarterAura"
+	att.Position = Vector3.new(0, part.Size.Y * 0.1, 0)
+	att.Parent = part
+	local pe = Instance.new("ParticleEmitter")
+	pe.Name = "StarterAura"
+	pe.LightInfluence = 0
+	pe.Rate = 6
+	pe.Lifetime = NumberRange.new(1.2, 2)
+	pe.SpreadAngle = Vector2.new(60, 60)
+	pe.EmissionDirection = Enum.NormalId.Top
+	pe.Color = ColorSequence.new(color)
+	if kind == "fire" then
+		pe.Texture = "rbxasset://textures/particles/fire_main.dds"
+		pe.LightEmission = 0.8
+		pe.Size = NumberSequence.new(1.6, 0)
+		pe.Speed = NumberRange.new(2, 4)
+	elseif kind == "ice" then
+		pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		pe.LightEmission = 0.6
+		pe.Size = NumberSequence.new(0.8, 0)
+		pe.Speed = NumberRange.new(0.5, 1.5)
+	else -- stone: poeira
+		pe.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		pe.LightEmission = 0
+		pe.Transparency = NumberSequence.new(0.5, 1)
+		pe.Size = NumberSequence.new(1.4, 2.4)
+		pe.Speed = NumberRange.new(0.3, 1)
+	end
+	pe.Parent = att
+end
+
 local function ensureCreatureMesh(player: Player, model: Model, speciesId: string, isBaby: boolean)
 	local file, assetId, yaw = CreatureModels.resolve(speciesId, isBaby)
 	local current = model:FindFirstChild("CreatureMesh")
-	if current and file and current:GetAttribute("File") == file then
+	-- a espécie entra na comparação: as iniciais reusam a malha do Humano com outra cor
+	if current and file and current:GetAttribute("File") == file and current:GetAttribute("Species") == speciesId then
 		setPrimitivesHidden(model, true) -- o applyStage pode ter mostrado olhos/chifres de novo
 		return
 	end
@@ -153,6 +190,21 @@ local function ensureCreatureMesh(player: Player, model: Model, speciesId: strin
 	local mesh = template:Clone()
 	mesh.Name = "CreatureMesh"
 	mesh:SetAttribute("File", file)
+	mesh:SetAttribute("Species", speciesId)
+	-- Espécie inicial: a cor da MeshPart multiplica a textura (tinta) + aura própria (StarterSpecies).
+	local starter = StarterSpecies.ById[speciesId]
+	if starter then
+		local first: BasePart? = nil
+		for _, d in mesh:GetDescendants() do
+			if d:IsA("MeshPart") then
+				d.Color = starter.tint
+				first = first or d
+			end
+		end
+		if first then
+			addStarterAura(first, starter.aura, starter.color)
+		end
+	end
 	-- pés no topo do pedestal, centro no pedestal, frente da base (+ yaw da espécie)
 	local cf, size = mesh:GetBoundingBox()
 	local bottom = cf * CFrame.new(0, -size.Y / 2, 0)
@@ -617,6 +669,31 @@ function GiantService.grantSpecies(player: Player, speciesId: string): number
 	profile.giants[speciesId] = { level = level, xp = xp, inherited = true }
 	DataService.markDirty(player)
 	return level
+end
+
+-- Espécie INICIAL (StarterSpecies; prompt v4 §1). Só aceita os 3 ids iniciais e só uma vez por conta.
+-- A inicial vira o gigante ativo e herda o progresso ATUAL inteiro (é o primeiro gigante do jogador;
+-- ninguém perde nada). O Humano antigo continua salvo na coleção.
+function GiantService.grantStarterSpecies(player: Player, speciesId: any): boolean
+	local profile = DataService.get(player)
+	if not profile then
+		return false
+	end
+	if not StarterSpecies.isStarter(speciesId) then
+		Analytics.event(player, "starter_invalid", 1, { string.sub(tostring(speciesId), 1, 20) })
+		return false
+	end
+	if not GameLogic.starterEligible(profile.starterSpecies) then
+		return false
+	end
+	local id = speciesId :: string
+	profile.starterSpecies = id
+	profile.ownedSpecies[id] = true
+	profile.giants[id] = { level = profile.level, xp = profile.xp, inherited = true }
+	DataService.markDirty(player)
+	GiantService.setSpecies(player, id)
+	Analytics.event(player, "starter_species_chosen", 1, { id })
+	return true
 end
 
 function GiantService.setSpecies(player: Player, speciesId: string): boolean

@@ -346,6 +346,11 @@ Config.SpeciesById = {} :: { [string]: SpeciesDef }
 for _, sp in Config.Species do
 	Config.SpeciesById[sp.id] = sp
 end
+-- Espécies iniciais (StarterSpecies): só no ÍNDICE, nunca na lista Config.Species (loja, ovos, estátuas,
+-- bots e sorteios percorrem a lista; assim elas nunca aparecem à venda nem em sorteio).
+for _, sp in require(script.Parent.StarterSpecies).List do
+	Config.SpeciesById[sp.id] = sp :: any
+end
 Config.DefaultSpecies = "human"
 
 ----------------------------------------------------------------

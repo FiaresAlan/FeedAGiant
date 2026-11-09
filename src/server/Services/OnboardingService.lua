@@ -19,6 +19,10 @@ local Analytics = require(script.Parent.Parent.Analytics)
 local Hooks = require(script.Parent.Parent.Hooks)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
+local GiantService = require(script.Parent.GiantService)
+local GameLogic = require(script.Parent.Parent.GameLogic)
+local Guard = require(script.Parent.Parent.Guard)
+local StarterSpecies = require(game.ReplicatedStorage.Shared.StarterSpecies)
 
 local OnboardingService = {}
 
@@ -34,8 +38,37 @@ function OnboardingService.giftEligible(onboardingAt: number, welcomeGiven: bool
 	return onboardingAt == -1 and not welcomeGiven and not skipped
 end
 
+-- Escolha da espécie inicial (Features.StarterSpecies; prompt v4 §1). Independe do OnboardingV2.
+-- Conta nova (nada comido nem comprado) recebe a oferta; fica marcada "?" no perfil até escolher, então
+-- quem sai sem escolher recebe de novo na próxima entrada. Sem "pode trocar depois" na tela (pedido).
+local function offerStarter(player: Player)
+	if not Features.on("StarterSpecies") then
+		return
+	end
+	local profile = DataService.get(player)
+	if
+		not profile or not GameLogic.starterShouldOffer(profile.starterSpecies, profile.totalFeeds, profile.totalBoxes)
+	then
+		return
+	end
+	profile.starterSpecies = "?"
+	DataService.markDirty(player)
+	local options = {}
+	for _, sp in StarterSpecies.List do
+		table.insert(options, { id = sp.id, name = sp.name, desc = sp.desc, color = sp.color })
+	end
+	-- depois da câmera de chegada (OnboardingV2) e do gigante aparecer
+	task.delay(5, function()
+		if player.Parent and profile.starterSpecies == "?" then
+			Remotes.OnboardingV2:FireClient(player, { kind = "StarterChoice", options = options })
+			Analytics.event(player, "onboarding_phase_started", 4, { "starter_choice" })
+		end
+	end)
+end
+
 -- Chamado pelo Main depois que a base e o gigante existem.
 function OnboardingService.onJoin(player: Player)
+	offerStarter(player)
 	if not Features.on("OnboardingV2") then
 		return
 	end
@@ -91,6 +124,16 @@ function OnboardingService.onTutorialFinished(player: Player, skipped: boolean)
 end
 
 function OnboardingService.init()
+	Remotes.RequestStarter.OnServerEvent:Connect(function(player: Player, speciesId: any)
+		if not Features.on("StarterSpecies") or not Guard.allow(player, "Species") then
+			return
+		end
+		if GiantService.grantStarterSpecies(player, speciesId) then
+			PlotService.pushState(player)
+			local sp = StarterSpecies.ById[speciesId]
+			Remotes.OnboardingV2:FireClient(player, { kind = "StarterChosen", id = speciesId, name = sp.name })
+		end
+	end)
 	-- Primeira alimentação: o servidor manda o "efeito dobrado" só para o próprio jogador.
 	Hooks.on("fed", function(player: Player)
 		if firstFeedPending[player] then

@@ -105,7 +105,7 @@ export type Profile = {
 	eggsHatched: number,
 	eggBossDay: number, -- dia UTC do último Ovo Grande ganho no Dragão
 	eggMilestones: { [string]: boolean }, -- marcos de nível já premiados
-	starterSpecies: string, -- espécie inicial escolhida ("" = não escolheu)
+	starterSpecies: string, -- "" = nunca ofertada; "?" = ofertada, sem escolha; id = escolhida (StarterSpecies)
 	-- Prompt v4 (09/11/2026). Aditivos (slices): perfis antigos ganham o padrão sem perder nada.
 	mysteryChest: { unlockAt: number }, -- baú de 24 h (ainda sem código: espera a cópia de teste)
 	revangeTarget: number, -- UserId do ladrão para a revanche (0 = nenhum; ainda sem código)

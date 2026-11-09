@@ -130,7 +130,79 @@ local function firstFeed()
 	end)
 end
 
-function V3.init()
+-- Escolha da espécie inicial (StarterSpecies): 3 cartões, 1 toque. O servidor valida (só os 3 ids,
+-- 1 vez por conta). Sem "pode trocar depois" (pedido do usuário).
+local starterWin: Frame? = nil
+local starterBody: Frame? = nil
+local function showStarterChoice(options: { any })
+	local w, body = starterWin, starterBody
+	if not w or not body then
+		return
+	end
+	for _, c in body:GetChildren() do
+		if c:IsA("GuiObject") then
+			c:Destroy()
+		end
+	end
+	UI.label(body, "Escolha o seu primeiro Gigante", {
+		Size = UDim2.new(1, 0, 0, 40),
+		ZIndex = 14,
+	})
+	for i, opt in options do
+		if type(opt) ~= "table" or type(opt.id) ~= "string" then
+			continue
+		end
+		local color = if typeof(opt.color) == "Color3" then opt.color else UI.Colors.Accent
+		local card = UI.frame(body, {
+			Size = UDim2.new(1 / 3, -12, 1, -60),
+			Position = UDim2.new((i - 1) / 3, 6, 0, 52),
+			BackgroundColor3 = UI.Colors.Panel2,
+			ZIndex = 13,
+		})
+		UI.corner(card, 14)
+		UI.stroke(card, color, 4)
+		local orb = UI.frame(card, {
+			Size = UDim2.fromOffset(90, 90),
+			Position = UDim2.new(0.5, -45, 0, 14),
+			BackgroundColor3 = color,
+			ZIndex = 14,
+		})
+		UI.corner(orb, 45)
+		UI.label(card, tostring(opt.name), {
+			Size = UDim2.new(1, -16, 0, 40),
+			Position = UDim2.fromOffset(8, 112),
+			TextColor3 = color,
+			ZIndex = 14,
+		})
+		UI.label(card, tostring(opt.desc or ""), {
+			Size = UDim2.new(1, -16, 0, 60),
+			Position = UDim2.fromOffset(8, 154),
+			TextScaled = false,
+			TextSize = 18,
+			TextWrapped = true,
+			ZIndex = 14,
+		})
+		local b = UI.button(card, "ESCOLHER", color, {
+			Size = UDim2.new(1, -24, 0, 56),
+			Position = UDim2.new(0, 12, 1, -68),
+			TextScaled = false,
+			TextSize = 22,
+			ZIndex = 15,
+		})
+		local id = opt.id
+		b.Activated:Connect(function()
+			Remotes.RequestStarter:FireServer(id)
+		end)
+	end
+	if not w.Visible then
+		UI.pop(w)
+	end
+end
+
+function V3.init(gui: ScreenGui?)
+	if gui then
+		starterWin, starterBody = UI.window(gui, "SEU GIGANTE", UDim2.fromOffset(820, 440))
+	end
 	Remotes.ObjectiveHint.OnClientEvent:Connect(function(data: any)
 		if type(data) == "table" then
 			showHint(data)
@@ -145,6 +217,19 @@ function V3.init()
 			task.spawn(arrival, math.clamp(s, 1, 4))
 		elseif data.kind == "FirstFeed" then
 			firstFeed()
+		elseif data.kind == "StarterChoice" and type(data.options) == "table" then
+			showStarterChoice(data.options)
+		elseif data.kind == "StarterChosen" then
+			local w = starterWin
+			if w then
+				w.Visible = false
+			end
+			-- frase pedida pelo usuário, na linha de META por alguns segundos
+			HUD.setGoalOverride("Este é o seu Gigante. Ele é seu.", Color3.fromRGB(255, 220, 120))
+			task.delay(8, function()
+				HUD.setGoalOverride(nil, nil)
+			end)
+			shake(1.5, 0.4)
 		end
 	end)
 end

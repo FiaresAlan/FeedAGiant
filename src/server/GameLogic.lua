@@ -396,6 +396,23 @@ function GameLogic.weeklyClaim(wq: Weekly, week: number): GameRules.ObjectiveDef
 	return def
 end
 
+---------------------------------------------------------------------------
+-- Espécies iniciais (prompt v4 §1)
+---------------------------------------------------------------------------
+-- starterSpecies no perfil: "" = nunca ofertada; "?" = ofertada e ainda não escolhida (vale entre
+-- sessões); id = já escolheu (nunca mais).
+function GameLogic.starterEligible(starterSpecies: string): boolean
+	return starterSpecies == "?"
+end
+
+-- Na entrada: oferecer a escolha? Só para conta nova (nada comido nem comprado) ou já ofertada.
+function GameLogic.starterShouldOffer(starterSpecies: string, totalFeeds: number, totalBoxes: number): boolean
+	if starterSpecies == "?" then
+		return true
+	end
+	return starterSpecies == "" and totalFeeds == 0 and totalBoxes == 0
+end
+
 -- Chances e sorteio: o módulo compartilhado EggOdds (a janela do cliente mostra a mesma tabela).
 GameLogic.eggOdds = EggOdds.odds
 GameLogic.eggRoll = EggOdds.roll

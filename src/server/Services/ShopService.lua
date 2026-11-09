@@ -299,6 +299,10 @@ function ShopService.buySpecies(player: Player, speciesId: string, useToken: boo
 	if not profile or not sp then
 		return
 	end
+	-- Espécie inicial: nunca à venda (preço 0 abriria uma compra grátis). Equipar é permitido se já for dela.
+	if (sp :: any).starter and not profile.ownedSpecies[speciesId] then
+		return
+	end
 	if profile.ownedSpecies[speciesId] then
 		GiantService.setSpecies(player, speciesId)
 		PlotService.pushState(player)

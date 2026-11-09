@@ -67,6 +67,8 @@ local EVENTS = {
 	"EggHatched", -- server -> client: {size, speciesId, level, duplicate, xp} (DEPOIS de entregar e salvar)
 	-- Missão semanal (Features.WeeklyQuest)
 	"RequestWeekly", -- client -> server: action ("choose"|"swap"|"claim"), id (missão)
+	-- Espécies iniciais (Features.StarterSpecies)
+	"RequestStarter", -- client -> server: speciesId (só os 3 iniciais, 1 vez por conta; servidor valida)
 }
 
 local FUNCTIONS = {

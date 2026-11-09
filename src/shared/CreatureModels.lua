@@ -29,6 +29,10 @@ CreatureModels.BySpecies = {
 	gator = { file = "gen-gator", yaw = 0 },
 	eagle = { file = "gen-eagle", yaw = 0 },
 	slime = { file = "gen-slime", yaw = 0 },
+	-- Espécies iniciais (StarterSpecies): a malha do Humano, tingida (GiantService aplica `tint`/`aura`).
+	fire_starter = { file = "gen-human", babyFile = "gen-human-baby", yaw = 0 },
+	ice_starter = { file = "gen-human", babyFile = "gen-human-baby", yaw = 0 },
+	stone_starter = { file = "gen-human", babyFile = "gen-human-baby", yaw = 0 },
 } :: { [string]: Entry }
 
 -- Arquivo e ID do modelo para a espécie no nível dado; nil se ainda não há ID (sem upload).
