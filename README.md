@@ -1,5 +1,7 @@
 # FEED A GIANT — Guia de Instalação e Lançamento
 
+> **LEIA PRIMEIRO (09/11/2026):** este README documenta a versão inicial e pode estar desatualizado quanto a espécies, ovos, arena, arte, place e preços. As decisões vigentes estão em `docs/GAME_BRIEF.md`, o estado recente em `docs/HANDOFF_NEXT_SESSION.md` e os testes obrigatórios em `docs/QA_GAMEFEEL_2026-11-09.md`. **Não use as cifras de anúncios da seção 7 como orçamento aprovado**. Não publicar, fazer merge ou gastar Robux sem autorização do dono e verificação real em celular, multiplayer, compras e DataStore.
+
 > **v2.0** — Espécies (7), estágios visuais Bebê→DEUS, encolhimento por ausência + bônus de retorno, combate de socos (PC/mobile), Disputa de Comida (drops), Giant Clash (duelos + campeonato a cada 15 min), 5 novos Game Passes e 5 novos Dev Products. Veja `GAME_DESIGN.md` §v2.
 
 Jogo Roblox completo, 100% em Luau, com mapa gerado por código (sem assets externos).
