@@ -40,3 +40,15 @@ Nada publicado, nenhum Robux gasto, nenhum upload novo esta noite, nenhum item a
    testes com 2 jogadores e no celular.
 4. As notas das revisões cegas continuam entre 7 e 8,3, abaixo de 8,5. O que falta é sempre o mesmo: **2 jogadores e
    celular**.
+
+## Revisão cega das novidades da noite
+- Nota **6,7** (rascunho). Encontrou um **bug real**, já corrigido: depois do formatador, o ×3,2 da Gigantesca tinha
+  virado comentário e ela rendia ×1. Agora passa por `GameLogic.foodIncomeMult`, que tem teste. No Play: comida normal
+  0/s, Gigantesca 2/s, Gigantesca Dourada 3/s.
+- Também corrigido:
+  - a fusão gasta primeiro as comidas SEM mutação (guarda as mutadas);
+  - o bônus de XP do Ancestral desliga por ficha, sem comparar horários.
+- Suíte com tudo ligado: **148 passed, 0 failed**.
+- **Riscos que ficam anotados:**
+  - as mutações são permanentes e não têm teto de economia (acompanhar as métricas `food_mutated` depois de publicar);
+  - a rodada de mutação reconstrói o pátio inteiro de quem mudou (raro: só durante os eventos).

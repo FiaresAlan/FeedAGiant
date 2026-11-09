@@ -124,9 +124,10 @@ function PlotService.coinsPerSecond(player: Player): number
 		local def = Config.FoodById[food.id]
 		if def then
 			local trait = GameRules.traitOf(def.id)
-			total += Config.Rarities[def.rarity].cps * (if trait then trait.incomeMult else 1) * GameRules.mutationIncome(
-				(food :: any).mut
-			) -- Mutações (noite 09/11) * GameLogic.fusionMult(food :: any) -- Fusão: Gigantesca
+			-- Mutação e Fusão (noite 09/11) num multiplicador só, testado (GameLogic.foodIncomeMult).
+			-- Revisão cega: o "* fusionMult" tinha virado comentário depois de um "--" e a Gigantesca rendia x1.
+			local extra = GameLogic.foodIncomeMult(food :: any)
+			total += Config.Rarities[def.rarity].cps * (if trait then trait.incomeMult else 1) * extra
 		end
 	end
 	local sp = GiantService.species(profile)

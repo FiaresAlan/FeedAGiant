@@ -28,7 +28,7 @@ local AncestralService = {}
 local points = 0
 local state: "sleep" | "awake" | "cooldown" = "sleep"
 local cooldownUntil = 0
-local buffUntil = 0
+local buffToken = 0
 local model: Model? = nil
 local sleepCf: CFrame? = nil
 local label: TextLabel? = nil
@@ -181,10 +181,12 @@ local function wake()
 		color = Color3.fromRGB(255, 200, 80),
 	})
 	-- buff de XP para o servidor inteiro
-	buffUntil = os.time() + A.BuffSeconds
+	-- ficha: só o ÚLTIMO despertar desliga o bônus (revisão cega: comparar horários era frágil)
+	buffToken += 1
+	local token = buffToken
 	GiantService.globalXpMult = A.XpBuff
 	task.delay(A.BuffSeconds, function()
-		if os.time() >= buffUntil then
+		if buffToken == token then
 			GiantService.globalXpMult = 1
 		end
 	end)

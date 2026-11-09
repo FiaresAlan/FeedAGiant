@@ -19,7 +19,7 @@ return function()
 				expect(inv[i].big).to.equal(nil)
 			end
 		end)
-		it("prefere usar as com mutação e herda a melhor", function()
+		it("gasta primeiro as SEM mutação (guarda as mutadas)", function()
 			local inv = {
 				{ id = "apple" },
 				{ id = "apple" },
@@ -28,14 +28,14 @@ return function()
 				{ id = "apple", mut = "rainbow" },
 			}
 			local picks = GameLogic.fusionPick(inv, "apple")
-			expect(GameLogic.fusionMutation(inv, picks)).to.equal("rainbow")
-			local hasGold = false
-			for _, i in picks do
-				if inv[i].mut == "gold" then
-					hasGold = true
-				end
-			end
-			expect(hasGold).to.equal(true)
+			expect(GameLogic.fusionMutation(inv, picks)).to.equal(nil)
+			-- com só 3 (uma Dourada), a Gigantesca herda a Dourada
+			local inv2 = { { id = "apple" }, { id = "apple", mut = "gold" }, { id = "apple" } }
+			expect(GameLogic.fusionMutation(inv2, GameLogic.fusionPick(inv2, "apple"))).to.equal("gold")
+		end)
+		it("renda no pátio: mutação x fusão (Gigantesca Dourada = 1,5 x 3,2)", function()
+			expect(GameLogic.foodIncomeMult({ big = true, mut = "gold" })).to.be.near(1.5 * 3.2, 1e-9)
+			expect(GameLogic.foodIncomeMult({})).to.equal(1)
 		end)
 		it("a Gigantesca vale x3,2 (um pouco mais que as 3 juntas)", function()
 			expect(GameLogic.fusionMult({ big = true })).to.equal(GameRules.Fusion.Mult)

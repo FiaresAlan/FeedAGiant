@@ -399,8 +399,8 @@ end
 ---------------------------------------------------------------------------
 -- Fusão (noite de 09/11): 3 iguais → 1 Gigantesca
 ---------------------------------------------------------------------------
--- Índices (na mochila) de Count comidas com este id e sem fusão, preferindo as COM mutação (para não
--- desperdiçar), ou nil se não houver o bastante.
+-- Índices (na mochila) de Count comidas com este id e sem fusão, gastando PRIMEIRO as sem mutação (revisão
+-- cega: preferir as mutadas desperdiçava uma Dourada quando entrava com uma Arco-íris), ou nil.
 function GameLogic.fusionPick(inventory: { { id: string, mut: string?, big: boolean? } }, foodId: string): { number }?
 	local cand = {}
 	for i, f in inventory do
@@ -415,7 +415,7 @@ function GameLogic.fusionPick(inventory: { { id: string, mut: string?, big: bool
 		local ma = GameRules.mutationIncome(inventory[a].mut)
 		local mb = GameRules.mutationIncome(inventory[b].mut)
 		if ma ~= mb then
-			return ma > mb
+			return ma < mb
 		end
 		return a < b
 	end)
@@ -441,6 +441,11 @@ end
 -- Multiplicador de uma comida pela fusão (1 = normal).
 function GameLogic.fusionMult(food: { big: boolean? }): number
 	return if food.big then GameRules.Fusion.Mult else 1
+end
+
+-- Multiplicador de renda de uma comida no pátio: mutação x fusão (usado por PlotService.coinsPerSecond).
+function GameLogic.foodIncomeMult(food: { mut: string?, big: boolean? }): number
+	return GameRules.mutationIncome(food.mut) * GameLogic.fusionMult(food)
 end
 
 ---------------------------------------------------------------------------
