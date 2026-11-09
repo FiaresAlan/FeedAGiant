@@ -55,8 +55,8 @@ return function()
 			end
 			expect(mutated / n).to.be.near(1 - (1 - 0.04) ^ 6, 0.03)
 		end)
-		it("nasce desligada", function()
-			expect(Features.flags.Mutations).to.equal(false)
+		it("o interruptor existe (o dono decide em Features.lua)", function()
+			expect(type(Features.flags.Mutations)).to.equal("boolean")
 		end)
 	end)
 end

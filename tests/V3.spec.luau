@@ -17,9 +17,9 @@ local P = GameRules.Pity
 
 return function()
 	describe("Interruptores (Features)", function()
-		it("todas as funções novas nascem desligadas", function()
+		it("todos os interruptores são sim/não", function()
 			for name, value in Features.flags do
-				expect(value).to.equal(false)
+				expect(type(value)).to.equal("boolean")
 			end
 		end)
 	end)

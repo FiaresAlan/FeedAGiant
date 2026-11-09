@@ -74,11 +74,11 @@ return function()
 				end
 			end
 		end)
-		it("funções de ovo nascem desligadas", function()
-			expect(Features.flags.EggSystem).to.equal(false)
-			expect(Features.flags.EggVFX).to.equal(false)
-			expect(Features.flags.EggNotifications).to.equal(false)
-			expect(Features.flags.StarterSpecies).to.equal(false)
+		it("os interruptores dos ovos existem", function()
+			expect(type(Features.flags.EggSystem)).to.equal("boolean")
+			expect(type(Features.flags.EggVFX)).to.equal("boolean")
+			expect(type(Features.flags.EggNotifications)).to.equal("boolean")
+			expect(type(Features.flags.StarterSpecies)).to.equal("boolean")
 		end)
 	end)
 

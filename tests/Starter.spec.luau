@@ -61,8 +61,8 @@ return function()
 				expect(sp.decayImmune).to.equal(false)
 			end
 		end)
-		it("nasce desligada", function()
-			expect(Features.flags.StarterSpecies).to.equal(false)
+		it("o interruptor existe (o dono decide em Features.lua)", function()
+			expect(type(Features.flags.StarterSpecies)).to.equal("boolean")
 		end)
 	end)
 

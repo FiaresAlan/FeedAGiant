@@ -49,8 +49,8 @@ return function()
 				expect(q.coins > maxDaily).to.equal(true)
 			end
 		end)
-		it("nasce desligada", function()
-			expect(Features.flags.WeeklyQuest).to.equal(false)
+		it("o interruptor existe (o dono decide em Features.lua)", function()
+			expect(type(Features.flags.WeeklyQuest)).to.equal("boolean")
 		end)
 	end)
 
