@@ -399,6 +399,7 @@ local function visitorYaw(t: Track, now: number): number
 		t.watchNext = now + 0.7
 		t.watchTarget = 0
 		local nearest = 40
+		local facing = if t.target == t.giant then t.base else t.giant:GetPivot()
 		for _, pl in Players:GetPlayers() do
 			local root = pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")
 			if root and root:IsA("BasePart") then
@@ -406,7 +407,7 @@ local function visitorYaw(t: Track, now: number): number
 				local horizontal = Vector3.new(off.X, 0, off.Z)
 				local dist = horizontal.Magnitude
 				if dist > 4 and dist < nearest then
-					local localPos = t.giant:GetPivot():VectorToObjectSpace(horizontal)
+					local localPos = facing:VectorToObjectSpace(horizontal)
 					local ang = math.deg(math.atan2(localPos.X, -localPos.Z))
 					if math.abs(ang) <= 85 then
 						nearest = dist

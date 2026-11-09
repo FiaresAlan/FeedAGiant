@@ -174,7 +174,6 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 				)
 			)
 		end
-		PlotService.pushState(player)
 		if not opts.free then
 			TutorialService.signal(player, "BoughtBox")
 		end

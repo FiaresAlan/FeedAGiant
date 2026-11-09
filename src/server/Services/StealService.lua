@@ -201,7 +201,13 @@ local function stealFromBot(thief: Player, foodModel: Model, botUid: number, slo
 		return alive
 	end)
 	channeling[thief] = nil
-	if not okRun or not ok or carrying[thief] then
+	if
+		not okRun
+		or not ok
+		or carrying[thief]
+		or thief:GetAttribute("CarryingDrop")
+		or thief:GetAttribute("CarryingEgg")
+	then
 		Remotes.Notify:FireClient(thief, { text = "Roubo cancelado.", color = Color3.fromRGB(255, 90, 90) })
 		return
 	end
