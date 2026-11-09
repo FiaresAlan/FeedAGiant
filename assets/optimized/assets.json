@@ -73,5 +73,35 @@
   "gen-slime": {
     "id": "rbxassetid://79884372873700",
     "source": "Roblox Studio IA (generate_mesh), 08/11/2026: slime cartoon"
+  },
+  "egg-huge": {
+    "id": "rbxassetid://87461558645049",
+    "file": "egg-huge.glb",
+    "bytes": 93864
+  },
+  "egg-large": {
+    "id": "rbxassetid://84281221846591",
+    "file": "egg-large.glb",
+    "bytes": 367796
+  },
+  "egg-massive": {
+    "id": "rbxassetid://89822536542795",
+    "file": "egg-massive.glb",
+    "bytes": 100084
+  },
+  "egg-medium": {
+    "id": "rbxassetid://79154310620032",
+    "file": "egg-medium.glb",
+    "bytes": 504176
+  },
+  "egg-nest": {
+    "id": "rbxassetid://91809400652961",
+    "file": "egg-nest.glb",
+    "bytes": 1539348
+  },
+  "egg-small": {
+    "id": "rbxassetid://82533374550637",
+    "file": "egg-small.glb",
+    "bytes": 216688
   }
 }
