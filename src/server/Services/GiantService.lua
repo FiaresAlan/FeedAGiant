@@ -13,6 +13,7 @@ local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local CreatureModels = require(game.ReplicatedStorage.Shared.CreatureModels)
 local StarterSpecies = require(game.ReplicatedStorage.Shared.StarterSpecies)
+local AuraPresets = require(game.ReplicatedStorage.Shared.AuraPresets)
 local Analytics = require(script.Parent.Parent.Analytics)
 local InsertService = game:GetService("InsertService")
 local AssetService = game:GetService("AssetService")
@@ -136,42 +137,6 @@ local function setPrimitivesHidden(model: Model, hidden: boolean)
 end
 
 -- Coloca/troca a malha da espécie (chamar com o modelo em escala 1, depois do applyStage).
--- Aura da espécie inicial: 1 emissor leve (≤ 12 partículas vivas), sem luz extra.
-local function addStarterAura(part: BasePart, kind: string, color: Color3)
-	local att = Instance.new("Attachment")
-	att.Name = "StarterAura"
-	att.Position = Vector3.new(0, part.Size.Y * 0.1, 0)
-	att.Parent = part
-	local pe = Instance.new("ParticleEmitter")
-	pe.Name = "StarterAura"
-	pe.LightInfluence = 0
-	-- tamanho proporcional ao gigante (cresce de ~10 a 100+ studs); no máximo ~16 partículas vivas
-	local k = math.max(1, part.Size.Y / 10)
-	pe.Rate = 8
-	pe.Lifetime = NumberRange.new(1.2, 2)
-	pe.SpreadAngle = Vector2.new(60, 60)
-	pe.EmissionDirection = Enum.NormalId.Top
-	pe.Color = ColorSequence.new(color)
-	if kind == "fire" then
-		pe.Texture = "rbxasset://textures/particles/fire_main.dds"
-		pe.LightEmission = 0.8
-		pe.Size = NumberSequence.new(1.6 * k, 0)
-		pe.Speed = NumberRange.new(2 * k, 4 * k)
-	elseif kind == "ice" then
-		pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		pe.LightEmission = 0.6
-		pe.Size = NumberSequence.new(0.9 * k, 0)
-		pe.Speed = NumberRange.new(0.5 * k, 1.5 * k)
-	else -- stone: poeira
-		pe.Texture = "rbxasset://textures/particles/smoke_main.dds"
-		pe.LightEmission = 0
-		pe.Transparency = NumberSequence.new(0.5, 1)
-		pe.Size = NumberSequence.new(1.4 * k, 2.4 * k)
-		pe.Speed = NumberRange.new(0.3 * k, 1 * k)
-	end
-	pe.Parent = att
-end
-
 local function ensureCreatureMesh(player: Player, model: Model, speciesId: string, isBaby: boolean)
 	local file, assetId, yaw = CreatureModels.resolve(speciesId, isBaby)
 	local current = model:FindFirstChild("CreatureMesh")
@@ -209,13 +174,16 @@ local function ensureCreatureMesh(player: Player, model: Model, speciesId: strin
 		h.Name = "StarterTint"
 		h.Adornee = mesh
 		h.FillColor = starter.tint
-		h.FillTransparency = 0.5
+		h.FillTransparency = 0.6
 		h.OutlineColor = starter.color
 		h.OutlineTransparency = 0.3
 		h.DepthMode = Enum.HighlightDepthMode.Occluded
 		h.Parent = mesh
 		if first then
-			addStarterAura(first, starter.aura, starter.color)
+			-- Aura do elemento a partir dos efeitos da Loja do Criador (AuraPresets). O modelo está em
+			-- escala 1 aqui; o ScaleTo do nível depois escala as partículas junto.
+			local _, msize = mesh:GetBoundingBox()
+			AuraPresets.build(first, starter.aura, msize.Y)
 		end
 	end
 	-- pés no topo do pedestal, centro no pedestal, frente da base (+ yaw da espécie)
