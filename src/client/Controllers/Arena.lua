@@ -29,6 +29,20 @@ local nameA: TextLabel
 local nameB: TextLabel
 local hpA: Frame
 local hpB: Frame
+local previousHpA, previousHpB = 100, 100
+local barPulseSerial: { [Frame]: number } = {}
+
+-- Confirma visualmente o acerto sem ocupar a tela com novos painéis.
+local function pulseDamage(bar: Frame, original: Color3)
+	local serial = (barPulseSerial[bar] or 0) + 1
+	barPulseSerial[bar] = serial
+	bar.BackgroundColor3 = Color3.fromRGB(255, 244, 166)
+	task.delay(0.16, function()
+		if bar.Parent and barPulseSerial[bar] == serial then
+			bar.BackgroundColor3 = original
+		end
+	end)
+end
 local fightTitle: TextLabel
 local pendingFrom = 0
 Arena.playSound = nil :: ((string, number?) -> ())?
@@ -369,7 +383,11 @@ function Arena.init(gui: ScreenGui)
 			nameB.Text = string.format("(⚡%d)  %s", e.powerB, e.bName)
 			hpA.Size = UDim2.fromScale(1, 1)
 			hpB.Size = UDim2.fromScale(1, 1)
+			hpA.BackgroundColor3 = UI.Colors.Green
+			hpB.BackgroundColor3 = UI.Colors.Red
+			previousHpA, previousHpB = 100, 100
 			fightSerial += 1
+			countdownLabel.Visible = false
 			curA, curB = e.a, e.b
 			realFight = e.real == true
 			timerLabel.Text = if realFight then tostring(e.seconds or "") else ""
@@ -383,18 +401,24 @@ function Arena.init(gui: ScreenGui)
 			if realFight and involved then
 				-- Contagem regressiva (o servidor segura os lutadores parados nesse tempo)
 				local n = math.max(1, math.floor(tonumber(e.countdown) or 3))
+				local serial = fightSerial
 				task.spawn(function()
 					countdownLabel.Visible = true
 					for i = n, 1, -1 do
 						countdownLabel.Text = tostring(i)
 						UI.pop(countdownLabel)
 						task.wait(1)
+						if fightSerial ~= serial then
+							return
+						end
 					end
 					countdownLabel.Text = Locale.t("LUTEM!")
 					UI.pop(countdownLabel)
 					UI.sfx("VO_Fight", 1)
 					task.wait(0.8)
-					countdownLabel.Visible = false
+					if fightSerial == serial then
+						countdownLabel.Visible = false
+					end
 				end)
 			else
 				UI.sfx("VO_Fight", if involved then 1 else 0.6)
@@ -403,10 +427,17 @@ function Arena.init(gui: ScreenGui)
 			if e.a ~= curA or e.b ~= curB then
 				return
 			end
-			TweenService:Create(hpA, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpA / 100, 0, 1), 1) })
-				:Play()
-			TweenService:Create(hpB, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(e.hpB / 100, 0, 1), 1) })
-				:Play()
+			local nextA = math.clamp(tonumber(e.hpA) or previousHpA, 0, 100)
+			local nextB = math.clamp(tonumber(e.hpB) or previousHpB, 0, 100)
+			if nextA < previousHpA then
+				pulseDamage(hpA, UI.Colors.Green)
+			end
+			if nextB < previousHpB then
+				pulseDamage(hpB, UI.Colors.Red)
+			end
+			previousHpA, previousHpB = nextA, nextB
+			TweenService:Create(hpA, TweenInfo.new(0.3), { Size = UDim2.fromScale(nextA / 100, 1) }):Play()
+			TweenService:Create(hpB, TweenInfo.new(0.3), { Size = UDim2.fromScale(nextB / 100, 1) }):Play()
 			if type(e.left) == "number" then
 				timerLabel.Text = tostring(e.left)
 			end
@@ -421,8 +452,15 @@ function Arena.init(gui: ScreenGui)
 			if e.a ~= curA or e.b ~= curB then
 				return
 			end
+			fightSerial += 1
 			local serial = fightSerial
+			countdownLabel.Visible = false
+			local involved = curA == player.UserId or curB == player.UserId
+			curA, curB = 0, 0
 			if e.aborted and (e.winner == 0 or e.winner == nil) then
+				if involved and Arena.OnFight then
+					Arena.OnFight(false, nil)
+				end
 				fightTitle.Text = Locale.t("Luta cancelada.")
 				timerLabel.Text = ""
 				task.delay(3, function()
@@ -432,7 +470,7 @@ function Arena.init(gui: ScreenGui)
 				end)
 				return
 			end
-			if Arena.OnFight and (curA == player.UserId or curB == player.UserId) then
+			if Arena.OnFight and involved then
 				Arena.OnFight(false, e.winner == player.UserId)
 			end
 			if e.winner == player.UserId then

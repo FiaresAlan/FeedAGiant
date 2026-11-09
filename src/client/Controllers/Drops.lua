@@ -25,6 +25,42 @@ local boxChip: TextButton
 local boxWin: Frame
 local boxTitle: TextLabel
 local boxBody: Frame
+-- Chamada contextual, curta, só para uma disputa rara perto do jogador.
+-- Não restaura o cartão permanente nem a seta para todos os drops (pedido de 09/11).
+local rareCue: TextLabel
+local cueSerial = 0
+local lastCue = -math.huge
+
+local function signalRareDrop(d: any)
+	if not rareCue or type(d.id) ~= "number" then
+		return
+	end
+	local rarity = Config.Rarities[d.rarity]
+	if not rarity or rarity.order < 4 or typeof(d.pos) ~= "Vector3" then
+		return
+	end
+	local level = tonumber((State.current :: any).level) or 1
+	if level < 5 then
+		return -- durante o início, atenção na primeira alimentação
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local distance = root and (root.Position - d.pos).Magnitude or math.huge
+	if distance > 150 or os.clock() - lastCue < 7 then
+		return
+	end
+	lastCue = os.clock()
+	cueSerial += 1
+	local serial = cueSerial
+	rareCue.Text = string.format("%s A %dm — DISPUTE!", Locale.rarity(d.rarity), math.floor(distance))
+	rareCue.TextColor3 = rarity.color
+	rareCue.Visible = true
+	UI.pop(rareCue)
+	task.delay(2.2, function()
+		if cueSerial == serial then
+			rareCue.Visible = false
+		end
+	end)
+end
 
 local function myBasePos(): Vector3?
 	-- A base do jogador é onde está o gigante dele (o servidor marca OwnerUserId no modelo).
@@ -157,6 +193,15 @@ local function openBoxWindow()
 end
 
 function Drops.init(gui: ScreenGui)
+	rareCue = UI.title(gui, "", {
+		Name = "RareDropCue",
+		Size = UDim2.fromOffset(390, 42),
+		Position = UDim2.fromScale(0.5, 0.27),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Visible = false,
+		ZIndex = 19,
+	})
+	UI.autoScale(rareCue)
 	card = UI.panel(gui, {
 		Name = "DropsPanel",
 		Size = UDim2.fromOffset(520, 96),
@@ -231,7 +276,6 @@ function Drops.init(gui: ScreenGui)
 			return
 		end
 		UI.sfx("Bell", 0.6)
-		task.delay(0.3, openBoxWindow) -- mostra a opção de abrir (não abre sozinha)
 	end)
 
 	placeAll(gui)
@@ -246,7 +290,8 @@ function Drops.init(gui: ScreenGui)
 		if d.removed then
 			drops[d.id] = nil
 		else
-			if not drops[d.id] then
+			local previous = drops[d.id]
+			if not previous then
 				-- Pedido do usuário (09/11, item 14): a VOZ não fala mais a cada drop (só quando começa a
 				-- Chuva de Comida, abaixo). Aqui, só um sino, e só se o item é importante (Épico+) ou cai perto.
 				local rar = Config.Rarities[d.rarity]
@@ -255,6 +300,9 @@ function Drops.init(gui: ScreenGui)
 				if (rar and rar.order >= 4) or near then
 					UI.sfx("Bell", 0.35)
 				end
+			end
+			if d.kind == "food" and d.landed and not (previous and previous.landed) then
+				signalRareDrop(d)
 			end
 			drops[d.id] = d
 		end

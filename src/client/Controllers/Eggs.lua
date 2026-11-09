@@ -9,6 +9,7 @@
 -- ~30 partículas vivas por ovo (Rate x Lifetime), sem Bloom, respeita "movimento reduzido".
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
@@ -535,6 +536,106 @@ local hatchGui: Frame
 local hatchQueue: { { [string]: any } } = {}
 local hatchRunning = false
 
+-- Fragmentos visuais 2D: não exige malha rachada adicional, nem uploads externos.
+local function hatchShards(parent: Frame, color: Color3, amount: number)
+	local uiScale = UI.deviceScale()
+	for i = 1, amount do
+		local angle = (i / amount) * math.pi * 2
+		local shard = Instance.new("Frame")
+		shard.Size = UDim2.fromOffset(
+			math.max(4, math.floor((if i % 3 == 0 then 13 else 8) * uiScale)),
+			math.max(6, math.floor((if i % 3 == 0 then 20 else 12) * uiScale))
+		)
+		shard.AnchorPoint = Vector2.new(0.5, 0.5)
+		shard.Position = UDim2.fromScale(0.5, 0.44)
+		shard.Rotation = math.deg(angle)
+		shard.BorderSizePixel = 0
+		shard.BackgroundColor3 = color
+		shard.ZIndex = 44
+		shard.Parent = parent
+		TweenService:Create(shard, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Position = UDim2.new(
+				0.5,
+				math.cos(angle) * (130 + (i % 3) * 26) * uiScale,
+				0.44,
+				math.sin(angle) * (100 + (i % 4) * 16) * uiScale
+			),
+			BackgroundTransparency = 1,
+			Rotation = shard.Rotation + 100,
+		}):Play()
+		task.delay(0.75, function()
+			shard:Destroy()
+		end)
+	end
+end
+
+-- Revela o MODELO REAL da espécie quando sua estátua já foi replicada.
+-- Usa apenas o mesh/Modelo do catálogo existente, sem baixar assets nem carregar scripts.
+local function speciesPreview(parent: Frame, speciesId: any): ViewportFrame?
+	if type(speciesId) ~= "string" then
+		return nil
+	end
+	local folder = Workspace:FindFirstChild("GiantStatues")
+	local statue = folder and folder:FindFirstChild("Statue_" .. speciesId)
+	if not statue then
+		return nil -- StreamingEnabled pode deixar uma estátua fora do alcance
+	end
+	local original: Model? = nil
+	for _, child in statue:GetChildren() do
+		if child:IsA("Model") then
+			original = child
+			break
+		end
+	end
+	if not original then
+		return nil
+	end
+	local clone = original:Clone()
+	if not clone then
+		return nil
+	end
+	for _, item in clone:GetDescendants() do
+		if item:IsA("LuaSourceContainer") or item:IsA("ParticleEmitter") or item:IsA("Sound") or item:IsA("Light") then
+			item:Destroy()
+		elseif item:IsA("BasePart") then
+			item.Anchored = true
+			item.CanCollide = false
+			item.CanQuery = false
+			item.CanTouch = false
+		end
+	end
+	local cf, ext = clone:GetBoundingBox()
+	local diameter = math.max(ext.X, ext.Y, ext.Z)
+	if diameter <= 0 then
+		clone:Destroy()
+		return nil
+	end
+	clone:PivotTo(CFrame.new(-cf.Position) * clone:GetPivot())
+	local vf = Instance.new("ViewportFrame")
+	vf.Name = "SpeciesReveal"
+	vf.BackgroundTransparency = 1
+	vf.Ambient = Color3.fromRGB(215, 205, 195)
+	vf.LightColor = Color3.new(1, 1, 1)
+	vf.LightDirection = Vector3.new(-1, -1, -1)
+	vf.Size = UDim2.fromOffset(260 * UI.deviceScale(), 260 * UI.deviceScale())
+	vf.Position = UDim2.fromScale(0.5, 0.58)
+	vf.AnchorPoint = Vector2.new(0.5, 0.5)
+	vf.ZIndex = 44
+	local world = Instance.new("WorldModel")
+	world.Parent = vf
+	clone.Parent = world
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 42
+	local pivot = statue:GetPivot().Position
+	local facing = Vector3.new(-pivot.X, 0, -pivot.Z)
+	local direction = if facing.Magnitude > 0.01 then facing.Unit else Vector3.zAxis
+	cam.CFrame = CFrame.lookAt((direction * 1.75 + Vector3.yAxis * 0.04) * diameter, Vector3.zero)
+	cam.Parent = vf
+	vf.CurrentCamera = cam
+	vf.Parent = parent
+	return vf
+end
+
 local function playHatch(data: { [string]: any })
 	local size = data.size
 	if type(size) ~= "string" or not E.Sizes[size] then
@@ -542,61 +643,116 @@ local function playHatch(data: { [string]: any })
 	end
 	local def = E.Sizes[size]
 	local order = Config.Rarities[def.rarity].order
-	local dur = math.clamp(2.6 + order * 0.4, 3, 5) -- 3 a 5 s pela raridade
+	local color = rarityColor(size)
+	local reduced = UI.reducedMotion()
+	local uiScale = UI.deviceScale()
+	-- A animação inteira leva ~4 s; não prende o jogador em ~8 s de tela.
+	local crackTime = if reduced then 0.15 else math.clamp(1.1 + order * 0.18, 1.4, 2.2)
 	clear(hatchGui)
 	hatchGui.Visible = true
-	hatchGui.BackgroundTransparency = 0.8
+	hatchGui.BackgroundTransparency = 1 -- mundo sempre visível, sem overlay escuro
+	local ring = Instance.new("Frame")
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.Position = UDim2.fromScale(0.5, 0.44)
+	ring.Size = UDim2.fromOffset(320 * uiScale, 320 * uiScale)
+	ring.BackgroundTransparency = 1
+	ring.ZIndex = 40
+	ring.Parent = hatchGui
+	UI.corner(ring, 160)
+	UI.stroke(ring, color, 4)
 	local vf = eggView(hatchGui, size, {
-		Size = UDim2.fromOffset(300, 300),
-		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromOffset(300 * uiScale, 300 * uiScale),
+		Position = UDim2.fromScale(0.5, 0.44),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		ZIndex = 41,
 	})
-	local reduced = UI.reducedMotion()
-	local t0 = os.clock()
-	local conn = RunService.RenderStepped:Connect(function()
-		local a = (os.clock() - t0) / dur
-		if reduced then
-			return
-		end
-		local k = math.clamp(a, 0, 1)
-		vf.Rotation = math.sin(os.clock() * (8 + 30 * k)) * (4 + 14 * k)
-	end)
-	task.wait(dur)
-	conn:Disconnect()
+	local headline = UI.title(hatchGui, "CHOCANDO " .. string.upper(def.name) .. "...", {
+		Size = UDim2.new(0.9, 0, 0, 50),
+		Position = UDim2.fromScale(0.5, 0.17),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		TextColor3 = color,
+		ZIndex = 44,
+	})
+	if not reduced then
+		TweenService:Create(vf, TweenInfo.new(crackTime, Enum.EasingStyle.Quad), {
+			Size = UDim2.fromOffset(340 * uiScale, 340 * uiScale),
+		}):Play()
+	end
+	local cracks = 0
+	local crackLines: { Frame } = {}
+	local function crack()
+		cracks += 1
+		local line = Instance.new("Frame")
+		line.Size = UDim2.fromOffset((72 - cracks * 10) * uiScale, math.max(2, 5 * uiScale))
+		line.AnchorPoint = Vector2.new(0.5, 0.5)
+		line.Position = UDim2.new(0.5, (cracks - 2) * 18 * uiScale, 0.44, (cracks - 2) * 25 * uiScale)
+		line.Rotation = if cracks == 2 then 24 else -40
+		line.BackgroundColor3 = Color3.fromRGB(35, 27, 42)
+		line.BorderSizePixel = 0
+		line.ZIndex = 43
+		line.Parent = hatchGui
+		table.insert(crackLines, line)
+		UI.stroke(line, color, 1)
+		UI.sfx("Whoosh", 0.35)
+	end
+	if reduced then
+		crack()
+		UI.sfx("Bell", 0.45)
+		task.wait(crackTime)
+	else
+		local t0 = os.clock()
+		local conn: RBXScriptConnection
+		conn = RunService.RenderStepped:Connect(function()
+			local k = math.clamp((os.clock() - t0) / crackTime, 0, 1)
+			vf.Rotation = math.sin(os.clock() * (9 + 32 * k)) * (3 + 14 * k)
+			if (cracks == 0 and k >= 0.32) or (cracks == 1 and k >= 0.61) or (cracks == 2 and k >= 0.84) then
+				crack()
+			end
+		end)
+		task.wait(crackTime)
+		conn:Disconnect()
+	end
 	vf:Destroy()
-	local sp = Config.SpeciesById[data.speciesId]
-	local color = rarityColor(size)
+	ring:Destroy()
+	headline:Destroy()
+	for _, line in crackLines do
+		line:Destroy()
+	end
+	if not reduced then
+		hatchShards(hatchGui, color, if order >= 4 then 18 else 10)
+	end
+	UI.sfx(if order >= 4 then "Evolve" else "Bell", if order >= 4 then 0.9 else 0.65)
+	local sp = if type(data.speciesId) == "string" then Config.SpeciesById[data.speciesId] else nil
+	local previewOk, viewport = pcall(speciesPreview, hatchGui, data.speciesId)
+	local preview = previewOk and viewport ~= nil
 	local st = math.clamp(tonumber(data.stars) or 0, 0, 3)
 	local title =
-		UI.label(hatchGui, (if data.duplicate then "REPETIDO!" else "NOVO GIGANTE!") .. "  " .. starText(st), {
-			Size = UDim2.fromOffset(700, 70),
-			Position = UDim2.fromScale(0.5, 0.36),
+		UI.title(hatchGui, (if data.duplicate then "GIGANTE REPETIDO" else "NOVO GIGANTE!") .. "  " .. starText(st), {
+			Size = UDim2.new(0.9, 0, 0, 66),
+			Position = UDim2.fromScale(0.5, if preview then 0.24 else 0.38),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			TextColor3 = color,
-			ZIndex = 42,
+			ZIndex = 45,
 		})
 	local line = if data.duplicate
 		then string.format(
-			"%s ganhou %s XP (agora nível %d)",
+			"%s ganhou %s XP · nível %d",
 			sp and sp.name or "?",
-			Util.formatNumber(data.xp or 0),
-			data.level or 1
+			Util.formatNumber(tonumber(data.xp) or 0),
+			tonumber(data.level) or 1
 		)
-		else string.format("%s  ·  nasce no nível %d", sp and sp.name or "?", data.level or 1)
+		else string.format("%s nasceu no nível %d!", sp and sp.name or "?", tonumber(data.level) or 1)
 	UI.label(hatchGui, line, {
-		Size = UDim2.fromOffset(760, 54),
-		Position = UDim2.fromScale(0.5, 0.48),
+		Size = UDim2.new(0.9, 0, 0, 50),
+		Position = UDim2.fromScale(0.5, if preview then 0.85 else 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextColor3 = Color3.new(1, 1, 1),
-		ZIndex = 42,
+		ZIndex = 45,
 	})
 	if not reduced then
 		UI.pop(title)
 	end
-	task.wait(3)
-	hatchGui.Visible = false
-	clear(hatchGui)
+	task.wait(if reduced then 1.4 else 2)
 end
 
 ---------------------------------------------------------------------------
@@ -661,7 +817,12 @@ function Eggs.init(gui: ScreenGui)
 					while #hatchQueue > 0 do
 						local nextData = table.remove(hatchQueue, 1)
 						if nextData then
-							playHatch(nextData)
+							local ok, err = pcall(playHatch :: any, nextData)
+							hatchGui.Visible = false
+							clear(hatchGui)
+							if not ok then
+								warn("[Eggs] Efeito de eclosão interrompido:", err)
+							end
 						end
 					end
 					hatchRunning = false

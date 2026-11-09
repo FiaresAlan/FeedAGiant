@@ -125,8 +125,9 @@ local function play(data: {
 
 	overlay.Visible = true
 	overlay.BackgroundTransparency = 1
-	-- P0 v3: a abertura não apaga mais o mundo (era 0,45 de preto); só um véu leve de 0,85.
-	TweenService:Create(overlay, TweenInfo.new(0.2), { BackgroundTransparency = 0.85 }):Play()
+	-- Não escurecer nem bloquear a visão do gameplay quando abrir uma Lunchbox.
+	-- A caixa e a revelação continuam animadas no primeiro plano.
+	overlay.BackgroundTransparency = 1
 
 	reveal.Visible = false
 	box.Visible = true

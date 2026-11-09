@@ -201,7 +201,13 @@ local function stealFromBot(thief: Player, foodModel: Model, botUid: number, slo
 		return alive
 	end)
 	channeling[thief] = nil
-	if not okRun or not ok or carrying[thief] then
+	if
+		not okRun
+		or not ok
+		or carrying[thief]
+		or thief:GetAttribute("CarryingDrop")
+		or thief:GetAttribute("CarryingEgg")
+	then
 		Remotes.Notify:FireClient(thief, { text = "Roubo cancelado.", color = Color3.fromRGB(255, 90, 90) })
 		return
 	end
@@ -229,7 +235,12 @@ local function stealFromBot(thief: Player, foodModel: Model, botUid: number, slo
 end
 
 local function tryStartSteal(thief: Player, foodModel: Model)
-	if carrying[thief] or channeling[thief] or thief:GetAttribute("CarryingDrop") then
+	if
+		carrying[thief]
+		or channeling[thief]
+		or thief:GetAttribute("CarryingDrop")
+		or thief:GetAttribute("CarryingEgg")
+	then
 		return
 	end
 	local primary = foodModel.PrimaryPart
@@ -339,7 +350,17 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	-- Reconfere TUDO no fim: o mundo pode ter mudado durante os 3 s.
 	local current = DataService.get(owner)
 	local still = current and current.plot[tostring(slot)]
-	if ok and (not owner.Parent or StealService.isShielded(owner) or not still or still.uid ~= targetUid) then
+	if
+		ok
+		and (
+			not owner.Parent
+			or StealService.isShielded(owner)
+			or not still
+			or still.uid ~= targetUid
+			or thief:GetAttribute("CarryingDrop")
+			or thief:GetAttribute("CarryingEgg")
+		)
+	then
 		ok = false
 	end
 	if not ok then

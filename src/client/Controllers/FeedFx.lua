@@ -94,8 +94,42 @@ local function shake(strength: number, duration: number)
 	end)
 end
 
+-- Um destaque curto confirma visualmente QUAL gigante foi alimentado.
+-- O efeito vive apenas no cliente, não altera status, rede ou modelo persistido.
+local function pulseGiant(userId: number, color: Color3)
+	local giant = giantOf(userId)
+	if not giant then
+		return
+	end
+	local old = giant:FindFirstChild("FeedPulse")
+	if old then
+		old:Destroy()
+	end
+	local h = Instance.new("Highlight")
+	h.Name = "FeedPulse"
+	h.Adornee = giant
+	h.DepthMode = Enum.HighlightDepthMode.Occluded
+	h.FillColor = color
+	h.OutlineColor = Color3.new(1, 1, 1)
+	h.FillTransparency = 0.86
+	h.OutlineTransparency = 0.1
+	h.Parent = giant
+	TweenService:Create(h, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		FillTransparency = 1,
+		OutlineTransparency = 1,
+	}):Play()
+	task.delay(0.7, function()
+		if h.Parent then
+			h:Destroy()
+		end
+	end)
+end
+
 local function burst(at: Vector3, color: Color3, xp: number, e: { [string]: any })
 	local crit = e.crit == true
+	local def = if type(e.foodId) == "string" then Config.FoodById[e.foodId] else nil
+	local rarityOrder = if def then Config.Rarities[def.rarity].order else 1
+	pulseGiant(e.userId, color)
 	local anchor = Instance.new("Part")
 	anchor.Anchored = true
 	anchor.CanCollide = false
@@ -115,7 +149,17 @@ local function burst(at: Vector3, color: Color3, xp: number, e: { [string]: any 
 	pe.SpreadAngle = Vector2.new(180, 180)
 	pe.Size = NumberSequence.new(0.8, 0)
 	pe.Parent = anchor
-	pe:Emit(22)
+	pe:Emit(if crit then 24 elseif rarityOrder >= 4 then 22 else 14)
+	if rarityOrder >= 4 then
+		-- Brilho rápido só para comidas épicas+, sem efeito contínuo no celular.
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Brightness = 2
+		light.Range = 12
+		light.Shadows = false
+		light.Parent = anchor
+		TweenService:Create(light, TweenInfo.new(0.55), { Brightness = 0 }):Play()
+	end
 	if crit then
 		-- Crítica: estrelas douradas grandes + anel de faíscas (um Emit só, sem Rate contínuo).
 		local star = Instance.new("ParticleEmitter")
@@ -134,10 +178,15 @@ local function burst(at: Vector3, color: Color3, xp: number, e: { [string]: any 
 		star.Rotation = NumberRange.new(0, 360)
 		star.RotSpeed = NumberRange.new(-180, 180)
 		star.Parent = anchor
-		star:Emit(36)
+		star:Emit(26)
 	end
 	local trait = if type(e.trait) == "string" then GameRules.Traits[e.trait] else nil
 	local text = "+" .. Util.formatNumber(xp) .. " XP"
+	if e.userId == player.UserId and e.feedNumber == 1 then
+		text = "PRIMEIRA MORDIDA!\n" .. text
+	elseif e.userId == player.UserId and e.leveled and type(e.level) == "number" then
+		text ..= "\nNÍVEL " .. tostring(e.level)
+	end
 	if crit then
 		text = Locale.t("CRÍTICO!") .. "  " .. text
 	end

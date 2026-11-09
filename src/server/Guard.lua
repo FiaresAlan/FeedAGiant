@@ -12,6 +12,7 @@ local Guard = {}
 local limiters: { [string]: RateLimit.Limiter } = {}
 local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Plot = { burst = 8, perSecond = 5 }, -- colocar/pegar/alimentar (toques rápidos em sequência)
+	FullState = { burst = 2, perSecond = 0.5 }, -- leitura inicial pode serializar todo o inventário
 	Species = { burst = 3, perSecond = 1 }, -- comprar/equipar espécie reconstrói o Gigante
 	Rebirth = { burst = 2, perSecond = 0.5 },
 	Daily = { burst = 2, perSecond = 0.5 },

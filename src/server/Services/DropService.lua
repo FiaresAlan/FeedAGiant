@@ -398,7 +398,12 @@ local function tryPickup(player: Player, it: Item)
 	if it.done or it.carrier or not it.landed or os.clock() < it.unlockAt then
 		return
 	end
-	if carrying[player] or player:GetAttribute("CarryingSteal") or CombatService.isKO(player) then
+	if
+		carrying[player]
+		or player:GetAttribute("CarryingSteal")
+		or player:GetAttribute("CarryingEgg")
+		or CombatService.isKO(player)
+	then
 		Remotes.Notify:FireClient(
 			player,
 			{ text = "Você já está carregando algo! Leve até sua base.", color = Color3.fromRGB(255, 170, 60) }
@@ -644,7 +649,7 @@ end
 -- pegar a porção caída, entrega só na própria base. Devolve false se ele não pôde carregar.
 function DropService.giveCarried(player: Player, foodId: string, at: Vector3): boolean
 	local food = Config.FoodById[foodId]
-	if not food or carrying[player] or player:GetAttribute("CarryingSteal") then
+	if not food or carrying[player] or player:GetAttribute("CarryingSteal") or player:GetAttribute("CarryingEgg") then
 		return false
 	end
 	nextId += 1
@@ -764,7 +769,7 @@ function DropService.init()
 	end)
 	-- Abrir uma caixa guardada (o jogador confirma no cliente; nunca abre sozinha).
 	Remotes.RequestOpenPending.OnServerEvent:Connect(function(player, index)
-		if not Guard.isIndex(index, D.MaxPendingBoxes) or not Guard.allow(player, "Box") then
+		if not Guard.allow(player, "Box") then
 			return
 		end
 		local profile = DataService.get(player)
@@ -772,6 +777,9 @@ function DropService.init()
 			return
 		end
 		local pending: { string } = (profile :: any).pendingBoxes
+		if not Guard.isIndex(index, #pending) then
+			return
+		end
 		local boxId = pending[index]
 		if not boxId then
 			return

@@ -141,6 +141,34 @@ return function()
 		end)
 	end)
 
+	describe("Capacidade da mochila e lotes de recompensa", function()
+		local PlotService = require(ServerScriptService.Server.Services.PlotService)
+		local Config = require(ReplicatedStorage.Shared.Config)
+		it("recusa retirada do pátio e nova comida quando atinge o limite normal", function()
+			local profile = { inventory = {} }
+			for i = 1, Config.MaxInventory do
+				table.insert(profile.inventory, { id = "apple", uid = tostring(i) })
+			end
+			expect(PlotService.hasInventorySpace(profile :: any)).to.equal(false)
+		end)
+		it("valida o lote inteiro antes da abertura da Lunchbox", function()
+			local profile = { inventory = {} }
+			for i = 1, Config.MaxInventory - 2 do
+				table.insert(profile.inventory, { id = "apple", uid = tostring(i) })
+			end
+			expect(PlotService.hasInventorySpace(profile :: any, 2)).to.equal(true)
+			expect(PlotService.hasInventorySpace(profile :: any, 3)).to.equal(false)
+		end)
+		it("prêmios gratuitos respeitam teto estendido, recibos pagos não ficam bloqueados", function()
+			local profile = { inventory = {} }
+			for i = 1, Config.MaxInventoryHard do
+				table.insert(profile.inventory, { id = "apple", uid = tostring(i) })
+			end
+			expect(PlotService.hasInventorySpace(profile :: any, 1, true, false)).to.equal(false)
+			expect(PlotService.hasInventorySpace(profile :: any, 1, true, true)).to.equal(true)
+		end)
+	end)
+
 	describe("Migração de perfil antigo", function()
 		it("perfil v1 ganha os campos novos sem perder nada", function()
 			local DataService = require(ServerScriptService.Server.Services.DataService)
