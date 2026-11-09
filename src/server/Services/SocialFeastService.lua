@@ -28,6 +28,7 @@ local stand: BasePart? = nil
 local label: TextLabel? = nil
 local prompt: ProximityPrompt? = nil
 local sparks: ParticleEmitter? = nil
+local lastInviteAt = -math.huge
 
 local function on(): boolean
 	return Features.on("SocialFeast")
@@ -96,6 +97,10 @@ local function tryContribute(player: Player)
 	if now < cooldownUntil then
 		return
 	end
+	if #Players:GetPlayers() < 2 then
+		notify(player, "O banquete precisa de 2 jogadores reais. Convide um amigo!")
+		return
+	end
 	local nextAt = individualCooldown[player.UserId] or 0
 	if now < nextAt then
 		notify(player, string.format("Você já ajudou! Próximo banquete em %d s.", nextAt - now))
@@ -119,10 +124,14 @@ local function tryContribute(player: Player)
 	if not first then
 		reservation = { player = player, foodUid = item.uid, untilTime = now + Rules.WindowSeconds }
 		notify(player, "Banquete iniciado! Chame alguém à praça em até 2 minutos. Sua comida ainda não foi consumida.")
-		Remotes.Notify:FireAllClients({
-			text = "BANQUETE EM DUPLA: 1/2 cozinheiros na praça. Venha ajudar por um bônus de XP!",
-			color = Color3.fromRGB(255, 204, 110),
-		})
+		-- Não transformar uma atividade social em spam de mensagens para toda a sala.
+		if now - lastInviteAt >= 60 then
+			lastInviteAt = now
+			Remotes.Notify:FireAllClients({
+				text = "BANQUETE EM DUPLA: 1/2 cozinheiros na praça. Venha ajudar por um bônus de XP!",
+				color = Color3.fromRGB(255, 204, 110),
+			})
+		end
 		Analytics.event(player, "social_feast_started", 1)
 		updateDisplay(now)
 		return
