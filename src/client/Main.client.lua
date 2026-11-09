@@ -30,6 +30,7 @@ local V3 = require(Controllers.V3)
 local Eggs = require(Controllers.Eggs)
 local Travel = require(Controllers.Travel)
 local Dragon = require(Controllers.Dragon)
+local CameraLock = require(Controllers.CameraLock)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -70,6 +71,7 @@ V3.init(gui)
 Eggs.init(gui)
 Travel.init(gui) -- 09/11: menu dos blips de viagem rápida
 Dragon.init(gui) -- 09/11: animação do Dragão + convite com o botão JOGAR
+CameraLock.init(gui) -- 09/11: travar a mira (tecla C / botão)
 Arena.OnOpenGiantBattle = GiantBattle.open
 -- ARENA única (09/11, item 7): a lista da batalha de gigantes vira a 2ª aba da janela da arena.
 GiantBattle.embed(Arena.giantContainer())

@@ -893,11 +893,11 @@ World.Arena = {
 World.Arena.center = polar(World.Arena.phi, World.Arena.r, 0)
 
 local ARENA_COLORS = {
-	stone = "#A89EB8",
-	stoneDark = "#857B99",
+	stone = "#CBB9EA", -- 09/11: mais claro (o usuário achou a arena "apagada")
+	stoneDark = "#A595C9",
 	wood = "#A85F2E",
 	woodDark = "#7A4320",
-	sand = "#E9B577",
+	sand = "#F6CC86",
 	sandRing = "#C97843",
 	emblem = "#B85A30",
 	gold = "#F5C33B",
@@ -1241,6 +1241,66 @@ function World.buildArena(root: Instance): Model
 			CanQuery = false,
 		})
 		sp.Parent = model
+	end
+
+	-- 09/11 (pedido do usuário: "a arena está apagada e escura"): cores BRILHANTES. Anel arco-íris neon
+	-- em volta do ringue, faixas arco-íris no alto da arquibancada e 4 luzes fortes acima do ringue.
+	local RAINBOW = {
+		Color3.fromRGB(255, 70, 70),
+		Color3.fromRGB(255, 160, 40),
+		Color3.fromRGB(255, 230, 60),
+		Color3.fromRGB(70, 220, 110),
+		Color3.fromRGB(60, 170, 255),
+		Color3.fromRGB(150, 90, 255),
+	}
+	local segs = 36
+	for i = 0, segs - 1 do
+		local th = (i + 0.5) / segs * 360
+		local r = A.floorR + 2.2
+		local arc = 2 * math.pi * r / segs
+		local seg = arenaPart(model, base, {
+			Name = "RainbowRing",
+			Size = Vector3.new(arc + 0.2, 0.5, 1.2),
+			CFrame = ringCf(th, r, A.floorTop + 0.3),
+			Color = RAINBOW[(i % #RAINBOW) + 1],
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CastShadow = false,
+		})
+		seg.CanQuery = false
+	end
+	for i = 0, 23 do
+		local th = (i + 0.5) / 24 * 360
+		if math.abs(((th + 180) % 360) - 180) > A.gateHalfDeg + 2 then -- deixa o portão livre
+			local r = outer - 0.6
+			local strip = arenaPart(model, base, {
+				Name = "RainbowRim",
+				Size = Vector3.new(2 * math.pi * r / 24, 0.8, 0.5),
+				CFrame = ringCf(th, r, 10.2),
+				Color = RAINBOW[(i % #RAINBOW) + 1],
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+				CastShadow = false,
+			})
+			strip.CanQuery = false
+		end
+	end
+	for k = 0, 3 do
+		local lamp = arenaPart(model, base, {
+			Name = "ArenaLight",
+			Size = Vector3.new(1, 1, 1),
+			CFrame = ringCf(k * 90 + 45, A.floorR * 0.6, A.floorTop + 22),
+			Transparency = 1,
+			CanCollide = false,
+			CastShadow = false,
+		})
+		lamp.CanQuery = false
+		local light = Instance.new("PointLight")
+		light.Range = 45
+		light.Brightness = 2.2
+		light.Color = RAINBOW[(k * 2) % #RAINBOW + 1]:Lerp(Color3.new(1, 1, 1), 0.55)
+		light.Shadows = false
+		light.Parent = lamp
 	end
 
 	model:SetAttribute("FloorRadius", A.floorR)
