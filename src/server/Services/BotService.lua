@@ -29,6 +29,7 @@ local GiantService = require(script.Parent.GiantService)
 local DropService = require(script.Parent.DropService)
 local MeatService = require(script.Parent.MeatService)
 local BossService = require(script.Parent.BossService)
+local CombatService = require(script.Parent.CombatService)
 local FoodModels = require(script.Parent.Parent.FoodModels)
 local World = require(script.Parent.Parent.World)
 
@@ -59,7 +60,18 @@ type Bot = {
 	lastFeed: number,
 	carry: BasePart?,
 	carryFood: string?,
+	-- luta (09/11, item 4): o jogador soca o bot e o bot revida
+	hp: number,
+	koUntil: number,
+	fighting: boolean,
+	fightUntil: number,
+	aggro: Player?,
+	-- placares e arena (09/11, itens 7 e 9): números coerentes com o tamanho do gigante do bot
+	rebirths: number,
+	arenaPts: number,
 }
+
+local BOT_HP = 110 -- um pouco menos que um jogador (150 na luta justa): dá para vencer, mas não é saco de pancada
 
 local bots: { Bot } = {}
 local manualCount: number? = nil
@@ -359,7 +371,7 @@ local function walkTo(bot: Bot, pos: Vector3, maxSeconds: number?): boolean
 		points = { pos } -- sem caminho: vai reto
 	end
 	for i, p in points do
-		if not bot.alive or os.clock() > deadline then
+		if not bot.alive or os.clock() > deadline or bot.fighting or bot.koUntil > os.clock() then
 			return false
 		end
 		if jumps[i] then
@@ -367,7 +379,7 @@ local function walkTo(bot: Bot, pos: Vector3, maxSeconds: number?): boolean
 		end
 		bot.hum:MoveTo(p)
 		local t0 = os.clock()
-		while bot.alive and (bot.root.Position - p).Magnitude > 4 and os.clock() - t0 < 2.5 do
+		while bot.alive and not bot.fighting and (bot.root.Position - p).Magnitude > 4 and os.clock() - t0 < 2.5 do
 			task.wait(0.15)
 		end
 	end
@@ -483,20 +495,143 @@ local function doDrop(bot: Bot): boolean
 	if not best or bestD > 400 then
 		return false
 	end
+	-- Pedido do usuário (09/11, item 3): antes o bot chegava, "ria/dançava" (desistia porque havia jogador
+	-- perto) e ia embora sem pegar. Agora ele DISPUTA de verdade: chega colado no drop, abaixa (0,6 s, o
+	-- mesmo tempo de um jogador segurar o botão) e pega se ninguém pegou antes. Raridade alta e caixas
+	-- continuam só para jogadores (DropService.botCollect recusa).
 	walkTo(bot, best.pos, 30)
-	-- só pega se nenhum jogador real estiver disputando por perto
-	local _, dReal = nearestRealPlayer(best.pos)
-	if dReal < 35 then
-		play(bot, "laugh")
-		task.wait(1.5)
+	if not bot.alive or bot.fighting then
 		return true
 	end
+	if (bot.root.Position - best.pos).Magnitude > 6 then
+		bot.hum:MoveTo(best.pos)
+		local t0 = os.clock()
+		while bot.alive and (bot.root.Position - best.pos).Magnitude > 6 and os.clock() - t0 < 3 do
+			task.wait(0.1)
+		end
+	end
+	if (bot.root.Position - best.pos).Magnitude > 9 then
+		return true -- não alcançou (caiu num lugar sem caminho): tenta outra coisa
+	end
+	face(bot, best.pos)
+	play(bot, "point")
+	task.wait(0.6)
 	local foodId = DropService.botCollect(best.id)
 	if foodId then
 		local def = Config.FoodById[foodId]
 		carryVisual(bot, if def then def.color else Color3.new(1, 1, 1))
 		bot.carryFood = foodId
 		feedGiant(bot)
+	end
+	return true
+end
+
+---------------------------------------------------------------------------
+-- Luta (09/11, item 4): o soco do jogador acerta o bot; o bot revida por alguns segundos.
+---------------------------------------------------------------------------
+local function playerRoot(p: Player): BasePart?
+	local char = p.Parent and p.Character
+	return char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function fightBack(bot: Bot)
+	bot.fighting = true
+	bot.busy = "brigando"
+	local lastSwing = 0
+	local swing = 0
+	while bot.alive and os.clock() < bot.fightUntil do
+		if bot.koUntil > os.clock() then
+			task.wait(0.3)
+			continue
+		end
+		local p = bot.aggro
+		local r = p and playerRoot(p)
+		if not p or not r or CombatService.inOwnSafeZone(p) or CombatService.isKO(p) then
+			break
+		end
+		local d = (r.Position - bot.root.Position).Magnitude
+		if d > 60 then
+			break
+		end
+		if d > Config.Combat.PunchRange - 1.5 then
+			bot.hum:MoveTo(r.Position)
+		else
+			bot.hum:MoveTo(bot.root.Position)
+			face(bot, r.Position)
+			if os.clock() - lastSwing > rng:NextNumber(0.85, 1.25) then
+				lastSwing = os.clock()
+				swing += 1
+				play(bot, if swing % 2 == 0 then "R15_M1_1" else "R15_M1_2")
+				-- erra às vezes (dá para fugir/bloquear); dano um pouco menor que o de um jogador
+				if rng:NextNumber() < 0.7 then
+					CombatService.npcHit(p, Config.Combat.PunchDamage * 0.8, bot.root.Position, "bot")
+				end
+			end
+		end
+		task.wait(0.15)
+	end
+	bot.fighting = false
+	bot.aggro = nil
+end
+
+local function knockoutBot(bot: Bot, attacker: Player)
+	bot.koUntil = os.clock() + Config.Combat.KOSeconds
+	bot.fightUntil = 0
+	bot.hum.PlatformStand = true
+	Remotes.Notify:FireClient(attacker, {
+		text = string.format("Você nocauteou %s!", bot.name),
+		color = Color3.fromRGB(255, 200, 80),
+	})
+	task.delay(Config.Combat.KOSeconds, function()
+		if bot.alive then
+			bot.hum.PlatformStand = false
+			bot.hp = BOT_HP
+			play(bot, "laugh")
+		end
+	end)
+end
+
+local function hitBotTarget(
+	attacker: Player,
+	origin: Vector3,
+	look: Vector3,
+	range: number,
+	damage: number,
+	heavy: boolean
+): boolean
+	local now = os.clock()
+	local best: Bot? = nil
+	local bestDot = 0.45
+	for _, b in bots do
+		if b.alive and b.koUntil <= now then
+			local delta = b.root.Position - origin
+			local dist = delta.Magnitude
+			if dist <= range + 1 then
+				local dot = if dist < 1 then 1 else look:Dot(delta.Unit)
+				if dot > bestDot then
+					best, bestDot = b, dot
+				end
+			end
+		end
+	end
+	if not best then
+		return false
+	end
+	local b: Bot = best
+	b.hp = math.max(0, b.hp - damage)
+	local dir = Vector3.new(b.root.Position.X - origin.X, 0, b.root.Position.Z - origin.Z)
+	dir = if dir.Magnitude < 0.1 then look else dir.Unit
+	local kb = if heavy then Config.Combat.HeavyKnockback else Config.Combat.Knockback
+	b.root.AssemblyLinearVelocity = dir * kb * 0.8 + Vector3.new(0, if heavy then 30 else 15, 0)
+	if b.hp <= 0 then
+		knockoutBot(b, attacker)
+		return true
+	end
+	-- revida: enquanto o jogador continua batendo, o bot continua brigando
+	b.aggro = attacker
+	b.fightUntil = now + 8
+	if not b.fighting then
+		task.spawn(fightBack, b)
 	end
 	return true
 end
@@ -735,7 +870,16 @@ local function spawnBot(): Bot?
 		lastFeed = os.clock() - rng:NextNumber(0, 60),
 		carry = nil,
 		carryFood = nil,
+		hp = BOT_HP,
+		koUntil = 0,
+		fighting = false,
+		fightUntil = 0,
+		aggro = nil,
+		rebirths = 0,
+		arenaPts = 0,
 	}
+	bot.rebirths = if bot.level > 18 then rng:NextInteger(0, 2) else 0
+	bot.arenaPts = bot.level * rng:NextInteger(3, 9)
 	-- anda/parado: troca entre as animações oficiais
 	hum.Running:Connect(function(speed)
 		if speed > 0.5 then
@@ -762,6 +906,9 @@ local function spawnBot(): Bot?
 	task.spawn(function()
 		task.wait(rng:NextNumber(1, 3))
 		while bot.alive do
+			while bot.alive and (bot.fighting or bot.koUntil > os.clock()) do
+				task.wait(0.3)
+			end
 			local ok, err = pcall(think :: any, bot)
 			if not ok then
 				warn("[BotService]", bot.name, err)
@@ -803,12 +950,38 @@ end
 function BotService.list(): { any }
 	local out = {}
 	for _, b in bots do
-		table.insert(
-			out,
-			{ name = b.name, level = b.level, species = b.species, personality = b.personality, doing = b.busy }
-		)
+		table.insert(out, {
+			name = b.name,
+			uid = b.uid,
+			level = b.level,
+			species = b.species,
+			personality = b.personality,
+			doing = b.busy,
+			rebirths = b.rebirths,
+			arenaPts = b.arenaPts,
+			model = b.model,
+			base = b.base,
+		})
 	end
 	return out
+end
+
+-- Bot por id (negativo), para a arena.
+function BotService.byUid(uid: number): any
+	for _, b in bots do
+		if b.uid == uid and b.alive then
+			return b
+		end
+	end
+	return nil
+end
+
+-- A arena avisa o resultado de uma luta contra bot (pontos sobem/descem como os de um jogador).
+function BotService.arenaResult(uid: number, botWon: boolean)
+	local b = BotService.byUid(uid)
+	if b then
+		b.arenaPts = math.max(0, b.arenaPts + (if botWon then 10 else -3))
+	end
 end
 
 function BotService.init()
@@ -820,6 +993,7 @@ function BotService.init()
 			end
 		end
 	end
+	table.insert(CombatService.NpcTargets, hitBotTarget)
 	task.spawn(fillNamePool :: any)
 	task.spawn(function()
 		task.wait(8)

@@ -55,6 +55,17 @@ CombatService.HitNpc = nil :: ((
 	damage: number,
 	heavy: boolean
 ) -> boolean)?
+-- Outros NPCs que levam soco (bots: pedido do usuário, 09/11, item 4). Cada um devolve true se acertou.
+CombatService.NpcTargets = {} :: {
+	(
+		attacker: Player,
+		origin: Vector3,
+		look: Vector3,
+		range: number,
+		damage: number,
+		heavy: boolean
+	) -> boolean
+}
 -- Chefe: jogador nocauteado por um NPC (o BossService decide o castigo).
 CombatService.OnNpcKO = nil :: ((victim: Player, source: string) -> ())?
 -- Fase 4 (luta justa, decisão do diretor técnico): true = vida e força iguais para todos (arena).
@@ -331,6 +342,8 @@ local function inOwnSafeZone(player: Player): boolean
 	return (char:GetPivot().Position - base.origin.Position).Magnitude < C.SafeZoneRadius
 end
 
+CombatService.inOwnSafeZone = inOwnSafeZone
+
 local function rootOf(player: Player): BasePart?
 	local char = player.Character
 	return char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -480,12 +493,19 @@ local function tryPunch(attacker: Player, heavy: boolean)
 	end
 	if not best then
 		local hitNpc = CombatService.HitNpc
-		if hitNpc then
-			local npcDmg = (if heavy then C.HeavyDamage else C.PunchDamage) * dmgMult
-			if hitNpc(attacker, origin, look, range + 6, npcDmg, heavy) then
-				hitFx(origin + look * (range * 0.8) + Vector3.new(0, 2, 0), heavy)
-				Remotes.CombatEvent:FireAllClients({ kind = "NpcHit", attacker = attacker.UserId, heavy = heavy })
+		local npcDmg = (if heavy then C.HeavyDamage else C.PunchDamage) * dmgMult
+		local hit = hitNpc ~= nil and hitNpc(attacker, origin, look, range + 6, npcDmg, heavy)
+		if not hit then
+			for _, target in CombatService.NpcTargets do
+				if target(attacker, origin, look, range, npcDmg, heavy) then
+					hit = true
+					break
+				end
 			end
+		end
+		if hit then
+			hitFx(origin + look * (range * 0.8) + Vector3.new(0, 2, 0), heavy)
+			Remotes.CombatEvent:FireAllClients({ kind = "NpcHit", attacker = attacker.UserId, heavy = heavy })
 		end
 		push(attacker)
 		return
