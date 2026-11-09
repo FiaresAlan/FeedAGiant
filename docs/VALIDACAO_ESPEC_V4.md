@@ -78,3 +78,28 @@ com estrutura, sem chamar a API; tabela de drops pela regra da resposta 2.
   - notificação: lê o perfil antes do save final e grava `eggNotifyHatchAt` (nunca avisa 2 vezes o mesmo ovo).
 - Suíte no Play depois das correções: **121 passed, 0 failed**.
 - Para fechar ≥ 8,5: painel de 3 revisores depois das correções e teste com 2 jogadores (resgate em servidor cheio).
+
+## 6. Espécies iniciais (liberadas pelo usuário em 09/11: "Sim, pode fazer")
+- **Como ficou:** `src/shared/StarterSpecies.lua` define `fire_starter`, `ice_starter` e `stone_starter`.
+  - Elas ficam só no índice `Config.SpeciesById`, nunca na lista `Config.Species`, que a loja, os ovos, as estátuas, os bots e os sorteios percorrem.
+  - A compra delas na loja é bloqueada no servidor.
+  - `GiantService.grantStarterSpecies` só aceita os 3 ids, 1 vez por conta. Outro id gera a métrica `starter_invalid`; a escolha gera `starter_species_chosen`.
+- **Arte (sem modelo novo e sem upload):** a malha do Humano com um **Highlight** da cor do elemento e uma aura de partículas.
+  - **Medido:** com textura, a cor da MeshPart não aparece (foto `00`), por isso o Highlight.
+  - Fogo e Gelo ficaram claros (fotos `03` e `04`). A Pedra ficou sutil sob a luz de fim de tarde (foto `06`).
+  - Para identidade mais forte seria preciso textura própria, o que exige upload.
+- **Atributos:** iguais aos do Humano, mais 1 bônus pequeno cada:
+  - Fogo: +5% de moedas;
+  - Gelo: fome 10% mais lenta;
+  - Pedra: +10% de vida, sem efeito na arena justa.
+- **Fluxo:**
+  - Conta nova (nada comido nem comprado) recebe a escolha 5 s depois de entrar. Ela fica pendente ("?") até escolher, também entre sessões.
+  - A janela não tem o X e reabre se for fechada.
+  - O progresso atual **passa** do Humano para a inicial, sem duplicar. Uma espécie comprada nunca perde nível.
+  - Quem já tinha jogado antes de a função existir **não** recebe a oferta. É decisão sua se veteranos devem receber.
+  - A inicial aparece na Coleção com o botão USAR (a LOJA DE GIGANTES não mostra as iniciais).
+- **Testes:** `tests/Starter.spec.luau`; suíte **129 passed, 0 failed**.
+  - No Play: pedir "dragon" foi recusado, comprar a inicial também, escolher funcionou mantendo o nível, a 2ª escolha foi recusada, a janela reabriu e o Humano voltou ao nível 1.
+- **Revisão cega:** 7,1, abaixo de 8,5 (rascunho), com as duas correções acima já feitas.
+  - Falta: medir no celular e um teste automático do fluxo de concessão.
+- **Ovo de tutorial:** continua bloqueado (o pedido o deixou para a cópia de teste). Já pode chocar a inicial escolhida, porque `EggService` aceita `slot.species`.

@@ -702,9 +702,15 @@ function GiantService.grantStarterSpecies(player: Player, speciesId: any): boole
 	local id = speciesId :: string
 	profile.starterSpecies = id
 	profile.ownedSpecies[id] = true
+	-- O progresso PASSA para a inicial (não duplica): o gigante de antes (o Humano padrão de quem ainda
+	-- não escolheu) volta ao nível 1. Revisão cega 09/11.
+	local prev = profile.species
 	profile.giants[id] = { level = profile.level, xp = profile.xp, inherited = true }
 	DataService.markDirty(player)
 	GiantService.setSpecies(player, id)
+	if prev ~= id and prev == Config.DefaultSpecies then -- só o Humano grátis; espécie comprada nunca perde nível
+		profile.giants[prev] = { level = 1, xp = 0, inherited = true }
+	end
 	Analytics.event(player, "starter_species_chosen", 1, { id })
 	return true
 end

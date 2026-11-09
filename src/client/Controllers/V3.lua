@@ -134,7 +134,10 @@ end
 -- 1 vez por conta). Sem "pode trocar depois" (pedido do usuário).
 local starterWin: Frame? = nil
 local starterBody: Frame? = nil
+local pendingStarter: { any }? = nil -- opções enquanto a escolha não foi confirmada pelo servidor
+
 local function showStarterChoice(options: { any })
+	pendingStarter = options
 	local w, body = starterWin, starterBody
 	if not w or not body then
 		return
@@ -201,7 +204,25 @@ end
 
 function V3.init(gui: ScreenGui?)
 	if gui then
-		starterWin, starterBody = UI.window(gui, "SEU GIGANTE", UDim2.fromOffset(820, 440))
+		local w, body = UI.window(gui, "SEU GIGANTE", UDim2.fromOffset(820, 440))
+		starterWin, starterBody = w, body
+		-- A escolha é obrigatória (revisão cega): sem o X, e se o ESC fechar a janela com a escolha
+		-- pendente, ela volta em seguida.
+		for _, c in w:GetChildren() do
+			if c:IsA("TextButton") and c.Text == "X" then
+				c.Visible = false
+			end
+		end
+		w:GetPropertyChangedSignal("Visible"):Connect(function()
+			local opts = pendingStarter
+			if not w.Visible and opts then
+				task.delay(0.6, function()
+					if pendingStarter == opts and not w.Visible then
+						showStarterChoice(opts)
+					end
+				end)
+			end
+		end)
 	end
 	Remotes.ObjectiveHint.OnClientEvent:Connect(function(data: any)
 		if type(data) == "table" then
@@ -220,6 +241,7 @@ function V3.init(gui: ScreenGui?)
 		elseif data.kind == "StarterChoice" and type(data.options) == "table" then
 			showStarterChoice(data.options)
 		elseif data.kind == "StarterChosen" then
+			pendingStarter = nil
 			local w = starterWin
 			if w then
 				w.Visible = false

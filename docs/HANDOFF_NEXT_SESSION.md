@@ -25,7 +25,8 @@
   - o Goblin ficou fora das faixas;
   - as espécies iniciais podem ser feitas por cor no Blender, sem a cópia de teste;
   - na revanche, o "50%" de um roubo de COMIDA ainda não foi definido.
-- **Bloqueado até a cópia de teste do place:** §1, §3.1, §3.2, §4.1, §4.3 e os testes com 2 jogadores e no celular.
+- **Espécies iniciais FEITAS** (`StarterSpecies`, desligada): variação do Humano por Highlight + aura, nota 7,1. Ver `VALIDACAO_ESPEC_V4.md` §6.
+- **Bloqueado até a cópia de teste do place:** ovo de tutorial (§1), §3.1, §3.2, §4.1, §4.3 e os testes com 2 jogadores e no celular.
 
 ## A000000. Sistema de Ovos (08/11/2026, madrugada): VALIDADO, NÃO IMPLEMENTADO
 - **Pedido do usuário:**
