@@ -32,6 +32,7 @@ local ShopService = require(script.Parent.ShopService)
 local Guard = require(script.Parent.Parent.Guard)
 local Hooks = require(script.Parent.Parent.Hooks)
 local GameLogic = require(script.Parent.Parent.GameLogic)
+local Analytics = require(script.Parent.Parent.Analytics)
 
 local ProgressService = {}
 
@@ -89,8 +90,65 @@ function ProgressService.state(player: Player): { [string]: any }?
 		records = profile.records,
 		session = sessionLevels[player] or 0,
 		resetIn = 86400 - (now % 86400),
+		weekly = ProgressService.weeklyState(profile, now),
 	}
 end
+
+-- Missão semanal (Features.WeeklyQuest): nil com a função desligada (o Diário não mostra a seção).
+function ProgressService.weeklyState(profile: DataService.Profile, now: number): { [string]: any }?
+	if not Features.on("WeeklyQuest") then
+		return nil
+	end
+	local week = GameRules.weekIndex(now)
+	local wq = profile.weeklyQuest
+	local status = GameLogic.weeklyNormalize(wq, week)
+	local function pack(q: GameRules.ObjectiveDef): { [string]: any }
+		return { id = q.id, text = q.text, goal = q.goal, coins = q.coins, xp = q.xp }
+	end
+	local options = {}
+	for _, q in GameRules.weeklyOptions(week) do
+		table.insert(options, pack(q))
+	end
+	local chosen = if wq.chosenId ~= "" then GameRules.weeklyById(wq.chosenId) else nil
+	-- próxima segunda 00:00 UTC
+	local nextWeekAt = ((week + 1) * 7 - 3) * 86400
+	return {
+		status = status, -- "current" ou "carry" (resgate pendente de semana passada)
+		options = options,
+		chosen = if chosen then pack(chosen) else nil,
+		progress = wq.progress,
+		swapped = wq.swappedThisWeek,
+		claimed = wq.claimed,
+		claimable = GameLogic.weeklyClaimable(wq),
+		box = GameRules.WeeklyBox,
+		resetIn = math.max(0, nextWeekAt - now),
+	}
+end
+
+-- Soma progresso na missão semanal (só se a escolhida é desse tipo).
+local function weeklyBump(player: Player, kind: string, amount: number)
+	if not Features.on("WeeklyQuest") then
+		return
+	end
+	local profile = DataService.get(player)
+	if not profile then
+		return
+	end
+	local wq = profile.weeklyQuest
+	local before = wq.progress
+	local done = GameLogic.weeklyBump(wq, GameRules.weekIndex(os.time()), kind, amount)
+	if wq.progress ~= before then
+		DataService.markDirty(player)
+		if done then
+			Remotes.Notify:FireClient(player, {
+				text = "MISSÃO SEMANAL COMPLETA! Resgate no DIÁRIO.",
+				color = Color3.fromRGB(255, 200, 80),
+			})
+			Remotes.DiaryState:FireClient(player, ProgressService.state(player))
+		end
+	end
+end
+ProgressService.weeklyBump = weeklyBump
 
 local function push(player: Player)
 	local st = ProgressService.state(player)
@@ -347,6 +405,78 @@ function ProgressService.init()
 	end)
 	Hooks.on("bossHelped", function(player: Player)
 		ProgressService.bump(player, "boss", 1)
+	end)
+	-- Missão semanal: mesmos sinais das tarefas diárias.
+	Hooks.on("fed", function(player: Player)
+		weeklyBump(player, "feed", 1)
+	end)
+	Hooks.on("leveled", function(player: Player, levels: number)
+		weeklyBump(player, "levels", levels)
+	end)
+	Hooks.on("delivered", function(player: Player, _kind: string, foodId: string?)
+		weeklyBump(player, "deliver", 1)
+		if foodId == GameRules.Meat.FoodId then
+			weeklyBump(player, "meat", 1)
+		end
+	end)
+	Hooks.on("battleWon", function(player: Player)
+		weeklyBump(player, "battle", 1)
+	end)
+	Hooks.on("bossHelped", function(player: Player)
+		weeklyBump(player, "boss", 1)
+	end)
+	Remotes.RequestWeekly.OnServerEvent:Connect(function(player, action, id)
+		if not Features.on("WeeklyQuest") or type(action) ~= "string" or not Guard.allow(player, "Diary") then
+			return
+		end
+		local profile = DataService.get(player)
+		if not profile then
+			return
+		end
+		local now = os.time()
+		local week = GameRules.weekIndex(now)
+		local wq = profile.weeklyQuest
+		if action == "choose" or action == "swap" then
+			if type(id) ~= "string" or #id > 32 then
+				return
+			end
+			local ok: boolean, why: string?
+			if action == "choose" then
+				ok, why = GameLogic.weeklyChoose(wq, week, id, now)
+			else
+				ok, why = GameLogic.weeklySwap(wq, week, id, now)
+			end
+			if ok then
+				DataService.markDirty(player)
+				Analytics.event(player, "weekly_quest_chosen", 1, { id, action })
+			elseif why == "swapped" then
+				Remotes.Notify:FireClient(
+					player,
+					{ text = "Você já trocou a missão desta semana.", color = Color3.fromRGB(255, 170, 60) }
+				)
+			end
+		elseif action == "claim" then
+			-- marca antes de pagar (GameLogic.weeklyClaim), depois paga moedas, XP e a caixa grátis
+			local def = GameLogic.weeklyClaim(wq, week)
+			if def then
+				profile.coins += def.coins
+				DataService.markDirty(player)
+				if def.xp > 0 then
+					GiantService.addXp(player, def.xp, nil, nil)
+				end
+				ShopService.openBox(player, GameRules.WeeklyBox, { free = true, force = true })
+				PlotService.pushState(player)
+				Analytics.event(player, "weekly_quest_claimed", def.coins, { def.id })
+				Remotes.Notify:FireClient(player, {
+					text = string.format(
+						"Missão semanal resgatada! +%s moedas e uma Lunchbox Épica.",
+						Util.formatNumber(def.coins)
+					),
+					color = Color3.fromRGB(120, 255, 160),
+				})
+			end
+		end
+		push(player)
 	end)
 	Remotes.RequestDiary.OnServerEvent:Connect(function(player)
 		if Guard.allow(player, "Diary") then

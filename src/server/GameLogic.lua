@@ -280,6 +280,122 @@ end
 ---------------------------------------------------------------------------
 -- Sistema de Ovos (regras puras; EggService chama, tests/Eggs.spec.luau testa)
 ---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- Missão semanal 1-de-3 (prompt v4; ProgressService chama, tests/Weekly.spec.luau testa)
+---------------------------------------------------------------------------
+export type Weekly = {
+	week: number,
+	chosenId: string,
+	chosenAt: number,
+	swappedThisWeek: boolean,
+	progress: number,
+	claimed: boolean,
+}
+
+local function weeklyReset(wq: Weekly, week: number)
+	wq.week = week
+	wq.chosenId = ""
+	wq.chosenAt = 0
+	wq.swappedThisWeek = false
+	wq.progress = 0
+	wq.claimed = false
+end
+
+local function isOption(week: number, id: string): boolean
+	for _, q in GameRules.weeklyOptions(week) do
+		if q.id == id then
+			return true
+		end
+	end
+	return false
+end
+
+-- Pronta para resgatar (vale para a semana passada também: nunca se perde).
+function GameLogic.weeklyClaimable(wq: Weekly): boolean
+	if wq.chosenId == "" or wq.claimed then
+		return false
+	end
+	local def = GameRules.weeklyById(wq.chosenId)
+	return def ~= nil and wq.progress >= def.goal
+end
+
+-- Ajusta a missão à semana atual. Missão completa e não resgatada fica ("carry") até o resgate.
+-- Devolve "current" (semana atual) ou "carry" (resgate pendente de uma semana anterior).
+function GameLogic.weeklyNormalize(wq: Weekly, week: number): string
+	if wq.week == week then
+		return "current"
+	end
+	if GameLogic.weeklyClaimable(wq) then
+		return "carry"
+	end
+	weeklyReset(wq, week)
+	return "current"
+end
+
+function GameLogic.weeklyChoose(wq: Weekly, week: number, id: string, now: number): (boolean, string?)
+	if GameLogic.weeklyNormalize(wq, week) ~= "current" then
+		return false, "carry"
+	end
+	if wq.chosenId ~= "" then
+		return false, "chosen"
+	end
+	if not isOption(week, id) then
+		return false, "option"
+	end
+	wq.chosenId = id
+	wq.chosenAt = now
+	wq.progress = 0
+	return true, nil
+end
+
+-- Troca 1 vez por semana; o progresso recomeça do zero (senão a troca seria só "pular para a fácil").
+function GameLogic.weeklySwap(wq: Weekly, week: number, id: string, now: number): (boolean, string?)
+	if GameLogic.weeklyNormalize(wq, week) ~= "current" then
+		return false, "carry"
+	end
+	if wq.chosenId == "" or wq.claimed then
+		return false, "state"
+	end
+	if wq.swappedThisWeek then
+		return false, "swapped"
+	end
+	if id == wq.chosenId or not isOption(week, id) then
+		return false, "option"
+	end
+	wq.chosenId = id
+	wq.chosenAt = now
+	wq.progress = 0
+	wq.swappedThisWeek = true
+	return true, nil
+end
+
+-- Soma progresso se a missão escolhida desta semana é desse tipo. Devolve true se acabou de completar.
+function GameLogic.weeklyBump(wq: Weekly, week: number, kind: string, amount: number): boolean
+	if GameLogic.weeklyNormalize(wq, week) ~= "current" or wq.chosenId ~= kind or wq.claimed then
+		return false
+	end
+	local def = GameRules.weeklyById(kind)
+	if not def or amount <= 0 then
+		return false
+	end
+	local before = wq.progress
+	wq.progress = math.min(def.goal, before + amount)
+	return before < def.goal and wq.progress >= def.goal
+end
+
+-- Resgata: marca ANTES de o serviço pagar. Se era de uma semana anterior, já abre a semana atual.
+function GameLogic.weeklyClaim(wq: Weekly, week: number): GameRules.ObjectiveDef?
+	if not GameLogic.weeklyClaimable(wq) then
+		return nil
+	end
+	local def = GameRules.weeklyById(wq.chosenId)
+	wq.claimed = true
+	if wq.week ~= week then
+		weeklyReset(wq, week)
+	end
+	return def
+end
+
 -- Chances e sorteio: o módulo compartilhado EggOdds (a janela do cliente mostra a mesma tabela).
 GameLogic.eggOdds = EggOdds.odds
 GameLogic.eggRoll = EggOdds.roll

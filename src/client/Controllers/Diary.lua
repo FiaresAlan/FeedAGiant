@@ -192,11 +192,145 @@ local function render(st: { [string]: any })
 		end
 	end)
 
+	-- 2b) Missão semanal (Features.WeeklyQuest; o servidor só manda `weekly` com a função ligada)
+	local wk = st.weekly
+	if type(wk) == "table" then
+		section(
+			string.format(
+				"%s  (%s %s)",
+				Locale.t("MISSÃO DA SEMANA"),
+				Locale.t("novas em"),
+				hms(tonumber(wk.resetIn) or 0)
+			),
+			10
+		)
+		local function questText(q: { [string]: any }): string
+			return (string.gsub(Locale.t(tostring(q.text)), "{n}", tostring(q.goal)))
+		end
+		local function rewardText(q: { [string]: any }): string
+			local s = "+" .. Util.formatNumber(tonumber(q.coins) or 0)
+			if (tonumber(q.xp) or 0) > 0 then
+				s ..= "  +" .. tostring(q.xp) .. " XP"
+			end
+			return s .. "  + Lunchbox Épica"
+		end
+		local chosen = wk.chosen
+		if type(chosen) == "table" then
+			-- missão escolhida: progresso, RESGATAR ou TROCAR (1 vez por semana)
+			local r = row(11, 96)
+			UI.label(r, questText(chosen) .. (if wk.status == "carry" then "  (semana passada)" else ""), {
+				Size = UDim2.new(1, -210, 0, 30),
+				Position = UDim2.fromOffset(12, 6),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 22,
+				ZIndex = 14,
+			})
+			local goal = math.max(tonumber(chosen.goal) or 1, 1)
+			local prog = tonumber(wk.progress) or 0
+			local _bg, fill = UI.bar(r, UI.Colors.Orange, {
+				Size = UDim2.new(1, -330, 0, 18),
+				Position = UDim2.fromOffset(12, 46),
+				ZIndex = 14,
+			})
+			UI.setBar(fill, prog / goal, true)
+			UI.label(r, string.format("%d/%d  ·  %s", prog, goal, rewardText(chosen)), {
+				Size = UDim2.new(1, -210, 0, 24),
+				Position = UDim2.fromOffset(12, 68),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 17,
+				TextTransparency = 0.2,
+				ZIndex = 14,
+			})
+			local canClaim = wk.claimable == true
+			anyClaim = anyClaim or canClaim
+			local b = UI.button(
+				r,
+				if wk.claimed then "✔" elseif canClaim then Locale.t("RESGATAR") else Locale.t("EM ANDAMENTO"),
+				if canClaim then UI.Colors.Green elseif wk.claimed then UI.Colors.Blue else Color3.fromRGB(96, 102, 118),
+				{
+					Size = UDim2.fromOffset(176, 56),
+					Position = UDim2.new(1, -186, 0.5, -28),
+					TextScaled = false,
+					TextSize = if canClaim or wk.claimed then 22 else 16,
+					ZIndex = 15,
+				}
+			)
+			b.Activated:Connect(function()
+				if canClaim then
+					Remotes.RequestWeekly:FireServer("claim")
+				end
+			end)
+			-- troca: as outras 2 opções, se ainda não trocou nesta semana
+			if wk.status == "current" and not wk.swapped and not wk.claimed then
+				for i, q in (wk.options or {}) :: { any } do
+					if q.id ~= chosen.id then
+						local tr = row(11 + i, 52)
+						UI.label(tr, Locale.t("Trocar por:") .. " " .. questText(q), {
+							Size = UDim2.new(1, -210, 1, 0),
+							Position = UDim2.fromOffset(12, 0),
+							TextXAlignment = Enum.TextXAlignment.Left,
+							TextScaled = false,
+							TextSize = 18,
+							TextTransparency = 0.25,
+							ZIndex = 14,
+						})
+						local sb = UI.button(tr, Locale.t("TROCAR"), UI.Colors.Blue, {
+							Size = UDim2.fromOffset(176, 44),
+							Position = UDim2.new(1, -186, 0.5, -22),
+							TextScaled = false,
+							TextSize = 18,
+							ZIndex = 15,
+						})
+						local qid = q.id
+						sb.Activated:Connect(function()
+							Remotes.RequestWeekly:FireServer("swap", qid)
+						end)
+					end
+				end
+			end
+		else
+			-- ainda não escolheu: as 3 opções da semana
+			for i, q in (wk.options or {}) :: { any } do
+				local r = row(10 + i, 84)
+				UI.label(r, questText(q), {
+					Size = UDim2.new(1, -210, 0, 30),
+					Position = UDim2.fromOffset(12, 6),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextScaled = false,
+					TextSize = 22,
+					ZIndex = 14,
+				})
+				UI.label(r, rewardText(q), {
+					Size = UDim2.new(1, -210, 0, 26),
+					Position = UDim2.fromOffset(12, 46),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextScaled = false,
+					TextSize = 18,
+					TextColor3 = UI.Colors.Accent,
+					ZIndex = 14,
+				})
+				local b = UI.button(r, Locale.t("ESCOLHER"), UI.Colors.Orange, {
+					Size = UDim2.fromOffset(176, 56),
+					Position = UDim2.new(1, -186, 0.5, -28),
+					TextScaled = false,
+					TextSize = 22,
+					ZIndex = 15,
+				})
+				local qid = q.id
+				b.Activated:Connect(function()
+					Remotes.RequestWeekly:FireServer("choose", qid)
+				end)
+			end
+		end
+	end
+
 	-- 3) Recordes pessoais (salvos para sempre)
-	section(Locale.t("RECORDES"), 8)
+	section(Locale.t("RECORDES"), 20)
 	local recs = st.records or {}
 	for i, r in GameRules.Records do
-		local rr = row(8 + i, 44)
+		local rr = row(20 + i, 44)
 		UI.label(rr, Locale.t(r.name), {
 			Size = UDim2.new(1, -160, 1, 0),
 			Position = UDim2.fromOffset(12, 0),

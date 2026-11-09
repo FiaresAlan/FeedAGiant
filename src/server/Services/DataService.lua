@@ -106,6 +106,17 @@ export type Profile = {
 	eggBossDay: number, -- dia UTC do último Ovo Grande ganho no Dragão
 	eggMilestones: { [string]: boolean }, -- marcos de nível já premiados
 	starterSpecies: string, -- espécie inicial escolhida ("" = não escolheu)
+	-- Prompt v4 (09/11/2026). Aditivos (slices): perfis antigos ganham o padrão sem perder nada.
+	mysteryChest: { unlockAt: number }, -- baú de 24 h (ainda sem código: espera a cópia de teste)
+	revangeTarget: number, -- UserId do ladrão para a revanche (0 = nenhum; ainda sem código)
+	weeklyQuest: {
+		week: number, -- semana (segunda a domingo, UTC) a que a escolha pertence
+		chosenId: string, -- "" = ainda não escolheu
+		chosenAt: number,
+		swappedThisWeek: boolean,
+		progress: number,
+		claimed: boolean,
+	},
 }
 
 local DataService = {}
@@ -174,6 +185,9 @@ local function defaultProfile(): Profile
 		eggBossDay = 0,
 		eggMilestones = {},
 		starterSpecies = "",
+		mysteryChest = { unlockAt = 0 },
+		revangeTarget = 0,
+		weeklyQuest = { week = 0, chosenId = "", chosenAt = 0, swappedThisWeek = false, progress = 0, claimed = false },
 	}
 end
 DataService.defaultProfile = defaultProfile

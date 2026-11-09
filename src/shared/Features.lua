@@ -26,6 +26,11 @@ local Features = {
 	EggNotifications = false,
 	-- Escolha de 1 das 3 espécies iniciais no primeiro acesso (ainda sem os 3 modelos).
 	StarterSpecies = false,
+	-- Prompt v4 (09/11/2026). Só WeeklyQuest tem código; as outras esperam a cópia de teste do place.
+	TutorialEgg = false, -- ovo de tutorial (Médio, 60-90 s) — aguardando as espécies iniciais
+	Revange = false, -- revanche do roubo pelo LUTAR — aguardando a cópia de teste
+	WeeklyQuest = false, -- missão semanal: escolher 1 de 3 no Diário (implementada)
+	DragonRaidPhase1 = false, -- fase 1 do Dragão (alimentar para enfraquecer) — aguardando a cópia de teste
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).

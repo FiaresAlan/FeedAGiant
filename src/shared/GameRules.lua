@@ -4,6 +4,8 @@
 -- O servidor nunca confia no cliente para nenhum destes cálculos.
 --
 -- Decisões registradas em docs/GAME_BRIEF.md ("Decisões do diretor técnico", 08/11/2026 noite).
+local EggDropTables = require(script.Parent.EggDropTables)
+
 local GameRules = {}
 
 ---------------------------------------------------------------------------
@@ -175,6 +177,54 @@ GameRules.Objectives = {
 GameRules.ObjectivesPerDay = 3
 -- Bônus por completar as 3 do dia: 1 caixa Rara grátis (não paga, só jogando).
 GameRules.ObjectivesAllDoneBox = "rare"
+
+-- Missão semanal (prompt v4, 09/11/2026; Features.WeeklyQuest). Toda semana aparecem 3 opções (as
+-- mesmas para todos) e o jogador ESCOLHE 1. Troca permitida 1 vez por semana (o progresso recomeça).
+-- Recompensa maior que as diárias: moedas + XP + 1 Lunchbox Épica grátis (não paga). Missão completa
+-- e não resgatada continua resgatável depois da virada da semana (nunca se perde).
+GameRules.WeeklyQuests = {
+	{ id = "feed", text = "Alimente seu gigante {n} vezes", goal = 120, coins = 9000, xp = 2500 },
+	{ id = "deliver", text = "Entregue {n} comidas do mapa na base", goal = 20, coins = 10000, xp = 2500 },
+	{ id = "battle", text = "Vença {n} batalhas de gigantes", goal = 15, coins = 10000, xp = 3000 },
+	{ id = "boss", text = "Ajude a derrotar o Dragão {n} vezes", goal = 4, coins = 12000, xp = 3500 },
+	{ id = "meat", text = "Leve {n} porções de Carne Gigante para a base", goal = 6, coins = 9000, xp = 2500 },
+	{ id = "levels", text = "Suba {n} níveis com qualquer gigante", goal = 20, coins = 10000, xp = 0 },
+} :: { ObjectiveDef }
+GameRules.WeeklyOptions = 3
+GameRules.WeeklyBox = "epic"
+
+-- Semana UTC começando na segunda (o dia 0 de 1970 foi uma quinta: +3 alinha a virada na segunda).
+function GameRules.weekIndex(now: number): number
+	return (now // 86400 + 3) // 7
+end
+
+-- As 3 opções da semana (determinístico: iguais para todos os servidores).
+function GameRules.weeklyOptions(week: number): { ObjectiveDef }
+	local list = GameRules.WeeklyQuests
+	local rng = Random.new(week * 104729 + 31)
+	local idx = {}
+	for i = 1, #list do
+		idx[i] = i
+	end
+	for i = #idx, 2, -1 do
+		local j = rng:NextInteger(1, i)
+		idx[i], idx[j] = idx[j], idx[i]
+	end
+	local out = {}
+	for i = 1, math.min(GameRules.WeeklyOptions, #list) do
+		table.insert(out, list[idx[i]])
+	end
+	return out
+end
+
+function GameRules.weeklyById(id: string): ObjectiveDef?
+	for _, q in GameRules.WeeklyQuests do
+		if q.id == id then
+			return q
+		end
+	end
+	return nil
+end
 
 -- Escolha determinística das tarefas do dia (dia = os.time() // 86400).
 function GameRules.objectivesForDay(day: number): { ObjectiveDef }
@@ -390,7 +440,7 @@ GameRules.Eggs = {
 			price = 3000, -- loja de moedas
 			scale = 2.6, -- altura em studs no ninho
 			model = "egg-small",
-			weights = { human = 50, goblin = 35, gator = 10, zombie = 5 },
+			weights = EggDropTables.weights("small"), -- faixas do usuário (09/11), src/shared/EggDropTables.lua
 		},
 		medium = {
 			name = "Ovo Médio",
@@ -400,7 +450,7 @@ GameRules.Eggs = {
 			price = 12000,
 			scale = 3.2,
 			model = "egg-medium",
-			weights = { human = 15, goblin = 40, gator = 25, zombie = 20 },
+			weights = EggDropTables.weights("medium"), -- faixas do usuário (09/11), src/shared/EggDropTables.lua
 		},
 		large = {
 			name = "Ovo Grande",
@@ -409,7 +459,7 @@ GameRules.Eggs = {
 			level = 10,
 			scale = 3.8,
 			model = "egg-large",
-			weights = { eagle = 45, troll = 35, golem = 10, wyvern = 8, slime = 1.5, hydra = 0.5 },
+			weights = EggDropTables.weights("large"), -- faixas do usuário (09/11), src/shared/EggDropTables.lua
 		},
 		huge = {
 			name = "Ovo Enorme",
@@ -418,7 +468,7 @@ GameRules.Eggs = {
 			level = 20,
 			scale = 4.4,
 			model = "egg-huge",
-			weights = { eagle = 20, troll = 20, golem = 25, wyvern = 25, slime = 6, hydra = 4 },
+			weights = EggDropTables.weights("huge"), -- faixas do usuário (09/11), src/shared/EggDropTables.lua
 		},
 		massive = {
 			name = "Ovo Colossal",
@@ -427,7 +477,7 @@ GameRules.Eggs = {
 			level = 30,
 			scale = 5.2,
 			model = "egg-massive",
-			weights = { eagle = 10, troll = 10, golem = 20, wyvern = 20, slime = 20, hydra = 20 },
+			weights = EggDropTables.weights("massive"), -- faixas do usuário (09/11), src/shared/EggDropTables.lua
 		},
 	} :: { [string]: any },
 	MaxStored = 3, -- ovos guardados comprados na loja

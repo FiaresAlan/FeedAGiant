@@ -65,6 +65,8 @@ local EVENTS = {
 	"RequestEgg", -- client -> server: action ("open"|"buy"|"place"|"feed"|"hatch"), arg (tamanho/índice/lugar)
 	"EggState", -- server -> client: {eggs, nest, slots, now, commonFood, prices}
 	"EggHatched", -- server -> client: {size, speciesId, level, duplicate, xp} (DEPOIS de entregar e salvar)
+	-- Missão semanal (Features.WeeklyQuest)
+	"RequestWeekly", -- client -> server: action ("choose"|"swap"|"claim"), id (missão)
 }
 
 local FUNCTIONS = {

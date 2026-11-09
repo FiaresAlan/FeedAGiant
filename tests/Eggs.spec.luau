@@ -37,18 +37,34 @@ return function()
 			expect(E.Sizes.huge.price).to.equal(nil)
 			expect(E.Sizes.massive.price).to.equal(nil)
 		end)
-		it("Pequeno e Médio: só Comum a Raro; Grande+: só Épico a Mítico", function()
-			for _, size in { "small", "medium" } do
-				for id in E.Sizes[size].weights do
-					expect(rarityOrderOf(id) <= 3).to.equal(true)
+		it(
+			"faixas do usuário (09/11): P=Comum, M=Comum+Raro, G=Raro+Épico, E=Épico+Lendário, C=Lendário+Mítico",
+			function()
+				local allowed = {
+					small = { [1] = true },
+					medium = { [1] = true, [3] = true },
+					large = { [3] = true, [4] = true },
+					huge = { [4] = true, [5] = true },
+					massive = { [5] = true, [6] = true },
+				}
+				for _, size in E.Order do
+					local n = 0
+					for id in E.Sizes[size].weights do
+						n += 1
+						expect(allowed[size][rarityOrderOf(id)]).to.equal(true)
+					end
+					expect(n > 0).to.equal(true)
 				end
 			end
-			for _, size in { "large", "huge", "massive" } do
-				for id in E.Sizes[size].weights do
-					local o = rarityOrderOf(id)
-					expect(o >= 4 and o <= 6).to.equal(true)
+		)
+		it("faixa de baixo 70% e de cima 30% (Médio: Comum 70%)", function()
+			local comum = 0
+			for _, e in EggOdds.odds("medium") do
+				if rarityOrderOf(e.id) == 1 then
+					comum += e.p
 				end
 			end
+			expect(comum).to.be.near(0.7, 1e-9)
 		end)
 		it("Dragão e Fênix (Robux) nunca saem de ovo; toda espécie do ovo existe", function()
 			for _, size in E.Order do

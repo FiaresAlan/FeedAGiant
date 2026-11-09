@@ -31,6 +31,7 @@ local BotService = require(Services.BotService)
 local ObjectiveHintService = require(Services.ObjectiveHintService)
 local OnboardingService = require(Services.OnboardingService)
 local EggService = require(Services.EggService)
+local EggNotificationService = require(Services.EggNotificationService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -60,6 +61,7 @@ BotService.init()
 ObjectiveHintService.init()
 OnboardingService.init()
 EggService.init()
+EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até publicar)
 TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
 -- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do
