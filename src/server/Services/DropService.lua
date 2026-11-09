@@ -23,6 +23,8 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Hooks = require(script.Parent.Parent.Hooks)
 local UIAssets = require(game.ReplicatedStorage.Shared.UIAssets)
 local DataService = require(script.Parent.DataService)
@@ -34,18 +36,22 @@ local FoodModels = require(script.Parent.Parent.FoodModels)
 local ShopService = require(script.Parent.ShopService)
 
 local DropService = {}
+
+-- Ovos v2: (player, tamanho) -> entregue? Preenchido pelo EggService (sem require circular).
+DropService.EggSink = nil :: ((Player, string) -> boolean)?
 local D = Config.Drops
 
 local MAX_TRAVEL_SPEED = 45 -- igual ao StealService: mais rápido que isso = teleporte
 local DEPOSIT_MARGIN = 6
 
-export type Kind = "food" | "box"
+export type Kind = "food" | "box" | "egg"
 
 type Item = {
 	id: number,
 	kind: Kind,
 	foodId: string?,
 	boxId: string?,
+	eggSize: string?, -- Ovos v2: ovo do mapa (tamanho), entregue nos ovos guardados
 	name: string,
 	rarity: string, -- raridade da comida ou da caixa (para cor e peso)
 	color: Color3,
@@ -223,7 +229,26 @@ local function buildHolder(it: Item, at: Vector3): Part
 		CanTouch = false,
 		Parent = folder,
 	})
-	if it.kind == "food" and it.foodId == "giantmeat" then
+	if it.kind == "egg" and it.eggSize then
+		-- Ovos v2: o mesmo modelo do ninho (EggService publica em ReplicatedStorage.EggModels)
+		local models = game:GetService("ReplicatedStorage"):FindFirstChild("EggModels")
+		local t = models and models:FindFirstChild(it.eggSize)
+		if t and t:IsA("BasePart") then
+			holder.Transparency = 1
+			local egg = t:Clone()
+			local k = 3 / math.max(egg.Size.Y, 0.01)
+			egg.Size = egg.Size * k
+			egg.Anchored = false
+			egg.Massless = true
+			egg.CanCollide = false
+			egg.CFrame = holder.CFrame
+			local w = Instance.new("WeldConstraint")
+			w.Part0 = holder
+			w.Part1 = egg
+			w.Parent = egg
+			egg.Parent = holder
+		end
+	elseif it.kind == "food" and it.foodId == "giantmeat" then
 		-- P0 v3: a porção da Carne Gigante era um cubo azul (cor da raridade Rara, sem modelo).
 		-- Agora é um pernil cartoon de peças (carne, gordura e osso), soldado ao suporte.
 		holder.Transparency = 1
@@ -324,6 +349,9 @@ local function setSpeed(player: Player, mult: number?)
 end
 
 local function speedFor(it: Item): number
+	if it.kind == "egg" then
+		return GameRules.Eggs.DropSpeed
+	end
 	if it.kind == "box" then
 		return D.SpeedByBox[it.boxId or "common"] or 0.9
 	end
@@ -475,6 +503,15 @@ local function deliver(player: Player, it: Item)
 		DataService.markDirty(player)
 		PlotService.pushState(player)
 		Remotes.PendingBox:FireClient(player, { boxId = it.boxId, count = #pending })
+	elseif it.kind == "egg" and it.eggSize then
+		-- Ovos v2: vai para os ovos guardados (EggService). Sem lugar, volta ao chão: nunca some.
+		local sink = DropService.EggSink
+		if not sink or not sink(player, it.eggSize) then
+			carrying[player] = it
+			it.carrier = player
+			dropCarry(player, "Você já tem ovos demais guardados. Choque um antes!")
+			return
+		end
 	end
 	Hooks.fire("delivered", player, it.kind, it.foodId)
 	remove(it)
@@ -532,10 +569,31 @@ end
 
 -- Cria um item que cai em `pos` (chão). kind/ids opcionais: sem eles, sorteia (comida ou caixa).
 function DropService.spawnAt(pos: Vector3, kind: Kind?, id: string?, silent: boolean?)
-	local k: Kind = kind or (if math.random() < D.BoxChance then "box" else "food")
+	local k: Kind = kind
+		or (
+			if DropService.EggSink
+					and Features.on("EggSystem")
+					and math.random() < GameRules.Eggs.DropChance
+				then "egg"
+				elseif math.random() < D.BoxChance then "box"
+				else "food"
+		)
 	nextId += 1
 	local it: Item
-	if k == "box" then
+	if k == "egg" then
+		local size = if id and GameRules.Eggs.Sizes[id] then id else GameRules.Eggs.DropSize
+		local def = GameRules.Eggs.Sizes[size]
+		it = {
+			id = nextId,
+			kind = "egg",
+			eggSize = size,
+			name = def.name,
+			rarity = def.rarity,
+			color = Color3.fromRGB(150, 230, 120),
+			pos = pos,
+			unlockAt = GameRules.Eggs.DropUnlock,
+		} :: any
+	elseif k == "box" then
 		local boxId = id or pickBox()
 		local box = Config.LunchboxById[boxId]
 		local rarity = BOX_RARITY[boxId] or "Common"

@@ -38,11 +38,11 @@ return function()
 			expect(E.Sizes.massive.price).to.equal(nil)
 		end)
 		it(
-			"faixas do usuário (09/11): P=Comum, M=Comum+Raro, G=Raro+Épico, E=Épico+Lendário, C=Lendário+Mítico",
+			"faixas (Ovos v2): P=Comum+Incomum, M=Incomum+Raro, G=Raro+Épico, E=Épico+Lendário, C=Lendário+Mítico",
 			function()
 				local allowed = {
-					small = { [1] = true },
-					medium = { [1] = true, [3] = true },
+					small = { [1] = true, [2] = true },
+					medium = { [2] = true, [3] = true },
 					large = { [3] = true, [4] = true },
 					huge = { [4] = true, [5] = true },
 					massive = { [5] = true, [6] = true },
@@ -57,10 +57,10 @@ return function()
 				end
 			end
 		)
-		it("faixa de baixo 70% e de cima 30% (Médio: Comum 70%)", function()
+		it("Médio: Incomum 70%; Pequeno: Comum 60% e Goblin presente", function()
 			local comum = 0
 			for _, e in EggOdds.odds("medium") do
-				if rarityOrderOf(e.id) == 1 then
+				if rarityOrderOf(e.id) == 2 then
 					comum += e.p
 				end
 			end
@@ -134,6 +134,28 @@ return function()
 		it("XP somado respeita o nível máximo", function()
 			local level = GameLogic.addXp(Config.Giant.MaxLevel, 0, 1e12)
 			expect(level).to.equal(Config.Giant.MaxLevel)
+		end)
+	end)
+
+	describe("Ovos v2: estrelas de cuidado", function()
+		it("alimentado, aquecido e laço contam 1 estrela cada", function()
+			expect(GameLogic.eggStars({ size = "large" })).to.equal(0)
+			expect(GameLogic.eggStars({ size = "large", fed = true })).to.equal(1)
+			expect(GameLogic.eggStars({ size = "large", fed = true, warmed = true, bond = 7 })).to.equal(2)
+			expect(GameLogic.eggStars({ size = "large", fed = true, warmed = true, bond = 8 })).to.equal(3)
+		end)
+		it("espécie nova: +1 nível por estrela", function()
+			expect((GameLogic.eggApply(nil, 10, 3))).to.equal(13)
+			expect((GameLogic.eggApply(nil, 10, 0))).to.equal(10)
+		end)
+		it("repetida: +25% de XP por estrela", function()
+			local _, _, _, g0 = GameLogic.eggApply({ level = 50, xp = 0 }, 10, 0)
+			local _, _, _, g2 = GameLogic.eggApply({ level = 50, xp = 0 }, 10, 2)
+			expect(g2).to.equal(math.floor(g0 * 1.5))
+		end)
+		it("ovos do mapa: 4% e só Pequeno", function()
+			expect(GameRules.Eggs.DropChance).to.equal(0.04)
+			expect(GameRules.Eggs.DropSize).to.equal("small")
 		end)
 	end)
 

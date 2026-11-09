@@ -45,9 +45,42 @@ local function serverNow(): number
 	return os.time() + clockOffset
 end
 
+-- Ovos v2: estrelas de cuidado (alimentado, aquecido, laço com o gigante). Mesma regra do servidor
+-- (GameLogic.eggStars); aqui só para mostrar.
+local function starsOf(slot: { [string]: any }): number
+	local need = E.BondFeeds[slot.size] or math.huge
+	return (if slot.fed then 1 else 0) + (if slot.warmed then 1 else 0) + (if (slot.bond or 0) >= need then 1 else 0)
+end
+
+local function starText(n: number): string
+	return string.rep("★", n) .. string.rep("☆", 3 - n)
+end
+
 local function clockText(s: number): string
 	s = math.max(0, math.floor(s))
 	return string.format("%d:%02d", s // 60, s % 60)
+end
+
+-- Texto do lugar do ninho: tempo + o que falta para cada estrela.
+local function slotText(slot: { [string]: any }, now: number): string
+	local def = E.Sizes[slot.size]
+	local left = slot.hatchAt - now
+	local stars = starsOf(slot)
+	local head = string.format("%s  %s", def.name, starText(stars))
+	if left <= 0 then
+		return head .. string.format("\nPRONTO PARA CHOCAR!  (+%d nível por estrela)", stars)
+	end
+	local need = E.BondFeeds[slot.size] or 0
+	return string.format(
+		"%s\nChoca em %s  ·  %s  ·  %s  ·  %s",
+		head,
+		clockText(left),
+		if slot.fed then "alimentado ★" else "dê 1 comida Comum",
+		if slot.warmed then "aquecido ★" else "fique perto 30 s",
+		if (slot.bond or 0) >= need
+			then "laço ★"
+			else string.format("alimente seu gigante %d/%d", slot.bond or 0, need)
+	)
 end
 
 local function rarityColor(size: string): Color3
@@ -322,18 +355,9 @@ local function render()
 			})
 			continue
 		end
-		local def = E.Sizes[slot.size]
 		eggView(r, slot.size, { Size = UDim2.fromOffset(84, 84), Position = UDim2.fromOffset(6, 6), ZIndex = 14 })
 		local left = slot.hatchAt - now
-		local status = if left <= 0
-			then "PRONTO PARA CHOCAR!"
-			else string.format(
-				"Choca em %s  ·  %s  ·  %s",
-				clockText(left),
-				if slot.fed then "alimentado" else "fome: -20%",
-				if slot.warmed then "aquecido" else "fique perto 30 s: -10%"
-			)
-		UI.label(r, def.name .. "\n" .. status, {
+		UI.label(r, slotText(slot, now), {
 			Name = "Status_" .. key,
 			Size = UDim2.new(1, -330, 1, -8),
 			Position = UDim2.fromOffset(98, 4),
@@ -483,13 +507,15 @@ local function playHatch(data: { [string]: any })
 	vf:Destroy()
 	local sp = Config.SpeciesById[data.speciesId]
 	local color = rarityColor(size)
-	local title = UI.label(hatchGui, if data.duplicate then "REPETIDO!" else "NOVO GIGANTE!", {
-		Size = UDim2.fromOffset(700, 70),
-		Position = UDim2.fromScale(0.5, 0.36),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		TextColor3 = color,
-		ZIndex = 42,
-	})
+	local st = math.clamp(tonumber(data.stars) or 0, 0, 3)
+	local title =
+		UI.label(hatchGui, (if data.duplicate then "REPETIDO!" else "NOVO GIGANTE!") .. "  " .. starText(st), {
+			Size = UDim2.fromOffset(700, 70),
+			Position = UDim2.fromScale(0.5, 0.36),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			TextColor3 = color,
+			ZIndex = 42,
+		})
 	local line = if data.duplicate
 		then string.format(
 			"%s ganhou %s XP (agora nível %d)",
@@ -606,18 +632,7 @@ function Eggs.init(gui: ScreenGui)
 								render()
 								break
 							end
-							lbl.Text = E.Sizes[slot.size].name
-								.. "\n"
-								.. (
-									if left <= 0
-										then "PRONTO PARA CHOCAR!"
-										else string.format(
-											"Choca em %s  ·  %s  ·  %s",
-											clockText(left),
-											if slot.fed then "alimentado" else "fome: -20%",
-											if slot.warmed then "aquecido" else "fique perto 30 s: -10%"
-										)
-								)
+							lbl.Text = slotText(slot, now)
 						end
 					end
 				end

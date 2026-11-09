@@ -22,8 +22,10 @@ local Config = require(script.Parent.Config)
 local EggDropTables = {}
 
 EggDropTables.Bands = {
-	small = { { tag = "Comum", share = 1 } },
-	medium = { { tag = "Comum", share = 0.7 }, { tag = "Raro", share = 0.3 } },
+	-- Revisão de 09/11 (docs/OVOS_V2_DESIGN.md §3): o Pequeno só dava o Humano (sempre repetido) e o
+	-- Goblin não estava em nenhum ovo. Pequeno = Comum + Incomum; Médio = Incomum + Raro.
+	small = { { tag = "Comum", share = 0.6 }, { tag = "Incomum", share = 0.4 } },
+	medium = { { tag = "Incomum", share = 0.7 }, { tag = "Raro", share = 0.3 } },
 	large = { { tag = "Raro", share = 0.7 }, { tag = "Épico", share = 0.3 } },
 	huge = { { tag = "Épico", share = 0.7 }, { tag = "Lendário", share = 0.3 } },
 	massive = { { tag = "Lendário", share = 0.7 }, { tag = "Mítico", share = 0.3 } },

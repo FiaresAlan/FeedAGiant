@@ -101,7 +101,7 @@ export type Profile = {
 	welcomeGiven: boolean, -- presente de boas-vindas já entregue (fica guardado até abrir)
 	-- Sistema de Ovos (08/11/2026, Features.EggSystem). Chaves de texto: nada de tabela numérica esparsa.
 	eggs: { string }, -- ovos guardados (tamanho), fora do ninho
-	nest: { [string]: { size: string, hatchAt: number, fed: boolean, warmed: boolean, species: string? } },
+	nest: { [string]: { size: string, hatchAt: number, fed: boolean, warmed: boolean, species: string?, bond: number? } },
 	eggsHatched: number,
 	eggBossDay: number, -- dia UTC do último Ovo Grande ganho no Dragão
 	eggMilestones: { [string]: boolean }, -- marcos de nível já premiados

@@ -36,6 +36,7 @@ local Hooks = require(script.Parent.Parent.Hooks)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
+local DropService = require(script.Parent.DropService)
 
 local E = GameRules.Eggs
 local EggService = {}
@@ -43,6 +44,7 @@ local EggService = {}
 local rng = Random.new()
 local nestCenter: Vector3? = nil
 local busy: { [Player]: boolean } = {}
+local lastAnnounce = -math.huge
 local warmAcc: { [Player]: { [string]: number } } = {}
 
 local function on(): boolean
@@ -206,6 +208,7 @@ local function feed(player: Player, profile: any, key: any)
 	DataService.markDirty(player)
 	PlotService.pushState(player)
 	Analytics.event(player, "egg_need_fed", 1, { slot.size })
+	Analytics.event(player, "egg_care_star", 1, { slot.size, "fed" })
 	Remotes.Notify:FireClient(
 		player,
 		{ text = "Ovo alimentado! -20% do tempo.", color = Color3.fromRGB(120, 230, 120) }
@@ -234,7 +237,8 @@ local function hatch(player: Player, profile: any, key: any)
 		rec = profile.giants[speciesId] or { level = 1, xp = 0 }
 	end
 	local levelBefore = profile.level
-	local level, xp, duplicate, gain = GameLogic.eggApply(rec, def.level)
+	local stars = GameLogic.eggStars(slot)
+	local level, xp, duplicate, gain = GameLogic.eggApply(rec, def.level, stars)
 	if not duplicate then
 		-- espécie nova: nasce no nível do ovo, ou no herdado (30%) se for maior; nunca perde nada
 		local hl, hx = GameLogic.inherit(profile.level, profile.xp)
@@ -256,7 +260,12 @@ local function hatch(player: Player, profile: any, key: any)
 	end
 	profile.eggsHatched += 1
 	DataService.markDirty(player)
-	Analytics.event(player, "egg_hatched", level, { size, speciesId, if duplicate then "dup" else "new" })
+	Analytics.event(
+		player,
+		"egg_hatched",
+		level,
+		{ size, speciesId, (if duplicate then "dup" else "new") .. tostring(stars) }
+	)
 	-- 3) save imediato; 4) só então a animação. pcall: um erro no save nunca deixa o ninho travado
 	-- (revisão cega: busy ficava preso se saveNow lançasse erro).
 	local okSave, saved = pcall(DataService.saveNow, player)
@@ -278,7 +287,19 @@ local function hatch(player: Player, profile: any, key: any)
 		level = level,
 		duplicate = duplicate,
 		xp = gain,
+		stars = stars,
 	})
+	-- Vitrine (Ovos v2): espécie NOVA Épica ou melhor é anunciada para o servidor (1 a cada 10 s).
+	local sp = Config.SpeciesById[speciesId]
+	local order = ({ ["Épico"] = 4, ["Lendário"] = 5, ["Mítico"] = 6 } :: { [string]: number })[sp and sp.rarityTag or ""]
+		or 0
+	if not duplicate and order >= E.RareAnnounceOrder and os.clock() - lastAnnounce >= 10 then
+		lastAnnounce = os.clock()
+		Remotes.Notify:FireAllClients({
+			text = string.format("%s chocou um %s (%s)!", player.DisplayName, sp.name, sp.rarityTag),
+			color = Color3.fromRGB(255, 200, 80),
+		})
+	end
 	if not duplicate then
 		Hooks.fire("speciesUnlocked", player, speciesId)
 	end
@@ -470,6 +491,7 @@ local function warmTick()
 						slot.hatchAt = GameLogic.eggSpeedUp(slot.hatchAt, now, E.WarmCut)
 						DataService.markDirty(player)
 						Analytics.event(player, "egg_need_warmed", 1, { slot.size })
+						Analytics.event(player, "egg_care_star", 1, { slot.size, "warm" })
 						Remotes.Notify:FireClient(player, {
 							text = "Ovo aquecido! -10% do tempo.",
 							color = Color3.fromRGB(255, 180, 90),
@@ -520,6 +542,49 @@ function EggService.init()
 			checkMilestones(player)
 		end
 	end)
+	-- Ovos v2: estrela de LAÇO. Cada vez que o jogador alimenta o PRÓPRIO gigante, os ovos chocando
+	-- dele contam 1 (até o número do tamanho). Liga o ninho ao verbo principal do jogo.
+	Hooks.on("fed", function(player: Player)
+		if not on() then
+			return
+		end
+		local profile = DataService.get(player)
+		if not profile or next(profile.nest) == nil then
+			return
+		end
+		local now = os.time()
+		local changed = false
+		for _, slot in profile.nest do
+			local need = E.BondFeeds[slot.size] or math.huge
+			local bond = slot.bond or 0
+			if now < slot.hatchAt and bond < need then
+				slot.bond = bond + 1
+				changed = true
+				if slot.bond >= need then
+					Analytics.event(player, "egg_care_star", 1, { slot.size, "bond" })
+					Remotes.Notify:FireClient(player, {
+						text = "Seu ovo sentiu o gigante comer: estrela de LAÇO!",
+						color = Color3.fromRGB(255, 220, 120),
+					})
+				end
+			end
+		end
+		if changed then
+			DataService.markDirty(player)
+			EggService.push(player)
+		end
+	end)
+	-- Ovos v2: ovos do mapa chegam pelo DropService (sem require circular).
+	DropService.EggSink = function(player: Player, size: string): boolean
+		if not on() then
+			return false
+		end
+		local ok = EggService.giveEgg(player, size, "drop")
+		if ok then
+			Analytics.event(player, "egg_drop_delivered", 1, { size })
+		end
+		return ok
+	end
 	task.spawn(function()
 		publishEggModels()
 		buildNest()

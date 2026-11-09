@@ -436,13 +436,25 @@ function GameLogic.addXp(level: number, xp: number, amount: number): (number, nu
 	return level, xp
 end
 
+-- Estrelas de cuidado de um ovo no ninho (Ovos v2): alimentado, aquecido e laço com o gigante.
+function GameLogic.eggStars(slot: { size: string, fed: boolean?, warmed: boolean?, bond: number? }): number
+	local need = GameRules.Eggs.BondFeeds[slot.size] or math.huge
+	return (if slot.fed then 1 else 0) + (if slot.warmed then 1 else 0) + (if (slot.bond or 0) >= need then 1 else 0)
+end
+
 -- Eclosão para uma espécie. `rec` = progresso atual dela (nil = nova). Nova: nasce no nível do
--- ovo. Repetida: ganha o XP equivalente (nunca perde nível). Devolve (nível, xp, repetida, xpGanho).
-function GameLogic.eggApply(rec: { level: number, xp: number }?, eggLevel: number): (number, number, boolean, number)
+-- ovo (+1 por estrela). Repetida: ganha o XP equivalente (+25% por estrela; nunca perde nível).
+-- Devolve (nível, xp, repetida, xpGanho).
+function GameLogic.eggApply(
+	rec: { level: number, xp: number }?,
+	eggLevel: number,
+	stars: number?
+): (number, number, boolean, number)
+	local st = math.clamp(stars or 0, 0, 3)
 	if rec == nil then
-		return eggLevel, 0, false, 0
+		return math.min(Config.Giant.MaxLevel, eggLevel + st * GameRules.Eggs.StarLevels), 0, false, 0
 	end
-	local gain = GameLogic.eggDupXp(eggLevel)
+	local gain = math.floor(GameLogic.eggDupXp(eggLevel) * (1 + st * GameRules.Eggs.StarDupBonus))
 	local level, xp = GameLogic.addXp(rec.level, rec.xp, gain)
 	return level, xp, true, gain
 end

@@ -491,6 +491,16 @@ GameRules.Eggs = {
 	BossEggSize = "large", -- vitória sobre o Dragão: 1 Ovo Grande por dia
 	Milestones = { { level = 100, size = "huge" }, { level = 200, size = "massive" } },
 	TutorialSeconds = 75, -- ovo do primeiro acesso (Médio, 60-90 s)
+	-- Ovos v2 (09/11/2026, docs/OVOS_V2_DESIGN.md): estrelas de cuidado e ovos no mapa.
+	-- Laço: alimentar o SEU gigante enquanto o ovo choca (quantas vezes, por tamanho).
+	BondFeeds = { small = 3, medium = 5, large = 8, huge = 12, massive = 20 },
+	StarLevels = 1, -- cada estrela: +1 nível na espécie nova
+	StarDupBonus = 0.25, -- cada estrela: +25% de XP no repetido
+	DropChance = 0.04, -- 4% dos drops do mapa viram um ovo (com o sistema ligado)
+	DropSize = "small",
+	DropSpeed = 0.88, -- quem carrega o ovo anda a 88%
+	DropUnlock = 10, -- segundos até poder pegar depois de cair
+	RareAnnounceOrder = 4, -- espécie nova Épica ou melhor: aviso para o servidor (1 a cada 10 s)
 }
 
 return GameRules
