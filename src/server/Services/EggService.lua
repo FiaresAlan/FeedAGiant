@@ -797,6 +797,50 @@ local EGG_STEAL_TEXT = {
 	daily = "Você já roubou 2 ovos hoje. Volte amanhã!",
 }
 
+local function canStealEgg(
+	thief: Player,
+	victim: DataService.Profile,
+	profile: DataService.Profile,
+	hatchAt: number
+): boolean
+	local now = os.time()
+	if victim.shieldUntil > now then
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = "Esta base está protegida por um escudo!", color = Color3.fromRGB(80, 200, 255) }
+		)
+		return false
+	end
+	local count = 0
+	for _ in victim.nest do
+		count += 1
+	end
+	local ok, why = GameLogic.eggStealAllowed(
+		GameLogic.victimProgress(victim.level, victim.peakLevel, victim.rebirths),
+		count,
+		hatchAt - now,
+		victim.eggStolenAt,
+		profile.eggStealDay,
+		profile.eggStealsToday,
+		now
+	)
+	if not ok then
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = EGG_STEAL_TEXT[why :: string] or "Não dá agora.", color = Color3.fromRGB(255, 200, 80) }
+		)
+		return false
+	end
+	if #profile.eggs >= E.MaxStoredHard then
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = "Você já tem ovos demais guardados.", color = Color3.fromRGB(255, 170, 60) }
+		)
+		return false
+	end
+	return true
+end
+
 tryStealEgg = function(thief: Player, egg: Model)
 	if not on() or not Features.on("EggSteal") or not Guard.allow(thief, "Egg") then
 		return
@@ -806,6 +850,7 @@ tryStealEgg = function(thief: Player, egg: Model)
 		or eggChanneling[thief]
 		or thief:GetAttribute("CarryingSteal")
 		or thief:GetAttribute("CarryingDrop")
+		or CombatService.isKO(thief)
 	then
 		return
 	end
@@ -822,46 +867,10 @@ tryStealEgg = function(thief: Player, egg: Model)
 	local vp = DataService.get(owner)
 	local tp = DataService.get(thief)
 	local slot = vp and vp.nest[key]
-	if not vp or not tp or not slot then
-		return
-	end
-	if vp.shieldUntil > os.time() then
-		Remotes.Notify:FireClient(
-			thief,
-			{ text = "Esta base está protegida por um escudo!", color = Color3.fromRGB(80, 200, 255) }
-		)
-		return
-	end
-	local count = 0
-	for _ in vp.nest do
-		count += 1
-	end
-	local now = os.time()
-	local ok, why = GameLogic.eggStealAllowed(
-		GameLogic.victimProgress(vp.level, vp.peakLevel, vp.rebirths),
-		count,
-		slot.hatchAt - now,
-		vp.eggStolenAt,
-		tp.eggStealDay,
-		tp.eggStealsToday,
-		now
-	)
-	if not ok then
-		Remotes.Notify:FireClient(
-			thief,
-			{ text = EGG_STEAL_TEXT[why :: string] or "Não dá agora.", color = Color3.fromRGB(255, 200, 80) }
-		)
-		return
-	end
-	if #tp.eggs >= E.MaxStoredHard then
-		Remotes.Notify:FireClient(
-			thief,
-			{ text = "Você já tem ovos demais guardados.", color = Color3.fromRGB(255, 170, 60) }
-		)
+	if not vp or not tp or not slot or not canStealEgg(thief, vp, tp, slot.hatchAt) then
 		return
 	end
 	local def = E.Sizes[slot.size]
-	local hatchAt0 = slot.hatchAt
 	-- um ladrão por ovo: o segundo nem começa (e a vítima não recebe alerta duplicado)
 	local lockKey = string.format("%d:%s", ownerId, key)
 	if eggLocks[lockKey] then
@@ -889,28 +898,37 @@ tryStealEgg = function(thief: Player, egg: Model)
 			still = r ~= nil and p0 ~= nil and (r.Position - p0).Magnitude <= 6 and not CombatService.isKO(thief)
 			local vNow = DataService.get(owner)
 			local sNow = vNow and vNow.nest[key]
-			still = still and owner.Parent ~= nil and sNow ~= nil and sNow.hatchAt == hatchAt0
+			still = still and owner.Parent ~= nil and sNow == slot
 		end
 		return still
 	end)
 	eggChanneling[thief] = nil
 	eggLocks[lockKey] = nil
 	-- reconfere tudo depois dos 5 s
-	local cur: any = DataService.get(owner)
+	local cur = DataService.get(owner)
+	local thiefProfile = DataService.get(thief)
 	local still = cur and cur.nest[key]
 	if
 		not okRun
 		or not alive
 		or not owner.Parent
+		or not thief.Parent
 		or not cur
-		or not still
-		or still.hatchAt ~= hatchAt0
-		or cur.shieldUntil > os.time()
+		or not thiefProfile
+		or still ~= slot
+		or carryingEgg[thief] ~= nil
+		or thief:GetAttribute("CarryingSteal")
+		or thief:GetAttribute("CarryingDrop")
+		or CombatService.isKO(thief)
 	then
 		Remotes.Notify:FireClient(thief, { text = "Roubo do ovo cancelado.", color = Color3.fromRGB(255, 90, 90) })
 		return
 	end
-	local size = still.size
+	-- Outros ladrões podem ter levado um ovo durante a espera. Revalida antes de retirar o item.
+	if not canStealEgg(thief, cur, thiefProfile, slot.hatchAt) then
+		return
+	end
+	local size = slot.size
 	cur.nest[key] = nil
 	cur.eggStolenAt = os.time()
 	local refund = GameLogic.eggStealRefund(def.price)
@@ -986,16 +1004,19 @@ end
 
 function EggService.init()
 	Remotes.RequestEgg.OnServerEvent:Connect(onRequest)
+	DataService.onReleasing(function(owner, profile)
+		for thief, carried in carryingEgg do
+			if carried.from == owner then
+				table.insert(profile.eggs, carried.size)
+				dropEgg(thief, false)
+			end
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(p)
 		busy[p] = nil
 		warmAcc[p] = nil
 		eggChanneling[p] = nil
 		dropEgg(p, true) -- ladrão saiu do jogo: o ovo volta para a vítima
-		for thief, c in carryingEgg do
-			if c.from == p then
-				dropEgg(thief, false) -- a vítima saiu: o ovo some com ela (já era dela)
-			end
-		end
 		local base = MapService.getBaseOf(p)
 		local n = base and baseNests[base.index]
 		if n then

@@ -270,7 +270,8 @@ local function sanitize(player: Player, profile: Profile)
 	local Sizes = GameRules.Eggs.Sizes
 	local eggs = {}
 	for _, size in profile.eggs do
-		if type(size) == "string" and Sizes[size] and #eggs < GameRules.Eggs.MaxStoredHard then
+		-- Um ovo devolvido após roubo pode exceder o limite de aquisição.
+		if type(size) == "string" and Sizes[size] then
 			table.insert(eggs, size)
 		end
 	end
