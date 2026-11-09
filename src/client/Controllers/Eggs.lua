@@ -567,6 +567,69 @@ local function hatchShards(parent: Frame, color: Color3, amount: number)
 	end
 end
 
+-- Revela o MODELO REAL da espécie quando sua estátua já foi replicada.
+-- Usa apenas o mesh/Modelo do catálogo existente, sem baixar assets nem carregar scripts.
+local function speciesPreview(parent: Frame, speciesId: any): ViewportFrame?
+	if type(speciesId) ~= "string" then
+		return nil
+	end
+	local folder = Workspace:FindFirstChild("GiantStatues")
+	local statue = folder and folder:FindFirstChild("Statue_" .. speciesId)
+	if not statue then
+		return nil -- StreamingEnabled pode deixar uma estátua fora do alcance
+	end
+	local original: Model? = nil
+	for _, child in statue:GetChildren() do
+		if child:IsA("Model") then
+			original = child
+			break
+		end
+	end
+	if not original then
+		return nil
+	end
+	local clone = original:Clone()
+	for _, item in clone:GetDescendants() do
+		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("ModuleScript") then
+			item:Destroy()
+		elseif item:IsA("ParticleEmitter") or item:IsA("Sound") or item:IsA("PointLight") then
+			item:Destroy()
+		elseif item:IsA("BasePart") then
+			item.Anchored = true
+			item.CanCollide = false
+			item.CanQuery = false
+			item.CanTouch = false
+		end
+	end
+	local cf, ext = clone:GetBoundingBox()
+	local diameter = math.max(ext.X, ext.Y, ext.Z)
+	if diameter <= 0 then
+		clone:Destroy()
+		return nil
+	end
+	clone:PivotTo(CFrame.new(-cf.Position) * clone:GetPivot())
+	local vf = Instance.new("ViewportFrame")
+	vf.Name = "SpeciesReveal"
+	vf.BackgroundTransparency = 1
+	vf.Ambient = Color3.fromRGB(215, 205, 195)
+	vf.LightColor = Color3.new(1, 1, 1)
+	vf.LightDirection = Vector3.new(-1, -1, -1)
+	vf.Size = UDim2.fromOffset(260 * UI.deviceScale(), 260 * UI.deviceScale())
+	vf.Position = UDim2.fromScale(0.5, 0.58)
+	vf.AnchorPoint = Vector2.new(0.5, 0.5)
+	vf.ZIndex = 44
+	local world = Instance.new("WorldModel")
+	world.Parent = vf
+	clone.Parent = world
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 42
+	cam.CFrame = CFrame.lookAt(Vector3.new(diameter * 0.25, diameter * 0.04, diameter * 1.75), Vector3.zero)
+	cam.Parent = vf
+	vf.CurrentCamera = cam
+	vf.Parent = parent
+	return vf
+end
+
 local function playHatch(data: { [string]: any })
 	local size = data.size
 	if type(size) ~= "string" or not E.Sizes[size] then
@@ -653,10 +716,11 @@ local function playHatch(data: { [string]: any })
 	end
 	UI.sfx(if order >= 4 then "Evolve" else "Bell", if order >= 4 then 0.9 else 0.65)
 	local sp = if type(data.speciesId) == "string" then Config.SpeciesById[data.speciesId] else nil
+	local preview = speciesPreview(hatchGui, data.speciesId)
 	local st = math.clamp(tonumber(data.stars) or 0, 0, 3)
 	local title = UI.title(hatchGui, (if data.duplicate then "GIGANTE REPETIDO" else "NOVO GIGANTE!") .. "  " .. starText(st), {
 		Size = UDim2.new(0.9, 0, 0, 66),
-		Position = UDim2.fromScale(0.5, 0.38),
+		Position = UDim2.fromScale(0.5, if preview then 0.24 else 0.38),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextColor3 = color,
 		ZIndex = 45,
@@ -671,7 +735,7 @@ local function playHatch(data: { [string]: any })
 		else string.format("%s nasceu no nível %d!", sp and sp.name or "?", tonumber(data.level) or 1)
 	UI.label(hatchGui, line, {
 		Size = UDim2.new(0.9, 0, 0, 50),
-		Position = UDim2.fromScale(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, if preview then 0.85 else 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextColor3 = Color3.new(1, 1, 1),
 		ZIndex = 45,
