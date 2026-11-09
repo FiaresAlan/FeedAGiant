@@ -556,6 +556,19 @@ end
 -- Devolve quantos níveis subiu (0 se nenhum).
 -- Bônus de XP para o servidor inteiro (Gigante Ancestral acordado). 1 = sem bônus.
 GiantService.globalXpMult = 1
+-- Bônus de cooperação só para alimentação, nunca vendido; expira automaticamente.
+local coopBuffs: { [number]: { untilTime: number, mult: number } } = {}
+
+function GiantService.grantCoopBuff(player: Player, duration: number, mult: number)
+	local now = os.time()
+	local previous = coopBuffs[player.UserId]
+	local expiry = now + math.max(0, duration)
+	coopBuffs[player.UserId] = {
+		untilTime = math.max(expiry, if previous then previous.untilTime else 0),
+		mult = math.clamp(mult, 1, 1.25),
+	}
+	player:SetAttribute("CoopFeastUntil", coopBuffs[player.UserId].untilTime)
+end
 
 function GiantService.addXp(
 	player: Player,
@@ -573,6 +586,10 @@ function GiantService.addXp(
 	end
 	amount = math.floor(amount * GiantService.species(profile).xpMult)
 	amount = math.floor(amount * GiantService.globalXpMult) -- bônus do servidor (Gigante Ancestral)
+	local coop = coopBuffs[player.UserId]
+	if foodId ~= nil and coop and coop.untilTime > os.time() then
+		amount = math.floor(amount * coop.mult)
+	end
 	local levelBefore = profile.level
 	profile.xp += amount
 	profile.hunger = math.min(100, profile.hunger + Config.Giant.HungerPerFeed)
@@ -778,6 +795,7 @@ end
 
 function GiantService.init()
 	Players.PlayerRemoving:Connect(function(player)
+		coopBuffs[player.UserId] = nil
 		if giants[player] then
 			giants[player]:Destroy()
 			giants[player] = nil
