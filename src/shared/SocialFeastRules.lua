@@ -56,7 +56,9 @@ function SocialFeastRules.completed(slice: any, now: number): any
 end
 
 function SocialFeastRules.canPair(a: number, b: number, expiry: number, now: number): boolean
-	return a > 0 and b > 0 and a ~= b and now < expiry
+	-- UserIds negativos são contas de teste locais do Roblox Studio.
+	-- Só uma instância Player real passa pelo ProximityPrompt do servidor.
+	return a ~= 0 and b ~= 0 and a ~= b and now < expiry
 end
 
 return SocialFeastRules
