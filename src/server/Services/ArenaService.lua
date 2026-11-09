@@ -17,6 +17,7 @@ local CombatService = require(script.Parent.CombatService)
 local StealService = require(script.Parent.StealService)
 local DropService = require(script.Parent.DropService)
 local BotService = require(script.Parent.BotService)
+local Speed = require(script.Parent.Parent.Speed)
 
 local A = Config.Arena
 local ArenaService = {}
@@ -228,6 +229,7 @@ local function setFrozen(p: Player, on: boolean)
 			hum.WalkSpeed = s.walk
 			hum.JumpPower = s.jump
 			hum.UseJumpPower = s.useJP
+			Speed.refresh(p) -- velocidade certa na hora (eventos, ponte, carga), não a guardada
 		end
 	end
 end

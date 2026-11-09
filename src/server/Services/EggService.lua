@@ -573,6 +573,7 @@ type EggCarry = {
 }
 local carryingEgg: { [Player]: EggCarry } = {}
 local eggChanneling: { [Player]: boolean } = {}
+local eggLocks: { [string]: boolean } = {}
 
 local function groundBelow(pos: Vector3): Vector3
 	local hit = Workspace:Raycast(pos + Vector3.new(0, 30, 0), Vector3.new(0, -80, 0))
@@ -669,6 +670,18 @@ renderBaseEggs = function(player: Player)
 		return
 	end
 	n.model:SetAttribute("OwnerUserId", player.UserId)
+	-- assinatura do ninho: só redesenha se um ovo entrou, saiu ou mudou de tempo (revisão cega:
+	-- redesenhar a cada atualização recriava os cliques e cancelava roubos em andamento)
+	local keys = {}
+	for key, slot in profile.nest do
+		table.insert(keys, string.format("%s:%s:%d", key, slot.size, slot.hatchAt))
+	end
+	table.sort(keys)
+	local sig = tostring(player.UserId) .. "|" .. table.concat(keys, ";")
+	if n.model:GetAttribute("EggSig") == sig then
+		return
+	end
+	n.model:SetAttribute("EggSig", sig)
 	n.eggs:ClearAllChildren()
 	local models = ReplicatedStorage:FindFirstChild("EggModels")
 	for key, slot in profile.nest do
@@ -849,6 +862,16 @@ tryStealEgg = function(thief: Player, egg: Model)
 	end
 	local def = E.Sizes[slot.size]
 	local hatchAt0 = slot.hatchAt
+	-- um ladrão por ovo: o segundo nem começa (e a vítima não recebe alerta duplicado)
+	local lockKey = string.format("%d:%s", ownerId, key)
+	if eggLocks[lockKey] then
+		Remotes.Notify:FireClient(thief, {
+			text = "Alguém já está roubando este ovo!",
+			color = Color3.fromRGB(255, 200, 80),
+		})
+		return
+	end
+	eggLocks[lockKey] = true
 	eggChanneling[thief] = true
 	Remotes.StealAlert:FireClient(owner, { thiefName = thief.DisplayName, food = "o seu " .. def.name })
 	Remotes.Notify:FireClient(thief, {
@@ -863,15 +886,15 @@ tryStealEgg = function(thief: Player, egg: Model)
 		while still and os.clock() - t0 < GameRules.EggSteal.ChannelSeconds do
 			task.wait(0.1)
 			local r = Guard.rootOf(thief)
-			still = r ~= nil
-				and p0 ~= nil
-				and (r.Position - p0).Magnitude <= 6
-				and not CombatService.isKO(thief)
-				and egg.Parent ~= nil
+			still = r ~= nil and p0 ~= nil and (r.Position - p0).Magnitude <= 6 and not CombatService.isKO(thief)
+			local vNow = DataService.get(owner)
+			local sNow = vNow and vNow.nest[key]
+			still = still and owner.Parent ~= nil and sNow ~= nil and sNow.hatchAt == hatchAt0
 		end
 		return still
 	end)
 	eggChanneling[thief] = nil
+	eggLocks[lockKey] = nil
 	-- reconfere tudo depois dos 5 s
 	local cur: any = DataService.get(owner)
 	local still = cur and cur.nest[key]
@@ -924,6 +947,13 @@ end
 -- Chegou na própria base com o ovo: entra na bolsa de ovos do ladrão.
 local function depositTick()
 	for thief, c in carryingEgg do
+		local char = thief.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if not hum or hum.Health <= 0 or not (c.model and c.model.Parent) then
+			-- morreu, resetou ou perdeu o ovo da cabeça: o ovo volta para a vítima
+			dropEgg(thief, true)
+			continue
+		end
 		local base = MapService.getBaseOf(thief)
 		local root = Guard.rootOf(thief)
 		if base and root then
@@ -971,6 +1001,7 @@ function EggService.init()
 		if n then
 			n.eggs:ClearAllChildren()
 			n.model:SetAttribute("OwnerUserId", nil)
+			n.model:SetAttribute("EggSig", nil)
 		end
 	end)
 	-- Ladrão de ovo que leva soco derruba o ovo (volta para a vítima).
