@@ -288,7 +288,18 @@ function Effects.init(gui: ScreenGui)
 			shockwave(m, Color3.fromRGB(255, 220, 80))
 		end
 		if e.userId == player.UserId then
-			banner.Text = Locale.fmt("evolved_banner", nil, { s = string.upper(Locale.t(e.stageName)) })
+			-- Comparação explícita: o jogador percebe o ANTES e o DEPOIS da transformação.
+			-- A barra já usa o mesmo evento visual do jogo, sem abrir janela sobre o gameplay.
+			local previous = if type(e.previousStage) == "string" then e.previousStage else nil
+			if previous and previous ~= e.stageName then
+				banner.Text = string.format(
+					"%s  →  %s",
+					string.upper(Locale.t(previous)),
+					string.upper(Locale.t(tostring(e.stageName)))
+				)
+			else
+				banner.Text = Locale.fmt("evolved_banner", nil, { s = string.upper(Locale.t(e.stageName)) })
+			end
 			banner.Visible = true
 			UI.pop(banner)
 			screenFlash(Color3.new(1, 1, 1), 0.85)
