@@ -546,6 +546,9 @@ end
 -- extra (missão 08/11/2026): {crit, streak, streakMult, trait} da alimentação, só para o cliente
 -- mostrar e animar. O valor de `amount` já vem com todos os bônus calculados no servidor.
 -- Devolve quantos níveis subiu (0 se nenhum).
+-- Bônus de XP para o servidor inteiro (Gigante Ancestral acordado). 1 = sem bônus.
+GiantService.globalXpMult = 1
+
 function GiantService.addXp(
 	player: Player,
 	amount: number,
@@ -561,6 +564,7 @@ function GiantService.addXp(
 		amount = math.floor(amount * 1.5)
 	end
 	amount = math.floor(amount * GiantService.species(profile).xpMult)
+	amount = math.floor(amount * GiantService.globalXpMult) -- bônus do servidor (Gigante Ancestral)
 	profile.xp += amount
 	profile.hunger = math.min(100, profile.hunger + Config.Giant.HungerPerFeed)
 	profile.lastFed = os.time()

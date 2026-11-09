@@ -33,6 +33,7 @@ local Features = {
 	DragonRaidPhase1 = false, -- fase 1 do Dragão (alimentar para enfraquecer) — aguardando a cópia de teste
 	-- Noite de 09/11/2026 (melhorias autônomas)
 	Mutations = false, -- comida exposta ganha mutação durante os eventos (Dourada, Suculenta, Arco-íris)
+	Ancestral = false, -- Gigante Ancestral: banquete coletivo do servidor, chuva de comida e +XP para todos
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).

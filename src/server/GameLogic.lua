@@ -397,6 +397,21 @@ function GameLogic.weeklyClaim(wq: Weekly, week: number): GameRules.ObjectiveDef
 end
 
 ---------------------------------------------------------------------------
+-- Gigante Ancestral (noite de 09/11): banquete coletivo do servidor
+---------------------------------------------------------------------------
+-- Meta de pontos para acordar (cresce com o número de jogadores reais).
+function GameLogic.ancestralGoal(players: number): number
+	local A = GameRules.Ancestral
+	return A.GoalBase + A.GoalPerPlayer * math.max(1, players)
+end
+
+-- Pontos que uma alimentação vale (comida mais rara vale mais).
+function GameLogic.ancestralPoints(rarity: string?): number
+	local order = if rarity and Config.Rarities[rarity] then Config.Rarities[rarity].order else 1
+	return GameRules.Ancestral.PointsByOrder[order] or 1
+end
+
+---------------------------------------------------------------------------
 -- Mutações (noite de 09/11): sorteio numa rodada do evento
 ---------------------------------------------------------------------------
 -- Para cada comida do pátio SEM mutação, `rand()` < chance dá a mutação. Devolve as chaves que mudaram.

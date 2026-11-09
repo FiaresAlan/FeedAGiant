@@ -536,6 +536,25 @@ GameRules.Mutations =
 			chance = 0.015,
 		},
 	} :: { [string]: { name: string, income: number, xp: number, color: Color3, event: string, chance: number } }
+---------------------------------------------------------------------------
+-- Gigante Ancestral (noite de 09/11/2026; Features.Ancestral). Meta COLETIVA do servidor: cada
+-- alimentação de qualquer jogador enche o Banquete; cheio, o Ancestral acorda, faz chover comida na
+-- praça e dá +XP para todos por alguns minutos. Nada pago, ninguém perde nada.
+---------------------------------------------------------------------------
+GameRules.Ancestral = {
+	GoalBase = 60,
+	GoalPerPlayer = 40, -- 1 jogador: 100 pontos; 8 jogadores: 380
+	PointsByOrder = { 1, 2, 3, 5, 8, 12, 20 }, -- Comum ... Secreto
+	XpBuff = 1.25, -- +25% de XP para todos no servidor
+	BuffSeconds = 300,
+	FeastDrops = 10, -- itens que caem na praça (comida/caixa/ovo, mesmas chances dos drops normais)
+	FeastSeconds = 30,
+	SleepCooldown = 480, -- depois de acordar, dorme 8 min antes de voltar a contar
+	Angle = 112.5, -- posição no pé das montanhas (entre duas bases, longe da ponte do Dragão)
+	Radius = 505,
+	Height = 110, -- altura em studs
+}
+
 GameRules.MutationTick = 15 -- segundos entre sorteios durante o evento (chance acima é por sorteio e por comida)
 
 -- Mutação que um evento pode dar (nil se nenhum).
