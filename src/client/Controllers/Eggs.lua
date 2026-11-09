@@ -9,6 +9,7 @@
 -- ~30 partículas vivas por ovo (Rate x Lifetime), sem Bloom, respeita "movimento reduzido".
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
@@ -191,8 +192,55 @@ end
 ---------------------------------------------------------------------------
 local worldEggs: { [string]: { part: BasePart, label: TextLabel, size: string, spin: number } } = {}
 
+-- 09/11 (Features.EggSteal): os ovos moram no ninho da SUA base. Sem ele (flag desligada ou base
+-- ainda não carregada), usa o ninho da praça como antes.
+local function myNest(): Model?
+	if Features.on("EggSteal") then
+		local folder = Workspace:FindFirstChild("BaseNests")
+		if folder then
+			for _, m in folder:GetChildren() do
+				if m:IsA("Model") and m:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId then
+					return m
+				end
+			end
+		end
+	end
+	local plaza = Workspace:FindFirstChild("EggNest")
+	return if plaza and plaza:IsA("Model") then plaza else nil
+end
+
+-- O servidor mostra os ovos de cada base para TODOS (para poder roubar); na minha base eu já vejo a
+-- versão do cliente (com efeitos), então a do servidor fica invisível só para mim.
+local hidden: { [Instance]: boolean } = {}
+local function hideServerCopies(nest: Model)
+	local eggs = nest:FindFirstChild("Eggs")
+	if not eggs or hidden[eggs] then
+		return
+	end
+	hidden[eggs] = true
+	local function hide(inst: Instance)
+		for _, d in inst:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.LocalTransparencyModifier = 1
+			elseif d:IsA("BillboardGui") then
+				d.Enabled = false
+			end
+		end
+	end
+	hide(eggs)
+	eggs.DescendantAdded:Connect(function(d)
+		task.defer(function()
+			if d:IsA("BasePart") then
+				d.LocalTransparencyModifier = 1
+			elseif d:IsA("BillboardGui") then
+				d.Enabled = false
+			end
+		end)
+	end)
+end
+
 local function nestOffsets(): { Vector3 }
-	local nest = Workspace:FindFirstChild("EggNest")
+	local nest = myNest()
 	local raw = nest and nest:GetAttribute("SlotOffsets")
 	local out = {}
 	if type(raw) == "string" then
@@ -204,10 +252,22 @@ local function nestOffsets(): { Vector3 }
 	return out
 end
 
+local renderedAt: Model? = nil
 local function renderNest()
 	local st = state
-	local nest = Workspace:FindFirstChild("EggNest")
+	local nest = myNest()
 	local center = nest and nest:FindFirstChild("Center")
+	if nest and nest.Name ~= "EggNest" then
+		hideServerCopies(nest)
+	end
+	-- mudou de ninho (a base carregou depois): redesenha tudo no lugar novo
+	if nest ~= renderedAt then
+		for key, w in worldEggs do
+			w.part:Destroy()
+			worldEggs[key] = nil
+		end
+		renderedAt = nest
+	end
 	for key, w in worldEggs do
 		local slot = st and st.nest[key]
 		if not slot or slot.size ~= w.size then
@@ -225,8 +285,7 @@ local function renderNest()
 			local part: BasePart
 			if t then
 				part = t:Clone()
-				local nestModel = Workspace:FindFirstChild("EggNest")
-				local big = nestModel and nestModel:GetAttribute("EggScale")
+				local big = nest and nest:GetAttribute("EggScale")
 				local k = E.Sizes[slot.size].scale
 					* (if type(big) == "number" then big else 1)
 					/ math.max(t.Size.Y, 0.01)

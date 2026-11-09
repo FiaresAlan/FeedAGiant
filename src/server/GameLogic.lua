@@ -254,6 +254,43 @@ function GameLogic.stealAllowed(
 	return true, nil
 end
 
+-- Roubo de OVO (GameRules.EggSteal): pode roubar ESTE ovo agora? Devolve (ok, motivo).
+-- Motivos: "newbie" | "last" | "hatching" | "immune" | "daily".
+function GameLogic.eggStealAllowed(
+	victimLevel: number,
+	victimNestCount: number,
+	secondsLeft: number,
+	victimStolenAt: number,
+	thiefStealDay: number,
+	thiefStealsToday: number,
+	now: number
+): (boolean, string?)
+	local R = GameRules.EggSteal
+	if victimLevel < GameRules.StealLimits.MinVictimLevel then
+		return false, "newbie"
+	end
+	if victimNestCount < R.MinVictimEggs then
+		return false, "last"
+	end
+	if secondsLeft < R.MinSecondsLeft then
+		return false, "hatching"
+	end
+	if now - victimStolenAt < R.VictimImmuneSeconds then
+		return false, "immune"
+	end
+	local today = if thiefStealDay == now // 86400 then thiefStealsToday else 0
+	if today >= R.PerDay then
+		return false, "daily"
+	end
+	return true, nil
+end
+
+-- Consolo da vítima em moedas (25% do preço; ovo sem preço = valor fixo).
+function GameLogic.eggStealRefund(price: number?): number
+	local R = GameRules.EggSteal
+	return if price and price > 0 then math.floor(price * R.RefundPct) else R.RefundFallback
+end
+
 -- Conta um roubo concluído. Devolve (novo stealDay, novo stealsToday).
 function GameLogic.countSteal(thiefStealDay: number, thiefStealsToday: number, day: number): (number, number)
 	local today = if thiefStealDay == day then thiefStealsToday else 0

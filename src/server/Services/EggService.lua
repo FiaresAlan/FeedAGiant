@@ -37,6 +37,9 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
 local DropService = require(script.Parent.DropService)
+local MapService = require(script.Parent.MapService)
+local CombatService = require(script.Parent.CombatService)
+local Speed = require(script.Parent.Parent.Speed)
 
 local E = GameRules.Eggs
 local EggService = {}
@@ -69,10 +72,27 @@ local function commonFoodIndex(profile: any): number?
 	return nil
 end
 
+-- 09/11: cada base tem o seu ninho (Features.EggSteal). índice da base -> modelo e centro.
+local baseNests: { [number]: { model: Model, center: Vector3, eggs: Folder } } = {}
+
+local function ownNestCenter(player: Player): Vector3?
+	local base = MapService.getBaseOf(player)
+	local n = base and baseNests[base.index]
+	return n and n.center
+end
+
+-- Perto do ninho da praça OU do ninho da própria base.
 local function nearNest(player: Player, radius: number): boolean
 	local root = Guard.rootOf(player)
+	if not root then
+		return false
+	end
 	local c = nestCenter
-	return root ~= nil and c ~= nil and (root.Position - c).Magnitude <= radius
+	if c and (root.Position - c).Magnitude <= radius then
+		return true
+	end
+	local own = ownNestCenter(player)
+	return own ~= nil and (root.Position - own).Magnitude <= radius
 end
 
 function EggService.state(player: Player): { [string]: any }?
@@ -97,7 +117,10 @@ function EggService.state(player: Player): { [string]: any }?
 	}
 end
 
+local renderBaseEggs: (Player) -> () -- definida mais abaixo (ninho da base)
+
 function EggService.push(player: Player, open: boolean?)
+	renderBaseEggs(player)
 	local st = EggService.state(player)
 	if st then
 		st.open = open == true
@@ -335,10 +358,12 @@ local function onRequest(player: Player, action: any, arg: any)
 	end
 	-- todas as ações acontecem no ninho (o servidor mede a distância)
 	if not nearNest(player, E.NestReach) then
-		Remotes.Notify:FireClient(
-			player,
-			{ text = "Vá até o NINHO na praça.", color = Color3.fromRGB(255, 170, 60) }
-		)
+		Remotes.Notify:FireClient(player, {
+			text = if Features.on("EggSteal")
+				then "Vá até o SEU NINHO (na sua base) ou o ninho da praça."
+				else "Vá até o NINHO na praça.",
+			color = Color3.fromRGB(255, 170, 60),
+		})
 		return
 	end
 	fn(player, profile, arg)
@@ -530,12 +555,446 @@ function checkMilestones(player: Player)
 	end
 end
 
+---------------------------------------------------------------------------
+-- 09/11: NINHO EM CADA BASE + ROUBO LEVE DE OVO (GameRules.EggSteal)
+---------------------------------------------------------------------------
+local NEST_SPOT = CFrame.new(22, 0, 6) -- canto livre da base (pátio x ±13,5; escudo em 22,-18)
+local NEST_WIDTH_BASE = 11
+local BASE_EGG_SCALE = 1.25
+local NEST_OFFSETS = { Vector3.new(0, 0, 0), Vector3.new(-3, 0, 1.6), Vector3.new(3, 0, 1.6) }
+
+type EggCarry = {
+	size: string,
+	from: Player,
+	pickedAt: number,
+	pickedPos: Vector3,
+	model: Model?,
+}
+local carryingEgg: { [Player]: EggCarry } = {}
+local eggChanneling: { [Player]: boolean } = {}
+
+local function groundBelow(pos: Vector3): Vector3
+	local hit = Workspace:Raycast(pos + Vector3.new(0, 30, 0), Vector3.new(0, -80, 0))
+	return if hit then hit.Position else pos
+end
+
+local function buildBaseNests()
+	local folder = Instance.new("Folder")
+	folder.Name = "BaseNests"
+	folder.Parent = Workspace
+	for _, base in MapService.Bases do
+		local spot = base.origin * NEST_SPOT
+		local g = groundBelow(spot.Position)
+		local cf = CFrame.new(g) * (spot - spot.Position)
+		local model = Instance.new("Model")
+		model.Name = "BaseNest" .. base.index
+		local mesh = loadMesh("egg-nest")
+		local top = g.Y + 1
+		if mesh then
+			mesh.Name = "Nest"
+			mesh.Anchored = true
+			mesh.CanCollide = true
+			mesh.Size = mesh.Size * (NEST_WIDTH_BASE / math.max(mesh.Size.X, mesh.Size.Z, 0.01))
+			mesh.CFrame = cf * CFrame.new(0, mesh.Size.Y / 2, 0)
+			mesh.Parent = model
+			top = g.Y + mesh.Size.Y * 0.55
+		end
+		local center = Util.makePart({
+			Name = "Center",
+			Size = Vector3.new(1, 1, 1),
+			CFrame = CFrame.new(cf.Position.X, top, cf.Position.Z),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+		})
+		center.Parent = model
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "OpenNest"
+		prompt.ActionText = "MEU NINHO"
+		prompt.ObjectText = "Ovos"
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = center
+		prompt.Triggered:Connect(function(p)
+			if not on() or not Guard.allow(p, "Egg") then
+				return
+			end
+			if base.owner == p then
+				EggService.push(p, true)
+			else
+				Remotes.Notify:FireClient(p, {
+					text = "Este ninho não é seu. Clique num ovo para tentar ROUBAR (segure parado 5 s).",
+					color = Color3.fromRGB(255, 200, 80),
+				})
+			end
+		end)
+		local eggs = Instance.new("Folder")
+		eggs.Name = "Eggs"
+		eggs.Parent = model
+		model.PrimaryPart = center
+		model:SetAttribute(
+			"SlotOffsets",
+			string.format(
+				"%g,0,%g;%g,0,%g;%g,0,%g",
+				NEST_OFFSETS[1].X,
+				NEST_OFFSETS[1].Z,
+				NEST_OFFSETS[2].X,
+				NEST_OFFSETS[2].Z,
+				NEST_OFFSETS[3].X,
+				NEST_OFFSETS[3].Z
+			)
+		)
+		model:SetAttribute("EggScale", BASE_EGG_SCALE)
+		model.Parent = folder
+		baseNests[base.index] = { model = model, center = center.Position, eggs = eggs }
+	end
+end
+
+local tryStealEgg: (Player, Model) -> ()
+
+-- Ovos do jogador no ninho da base dele, À VISTA de todos (quem não é o dono pode tentar roubar).
+-- O dono vê a versão do cliente (com efeitos); a do servidor fica invisível só para ele.
+renderBaseEggs = function(player: Player)
+	if not Features.on("EggSteal") then
+		return
+	end
+	local base = MapService.getBaseOf(player)
+	local n = base and baseNests[base.index]
+	local profile = DataService.get(player)
+	if not n or not profile then
+		return
+	end
+	n.model:SetAttribute("OwnerUserId", player.UserId)
+	n.eggs:ClearAllChildren()
+	local models = ReplicatedStorage:FindFirstChild("EggModels")
+	for key, slot in profile.nest do
+		local t = models and models:FindFirstChild(slot.size)
+		local def = E.Sizes[slot.size]
+		if t and t:IsA("BasePart") and def then
+			local egg = Instance.new("Model")
+			egg.Name = "Egg_" .. key
+			local part = t:Clone()
+			part.Name = "Body"
+			part.Size = part.Size * (def.scale * BASE_EGG_SCALE / math.max(part.Size.Y, 0.01))
+			local off = NEST_OFFSETS[tonumber(key) or 1] or Vector3.zero
+			part.CFrame = CFrame.new(n.center + off + Vector3.new(0, part.Size.Y / 2, 0))
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = true
+			part.Parent = egg
+			egg.PrimaryPart = part
+			egg:SetAttribute("OwnerUserId", player.UserId)
+			egg:SetAttribute("NestKey", key)
+			local click = Instance.new("ClickDetector")
+			click.MaxActivationDistance = 20
+			click.Parent = part
+			click.MouseClick:Connect(function(clicker)
+				if clicker ~= player then
+					tryStealEgg(clicker, egg)
+				end
+			end)
+			Util.makeBillboard(
+				part,
+				string.format("%s de %s", def.name, player.DisplayName),
+				UDim2.fromOffset(200, 34),
+				Vector3.new(0, part.Size.Y / 2 + 1.2, 0),
+				Config.Rarities[def.rarity].color
+			)
+			egg.Parent = n.eggs
+		end
+	end
+end
+
+local function attachEggVisual(thief: Player, size: string): Model?
+	local char = thief.Character
+	local head = char and char:FindFirstChild("Head")
+	local models = ReplicatedStorage:FindFirstChild("EggModels")
+	local t = models and models:FindFirstChild(size)
+	if not head or not head:IsA("BasePart") or not t or not t:IsA("BasePart") then
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = "CarriedEgg"
+	local p = t:Clone()
+	p.Anchored = false
+	p.CanCollide = false
+	p.CanQuery = false
+	p.Massless = true
+	p.Size = p.Size * (2.6 / math.max(p.Size.Y, 0.01))
+	p.CFrame = head.CFrame * CFrame.new(0, 2.6, 0)
+	p.Parent = model
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = head
+	weld.Part1 = p
+	weld.Parent = p
+	Util.makeBillboard(
+		p,
+		"ROUBANDO UM OVO!",
+		UDim2.fromOffset(200, 36),
+		Vector3.new(0, 2, 0),
+		Color3.fromRGB(255, 80, 80)
+	)
+	model.Parent = char
+	return model
+end
+
+-- Larga o ovo carregado. returnTo = o ovo VOLTA para a vítima (para a bolsa de ovos dela).
+local function dropEgg(thief: Player, returnTo: boolean)
+	local c = carryingEgg[thief]
+	if not c then
+		return
+	end
+	carryingEgg[thief] = nil
+	thief:SetAttribute("CarryingEgg", nil)
+	Speed.set(thief, "egg", nil)
+	if c.model then
+		c.model:Destroy()
+	end
+	if returnTo and c.from.Parent then
+		local vp = DataService.get(c.from)
+		if vp then
+			table.insert(vp.eggs, c.size) -- volta mesmo acima do limite: o ovo já era dela
+			DataService.markDirty(c.from)
+			Remotes.Notify:FireClient(c.from, {
+				text = "O ladrão derrubou o seu ovo: ele VOLTOU para você (coloque no ninho de novo)!",
+				color = Color3.fromRGB(80, 255, 120),
+			})
+			EggService.push(c.from)
+		end
+	end
+end
+
+function EggService.isCarryingEgg(player: Player): boolean
+	return carryingEgg[player] ~= nil
+end
+
+function EggService.dropCarriedEgg(player: Player)
+	dropEgg(player, true)
+end
+
+local EGG_STEAL_TEXT = {
+	newbie = "Este jogador é novo: os ovos dele não podem ser roubados.",
+	last = "Não dá para roubar o ÚLTIMO ovo de alguém.",
+	hatching = "Este ovo está quase chocando: não dá mais para roubar.",
+	immune = "Este jogador acabou de perder um ovo: está protegido por 20 min.",
+	daily = "Você já roubou 2 ovos hoje. Volte amanhã!",
+}
+
+tryStealEgg = function(thief: Player, egg: Model)
+	if not on() or not Features.on("EggSteal") or not Guard.allow(thief, "Egg") then
+		return
+	end
+	if
+		carryingEgg[thief]
+		or eggChanneling[thief]
+		or thief:GetAttribute("CarryingSteal")
+		or thief:GetAttribute("CarryingDrop")
+	then
+		return
+	end
+	local part = egg.PrimaryPart
+	local ownerId = egg:GetAttribute("OwnerUserId")
+	local key = egg:GetAttribute("NestKey")
+	if not part or type(ownerId) ~= "number" or type(key) ~= "string" or not Guard.withinReach(thief, part, 20) then
+		return
+	end
+	local owner = Players:GetPlayerByUserId(ownerId)
+	if not owner or owner == thief then
+		return
+	end
+	local vp = DataService.get(owner)
+	local tp = DataService.get(thief)
+	local slot = vp and vp.nest[key]
+	if not vp or not tp or not slot then
+		return
+	end
+	if vp.shieldUntil > os.time() then
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = "Esta base está protegida por um escudo!", color = Color3.fromRGB(80, 200, 255) }
+		)
+		return
+	end
+	local count = 0
+	for _ in vp.nest do
+		count += 1
+	end
+	local now = os.time()
+	local ok, why = GameLogic.eggStealAllowed(
+		GameLogic.victimProgress(vp.level, vp.peakLevel, vp.rebirths),
+		count,
+		slot.hatchAt - now,
+		vp.eggStolenAt,
+		tp.eggStealDay,
+		tp.eggStealsToday,
+		now
+	)
+	if not ok then
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = EGG_STEAL_TEXT[why :: string] or "Não dá agora.", color = Color3.fromRGB(255, 200, 80) }
+		)
+		return
+	end
+	if #tp.eggs >= E.MaxStoredHard then
+		Remotes.Notify:FireClient(
+			thief,
+			{ text = "Você já tem ovos demais guardados.", color = Color3.fromRGB(255, 170, 60) }
+		)
+		return
+	end
+	local def = E.Sizes[slot.size]
+	local hatchAt0 = slot.hatchAt
+	eggChanneling[thief] = true
+	Remotes.StealAlert:FireClient(owner, { thiefName = thief.DisplayName, food = "o seu " .. def.name })
+	Remotes.Notify:FireClient(thief, {
+		text = string.format("Roubando %s... fique PARADO por %d s!", def.name, GameRules.EggSteal.ChannelSeconds),
+		color = Color3.fromRGB(255, 200, 80),
+	})
+	local okRun, alive = pcall(function(): boolean
+		local r0 = Guard.rootOf(thief)
+		local p0 = r0 and r0.Position
+		local t0 = os.clock()
+		local still = p0 ~= nil
+		while still and os.clock() - t0 < GameRules.EggSteal.ChannelSeconds do
+			task.wait(0.1)
+			local r = Guard.rootOf(thief)
+			still = r ~= nil
+				and p0 ~= nil
+				and (r.Position - p0).Magnitude <= 6
+				and not CombatService.isKO(thief)
+				and egg.Parent ~= nil
+		end
+		return still
+	end)
+	eggChanneling[thief] = nil
+	-- reconfere tudo depois dos 5 s
+	local cur: any = DataService.get(owner)
+	local still = cur and cur.nest[key]
+	if
+		not okRun
+		or not alive
+		or not owner.Parent
+		or not cur
+		or not still
+		or still.hatchAt ~= hatchAt0
+		or cur.shieldUntil > os.time()
+	then
+		Remotes.Notify:FireClient(thief, { text = "Roubo do ovo cancelado.", color = Color3.fromRGB(255, 90, 90) })
+		return
+	end
+	local size = still.size
+	cur.nest[key] = nil
+	cur.eggStolenAt = os.time()
+	local refund = GameLogic.eggStealRefund(def.price)
+	cur.coins += refund
+	DataService.markDirty(owner)
+	EggService.push(owner)
+	PlotService.pushState(owner)
+	Remotes.Notify:FireClient(owner, {
+		text = string.format(
+			"%s roubou o seu %s! Você ganhou %d moedas de consolo. SOQUE o ladrão para o ovo voltar!",
+			thief.DisplayName,
+			def.name,
+			refund
+		),
+		color = Color3.fromRGB(255, 70, 70),
+	})
+	local r = Guard.rootOf(thief)
+	carryingEgg[thief] = {
+		size = size,
+		from = owner,
+		pickedAt = os.clock(),
+		pickedPos = if r then r.Position else part.Position,
+		model = attachEggVisual(thief, size),
+	}
+	thief:SetAttribute("CarryingEgg", true)
+	Speed.set(thief, "egg", GameRules.EggSteal.CarrySpeed)
+	Analytics.event(thief, "egg_stolen", 1, { size })
+	Remotes.Notify:FireClient(thief, {
+		text = "Pegou o ovo! Leve até a SUA base (um soco faz você derrubar).",
+		color = Color3.fromRGB(80, 255, 120),
+	})
+end
+
+-- Chegou na própria base com o ovo: entra na bolsa de ovos do ladrão.
+local function depositTick()
+	for thief, c in carryingEgg do
+		local base = MapService.getBaseOf(thief)
+		local root = Guard.rootOf(thief)
+		if base and root then
+			local here = base.origin:PointToObjectSpace(root.Position)
+			local half = Config.BaseSize / 2 + 4
+			local minTime = math.max(0, (base.origin.Position - c.pickedPos).Magnitude - Config.BaseSize * 0.75) / 45
+			if math.abs(here.X) <= half and math.abs(here.Z) <= half and os.clock() - c.pickedAt >= minTime then
+				carryingEgg[thief] = nil
+				thief:SetAttribute("CarryingEgg", nil)
+				Speed.set(thief, "egg", nil)
+				if c.model then
+					c.model:Destroy()
+				end
+				local tp = DataService.get(thief)
+				if tp then
+					tp.eggStealDay, tp.eggStealsToday =
+						GameLogic.countSteal(tp.eggStealDay, tp.eggStealsToday, os.time() // 86400)
+					table.insert(tp.eggs, c.size)
+					DataService.markDirty(thief)
+					EggService.push(thief)
+					Remotes.Notify:FireClient(thief, {
+						text = string.format("Ovo roubado guardado: %s! Coloque no seu ninho.", E.Sizes[c.size].name),
+						color = Config.Rarities[E.Sizes[c.size].rarity].color,
+					})
+				end
+			end
+		end
+	end
+end
+
 function EggService.init()
 	Remotes.RequestEgg.OnServerEvent:Connect(onRequest)
 	Players.PlayerRemoving:Connect(function(p)
 		busy[p] = nil
 		warmAcc[p] = nil
+		eggChanneling[p] = nil
+		dropEgg(p, true) -- ladrão saiu do jogo: o ovo volta para a vítima
+		for thief, c in carryingEgg do
+			if c.from == p then
+				dropEgg(thief, false) -- a vítima saiu: o ovo some com ela (já era dela)
+			end
+		end
+		local base = MapService.getBaseOf(p)
+		local n = base and baseNests[base.index]
+		if n then
+			n.eggs:ClearAllChildren()
+			n.model:SetAttribute("OwnerUserId", nil)
+		end
 	end)
+	-- Ladrão de ovo que leva soco derruba o ovo (volta para a vítima).
+	local prevHit = CombatService.OnHit
+	CombatService.OnHit = function(attacker: Player, victim: Player, heavy: boolean)
+		if prevHit then
+			prevHit(attacker, victim, heavy)
+		end
+		if carryingEgg[victim] then
+			dropEgg(victim, true)
+			Remotes.Notify:FireClient(
+				victim,
+				{ text = "Você levou um soco e derrubou o ovo!", color = Color3.fromRGB(255, 90, 90) }
+			)
+		end
+	end
+	local prevNpcKO = CombatService.OnNpcKO
+	CombatService.OnNpcKO = function(victim: Player, source: string)
+		if prevNpcKO then
+			prevNpcKO(victim, source)
+		end
+		if carryingEgg[victim] then
+			dropEgg(victim, true)
+		end
+	end
 	Hooks.on("bossHelped", function(player: Player)
 		if not on() then
 			return
@@ -605,12 +1064,19 @@ function EggService.init()
 	task.spawn(function()
 		publishEggModels()
 		buildNest()
+		if Features.on("EggSteal") then
+			buildBaseNests()
+			for _, pl in Players:GetPlayers() do
+				renderBaseEggs(pl)
+			end
+		end
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			if on() then
 				warmTick()
+				depositTick()
 			end
 		end
 	end)

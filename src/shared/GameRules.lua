@@ -416,6 +416,25 @@ GameRules.StealLimits = {
 	MaxPerDay = 3,
 }
 
+-- ROUBO DE OVO (pedido do usuário, 09/11: "mais leve do que roubar comida"). Cada base tem o seu ninho
+-- e os ovos chocando ficam à vista. Regras que deixam a perda leve e com reação (vault: Case Study -
+-- Steal a Brainrot; Viral Game Anatomy - "loss with no counterplay"):
+--   * nunca o ÚLTIMO ovo chocando da vítima, nem ovo a menos de 1 min de chocar;
+--   * a vítima fica 20 min sem poder perder outro ovo; jogador novo (nível < 5) nunca perde;
+--   * o ladrão faz no máximo 2 por dia, segura 5 s parado (comida é 3 s) e anda mais devagar
+--     carregando; qualquer soco derruba e o ovo VOLTA para a vítima;
+--   * a vítima ganha 25% do preço do ovo em moedas como consolo (ovo sem preço: 500).
+GameRules.EggSteal = {
+	ChannelSeconds = 5,
+	PerDay = 2,
+	VictimImmuneSeconds = 1200,
+	MinSecondsLeft = 60,
+	MinVictimEggs = 2,
+	RefundPct = 0.25,
+	RefundFallback = 500,
+	CarrySpeed = 0.85,
+}
+
 -- Primeiro acesso (§3 adaptado): presente de boas-vindas = 1 Lunchbox Comum guardada (o jogador
 -- abre clicando, nunca automático). Primeira alimentação com efeito 2x.
 GameRules.Onboarding = {

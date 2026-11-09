@@ -105,6 +105,9 @@ export type Profile = {
 	eggsHatched: number,
 	eggBossDay: number, -- dia UTC do último Ovo Grande ganho no Dragão
 	eggMilestones: { [string]: boolean }, -- marcos de nível já premiados
+	eggStolenAt: number, -- 09/11: os.time() do último ovo roubado DESTE jogador (20 min de proteção)
+	eggStealDay: number, -- 09/11: dia UTC e contagem de ovos que ESTE jogador roubou (2 por dia)
+	eggStealsToday: number,
 	starterSpecies: string, -- "" = nunca ofertada; "?" = ofertada, sem escolha; id = escolhida (StarterSpecies)
 	-- Prompt v4 (09/11/2026). Aditivos (slices): perfis antigos ganham o padrão sem perder nada.
 	mysteryChest: { unlockAt: number }, -- baú de 24 h (ainda sem código: espera a cópia de teste)
@@ -185,6 +188,9 @@ local function defaultProfile(): Profile
 		eggsHatched = 0,
 		eggBossDay = 0,
 		eggMilestones = {},
+		eggStolenAt = 0,
+		eggStealDay = 0,
+		eggStealsToday = 0,
 		starterSpecies = "",
 		mysteryChest = { unlockAt = 0 },
 		revangeTarget = 0,

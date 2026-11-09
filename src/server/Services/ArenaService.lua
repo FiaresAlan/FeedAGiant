@@ -50,6 +50,9 @@ local function canFight(p: Player): (boolean, string?)
 	if profile.level < A.MinLevelToFight then
 		return false, Locale.fmt("arena_minlevel", Locale.of(p), { n = A.MinLevelToFight })
 	end
+	if p:GetAttribute("CarryingEgg") then
+		return false, "Entregue o ovo roubado antes de lutar."
+	end
 	if busy[p] or inTournament[p] then
 		return false, Locale.t("Já está em uma luta.", Locale.of(p))
 	end

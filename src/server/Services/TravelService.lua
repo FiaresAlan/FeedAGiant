@@ -335,7 +335,7 @@ local function travel(player: Player, id: string, invite: boolean?)
 	elseif not nearPad(player) then
 		return -- longe de qualquer blip: pedido falso
 	end
-	if StealService.isCarrying(player) or DropService.isCarrying(player) then
+	if StealService.isCarrying(player) or DropService.isCarrying(player) or player:GetAttribute("CarryingEgg") then
 		Remotes.Notify:FireClient(player, {
 			text = "Entregue o que está carregando antes de viajar!",
 			color = Color3.fromRGB(255, 150, 80),
@@ -365,7 +365,12 @@ local function travel(player: Player, id: string, invite: boolean?)
 	Remotes.TravelDone:FireClient(player, { id = id })
 	task.wait(0.25) -- o cliente escurece a tela; a troca acontece no escuro
 	-- confere de novo depois da espera (pegou drop ou levou nocaute nesse meio segundo)
-	if StealService.isCarrying(player) or DropService.isCarrying(player) or CombatService.isKO(player) then
+	if
+		StealService.isCarrying(player)
+		or DropService.isCarrying(player)
+		or player:GetAttribute("CarryingEgg")
+		or CombatService.isKO(player)
+	then
 		return
 	end
 	if invite and not BossService.center() then
