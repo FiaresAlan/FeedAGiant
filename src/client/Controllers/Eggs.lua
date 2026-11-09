@@ -590,7 +590,7 @@ local function playHatch(data: { [string]: any })
 	ring.ZIndex = 40
 	ring.Parent = hatchGui
 	UI.corner(ring, 160)
-	local ringStroke = UI.stroke(ring, color, 4)
+	UI.stroke(ring, color, 4)
 	local vf = eggView(hatchGui, size, {
 		Size = UDim2.fromOffset(300 * uiScale, 300 * uiScale),
 		Position = UDim2.fromScale(0.5, 0.44),
