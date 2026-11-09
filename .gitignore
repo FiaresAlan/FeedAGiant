@@ -35,3 +35,6 @@ assets/foods/raw/
 # Os ovos e o ninho preparados ficam só aqui e no Roblox (assets privados). Refazer: tools/blender/prep_egg.py
 assets/optimized/egg-*.glb
 assets/optimized/egg-*_palette.png
+
+# Backups locais de places (binários grandes)
+backups/
