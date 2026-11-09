@@ -66,7 +66,8 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 	if not profile or not box then
 		return false
 	end
-	if not opts.force and not PlotService.hasInventorySpace(profile) then
+	local contents = LunchboxOdds.contents(boxId)
+	if not opts.force and not PlotService.hasInventorySpace(profile, contents.max) then
 		Remotes.Notify:FireClient(player, {
 			text = "Mochila cheia! Alimente seu Gigante ou coloque comida no pátio.",
 			color = Color3.fromRGB(255, 90, 90),
@@ -84,29 +85,43 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 	-- Pity v3 (GameRules.Pity): só caixas compradas (moedas) ou pagas (Robux) contam. A raridade
 	-- mínima vem da MESMA função que a tela de chances usa (LunchboxOdds.pityMin).
 	local counts = Features.on("LunchboxPity") and (not opts.free or opts.paid == true)
-	local minRarity = opts.minRarity
+	-- v5 (09/11): a caixa traz VÁRIAS comidas (LunchboxOdds.Contents). O pity só melhora a 1ª (a garantida).
+	local minPity: string? = nil
 	if counts then
-		minRarity = LunchboxOdds.pityMin(profile.pityCount, minRarity, GameRules.Pity.Hard, GameRules.Pity.MinRarity)
+		minPity = LunchboxOdds.pityMin(profile.pityCount, nil, GameRules.Pity.Hard, GameRules.Pity.MinRarity)
 	end
-	local food = LunchboxOdds.roll(boxId, if opts.paid then 0 else luckBonus, minRarity, rng)
-	if not PlotService.giveFood(player, food.id, true, opts.paid == true) then
-		return false -- teto duro da mochila (só prêmios grátis chegam aqui)
+	local foods = LunchboxOdds.rollBox(boxId, if opts.paid then 0 else luckBonus, opts.minRarity, minPity, rng)
+	-- A melhor do lote decide fogos, faixa e o contador do pity.
+	local food = foods[1]
+	for _, f in foods do
+		if Config.Rarities[f.rarity].order > Config.Rarities[food.rarity].order then
+			food = f
+		end
+	end
+	local given = {}
+	for _, f in foods do
+		if not PlotService.giveFood(player, f.id, true, opts.paid == true) then
+			break -- teto duro da mochila (só prêmios grátis chegam aqui)
+		end
+		table.insert(given, { foodId = f.id, rarity = f.rarity, name = f.name })
+	end
+	if #given == 0 then
+		return false
 	end
 	if counts then
 		local before = profile.pityCount
 		profile.pityCount = LunchboxOdds.pityAfter(before, food.rarity, GameRules.Pity.MinRarity)
-		Analytics.event(
-			player,
-			"gacha_roll",
-			before,
-			{ boxId, food.rarity, if minRarity ~= opts.minRarity then "pity" else "base" }
-		)
+		Analytics.event(player, "gacha_roll", before, { boxId, food.rarity, if minPity then "pity" else "base" })
 	end
 	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
-	Remotes.HatchResult:FireClient(
-		player,
-		{ foodId = food.id, rarity = food.rarity, name = food.name, color = food.color, boxId = boxId }
-	)
+	Remotes.HatchResult:FireClient(player, {
+		foodId = food.id,
+		rarity = food.rarity,
+		name = food.name,
+		color = food.color,
+		boxId = boxId,
+		items = given,
+	})
 	-- Pedido do usuário (08/11): comida Épica ou melhor = fogos de artifício no servidor inteiro.
 	if Config.Rarities[food.rarity].order >= 4 then
 		local now = os.clock()

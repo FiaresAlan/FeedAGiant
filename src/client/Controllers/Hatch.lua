@@ -72,8 +72,52 @@ end
 local boxSkin: ImageLabel
 local boxPlain: { GuiObject } = {}
 local boxStroke: UIStroke
+local lootRow: Frame
+local lootTitle: TextLabel
+local lootChips: Frame
 
-local function play(data: { foodId: string, rarity: string, name: string?, color: Color3?, boxId: string? })
+-- v5 (09/11): a caixa traz várias comidas. Abaixo da melhor (a grande), aparece a fila com TODAS,
+-- cada uma com a cor da raridade, para o jogador ver claramente o que ganhou.
+local function showLoot(items: { any }?)
+	for _, c in lootChips:GetChildren() do
+		if c:IsA("GuiObject") then
+			c:Destroy()
+		end
+	end
+	lootRow.Visible = false
+	if type(items) ~= "table" or #items <= 1 then
+		return
+	end
+	lootTitle.Text = string.format("A CAIXA TROUXE %d COMIDAS", #items)
+	for i, it in items do
+		local rar = Config.Rarities[it.rarity] or Config.Rarities.Common
+		local def = Config.FoodById[it.foodId]
+		local chip = UI.frame(lootChips, {
+			Size = UDim2.fromOffset(112, 30),
+			LayoutOrder = i,
+			BackgroundColor3 = UI.Colors.Panel,
+			ZIndex = 52,
+		})
+		UI.corner(chip, 10)
+		UI.stroke(chip, rar.color, 2)
+		UI.label(chip, (def and def.name) or tostring(it.name), {
+			Size = UDim2.new(1, -8, 1, -4),
+			Position = UDim2.fromOffset(4, 2),
+			TextColor3 = rar.color,
+			ZIndex = 53,
+		})
+	end
+	lootRow.Visible = true
+end
+
+local function play(data: {
+	foodId: string,
+	rarity: string,
+	name: string?,
+	color: Color3?,
+	boxId: string?,
+	items: { any }?,
+})
 	busy = true
 	local def = Config.FoodById[data.foodId]
 	local rar = Config.Rarities[data.rarity] or Config.Rarities.Common
@@ -136,16 +180,19 @@ local function play(data: { foodId: string, rarity: string, name: string?, color
 	end
 	reveal.Size = UDim2.fromOffset(0, 0)
 	reveal.Visible = true
+	showLoot(data.items)
 	TweenService:Create(
 		reveal,
 		TweenInfo.new(0.45, Enum.EasingStyle.Elastic),
 		{ Size = UDim2.fromOffset(isBig and 300 or 240, isBig and 300 or 240) }
 	):Play()
 
-	task.wait(isBig and 2.2 or 1.4)
+	local many = type(data.items) == "table" and #data.items > 1
+	task.wait((isBig and 2.2 or 1.4) + (if many then 1.2 else 0))
 	TweenService:Create(overlay, TweenInfo.new(0.25), { BackgroundTransparency = 1 }):Play()
 	TweenService:Create(reveal, TweenInfo.new(0.25), { Size = UDim2.fromOffset(0, 0) }):Play()
 	task.wait(0.28)
+	lootRow.Visible = false
 	overlay.Visible = false
 	busy = false
 end
@@ -222,6 +269,46 @@ function Hatch.init(gui: ScreenGui)
 	revealView.Parent = reveal
 	revealRarity =
 		UI.label(reveal, "", { Size = UDim2.new(1, -16, 0, 32), Position = UDim2.new(0, 8, 1, -50), ZIndex = 52 })
+	lootRow = Instance.new("Frame")
+	lootRow.Name = "Loot"
+	lootRow.BackgroundTransparency = 1
+	lootRow.AnchorPoint = Vector2.new(0.5, 0)
+	lootRow.Position = UDim2.new(0.5, 0, 0.5, 160)
+	lootRow.Size = UDim2.fromScale(0.92, 0)
+	local cap = Instance.new("UISizeConstraint")
+	cap.MaxSize = Vector2.new(600, math.huge)
+	cap.Parent = lootRow
+	lootRow.AutomaticSize = Enum.AutomaticSize.Y
+	lootRow.Visible = false
+	lootRow.ZIndex = 52
+	lootRow.Parent = overlay
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 4)
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = lootRow
+	lootTitle = UI.label(lootRow, "", {
+		Size = UDim2.new(1, 0, 0, 26),
+		LayoutOrder = 0,
+		TextScaled = false,
+		TextSize = 20,
+		ZIndex = 52,
+	})
+	lootTitle.TextStrokeTransparency = 0.3
+	lootChips = Instance.new("Frame")
+	lootChips.Name = "Chips"
+	lootChips.BackgroundTransparency = 1
+	lootChips.Size = UDim2.fromScale(1, 0)
+	lootChips.AutomaticSize = Enum.AutomaticSize.Y
+	lootChips.LayoutOrder = 1
+	lootChips.ZIndex = 52
+	lootChips.Parent = lootRow
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.fromOffset(112, 30)
+	grid.CellPadding = UDim2.fromOffset(6, 6)
+	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.Parent = lootChips
 
 	Remotes.HatchResult.OnClientEvent:Connect(function(data)
 		if type(data) == "table" and type(data.foodId) == "string" then

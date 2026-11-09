@@ -770,7 +770,11 @@ Config.DevProductInfo = {
 	Coins10k = { name = "10.000 Moedas", desc = "Pacote inicial de moedas.", price = 99 },
 	Coins100k = { name = "100.000 Moedas", desc = "Pacote grande de moedas.", price = 799 },
 	SuperShield = { name = "Super Escudo (10 min)", desc = "Ninguém rouba do seu pátio por 10 minutos.", price = 49 },
-	LuckyBox = { name = "Lucky Lunchbox", desc = "Uma Lunchbox com raridade mínima Rare garantida.", price = 149 },
+	LuckyBox = {
+		name = "Lucky Lunchbox",
+		desc = "Uma Lunchbox Rara (2 a 3 comidas), todas Rare ou melhor.",
+		price = 149,
+	},
 	FreezeDecay7d = {
 		name = "Congelar Gigante (7 dias)",
 		desc = "Seu Gigante não encolhe por 7 dias, mesmo sem jogar.",

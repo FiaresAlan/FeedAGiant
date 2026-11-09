@@ -76,11 +76,16 @@ local function pityText(): string
 	return string.format("Épico garantido em %d caixas", left)
 end
 
--- Resumo por raridade para o cartão da caixa ("Rare 22% · Epic 6% ...").
+-- Mínima da comida garantida (1ª) e das demais (v5: o pity e a garantia da caixa só valem para a 1ª).
+local function firstMin(boxId: string, minRarity: string?): string?
+	return LunchboxOdds.firstMin(boxId, minRarity, effectiveMin(nil))
+end
+
+-- Resumo por raridade para o cartão da caixa ("Rare 22% · Epic 6% ..."), das comidas NÃO garantidas.
 local function oddsSummary(boxId: string, minRarity: string?): string
 	local byRarity: { [string]: number } = {}
 	-- Caixa paga (tem raridade mínima) sorteia sem bônus de evento no servidor.
-	for _, row in LunchboxOdds.rows(boxId, if minRarity then 0 else currentLuck(), effectiveMin(minRarity)) do
+	for _, row in LunchboxOdds.rows(boxId, if minRarity then 0 else currentLuck(), minRarity) do
 		byRarity[row.rarity] = (byRarity[row.rarity] or 0) + row.percent
 	end
 	local ordered = {}
@@ -95,7 +100,9 @@ local function oddsSummary(boxId: string, minRarity: string?): string
 	for _, e in ordered do
 		table.insert(parts, string.format("%s %s", Locale.rarity(e.r), Odds.Format(e.p)))
 	end
-	return table.concat(parts, "  ·  ")
+	return LunchboxOdds.contentsText(boxId, function(r)
+		return Locale.rarity(r)
+	end) .. "\n" .. table.concat(parts, "  ·  ")
 end
 
 local oddsWin: Frame
@@ -118,26 +125,59 @@ local function renderOdds()
 	oddsHeading.Text = if luck > 0
 		then string.format("%s  (Lucky Boxes ativo: +%d%% em Rare ou melhor)", shown.title, math.floor(luck * 100))
 		else shown.title
-	local rows = LunchboxOdds.rows(shown.boxId, luck, effectiveMin(shown.minRarity))
 	local pt = pityText()
 	if pt ~= "" then
 		oddsHeading.Text ..= "  ·  " .. pt
 	end
-	for i, row in rows do
-		local color = Config.Rarities[row.rarity].color
-		UI.label(oddsList, string.format("%s  [%s]   %s", row.name, Locale.rarity(row.rarity), row.text), {
-			Size = UDim2.new(1, -10, 0, 28),
-			LayoutOrder = i,
+	-- v5: duas tabelas, as duas da mesma função do sorteio do servidor. A 1ª comida usa a mínima
+	-- garantida da caixa (e o pity); as outras, a tabela normal.
+	local order = 0
+	local function line(text: string, color: Color3?, size: number?)
+		order += 1
+		UI.label(oddsList, text, {
+			Size = UDim2.new(1, -10, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			LayoutOrder = order,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextScaled = false,
-			TextSize = 20,
-			TextColor3 = color,
+			TextSize = size or 20,
+			TextWrapped = true,
+			TextColor3 = color or Color3.new(1, 1, 1),
 		})
+	end
+	local c = LunchboxOdds.contents(shown.boxId)
+	line(
+		LunchboxOdds.contentsText(shown.boxId, function(r)
+			return Locale.rarity(r)
+		end),
+		UI.Colors.Accent,
+		22
+	)
+	local fMin = firstMin(shown.boxId, shown.minRarity)
+	local sections: { { title: string?, min: string? } } = {}
+	if c.max > 1 or fMin ~= shown.minRarity then
+		table.insert(sections, { title = "1ª COMIDA (garantida):", min = fMin })
+		if c.max > 1 then
+			table.insert(sections, { title = "DEMAIS COMIDAS (cada uma):", min = shown.minRarity })
+		end
+	else
+		table.insert(sections, { title = nil, min = fMin })
+	end
+	for _, sec in sections do
+		if sec.title then
+			line(sec.title, nil, 21)
+		end
+		for _, row in LunchboxOdds.rows(shown.boxId, luck, sec.min) do
+			line(
+				string.format("%s  [%s]   %s", row.name, Locale.rarity(row.rarity), row.text),
+				Config.Rarities[row.rarity].color
+			)
+		end
 	end
 	UI.label(oddsList, LunchboxOdds.Disclaimer, {
 		Size = UDim2.new(1, -10, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		LayoutOrder = #rows + 1,
+		LayoutOrder = order + 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
 		TextSize = 20,
