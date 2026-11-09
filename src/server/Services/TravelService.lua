@@ -194,9 +194,17 @@ local function buildPad(folder: Instance, cf: CFrame, title: string, color: Colo
 	light.Range = 14
 	light.Brightness = 1.2
 	light.Parent = disc
-	local label =
-		Util.makeBillboard(disc, "✦ " .. title .. " ✦", UDim2.fromOffset(220, 44), Vector3.new(0, 7, 0), color)
+	local label = Util.makeBillboard(
+		disc,
+		"✦ " .. title .. " ✦",
+		UDim2.fromOffset(220, 44),
+		Vector3.new(0, 7, 0),
+		Color3.new(1, 1, 1)
+	)
 	label.TextScaled = true
+	-- texto branco (pedido do usuário, 09/11) com o contorno na cor do lugar
+	label.TextStrokeColor3 = color:Lerp(Color3.new(0, 0, 0), 0.45)
+	label.TextStrokeTransparency = 0
 	local bb = label.Parent
 	if bb and bb:IsA("BillboardGui") then
 		bb.MaxDistance = 220

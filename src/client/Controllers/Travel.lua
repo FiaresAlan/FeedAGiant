@@ -32,7 +32,10 @@ local function rebuild(spots: { any })
 			TextScaled = false,
 			TextSize = 24,
 		})
-		b.TextColor3 = Color3.fromRGB(20, 20, 30)
+		-- pedido do usuário (09/11): texto BRANCO com contorno escuro (antes era preto)
+		b.TextColor3 = Color3.new(1, 1, 1)
+		b.TextStrokeColor3 = Color3.fromRGB(20, 20, 30)
+		b.TextStrokeTransparency = 0.2
 		b.Activated:Connect(function()
 			win.Visible = false
 			Remotes.RequestTravel:FireServer(s.id)

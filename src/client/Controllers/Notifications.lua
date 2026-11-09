@@ -32,16 +32,19 @@ local function pushToast(text: string, color: Color3?, duration: number?)
 	local toast = UI.frame(stack, {
 		Size = UDim2.new(1, 0, 0, 44),
 		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.1,
+		-- pedido do usuário (09/11): os avisos são semitransparentes (dá para ver o jogo atrás)
+		BackgroundTransparency = 0.4,
 		LayoutOrder = -os.clock(),
 	})
-	UI.stroke(toast, color or UI.Colors.Accent, 2)
-	UI.label(toast, text, {
+	local tstroke = UI.stroke(toast, color or UI.Colors.Accent, 2)
+	tstroke.Transparency = 0.3
+	local toastText = UI.label(toast, text, {
 		Size = UDim2.new(1, -16, 1, -8),
 		Position = UDim2.fromOffset(8, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = color or UI.Colors.Text,
 	})
+	toastText.TextStrokeTransparency = 0.4 -- contorno: o texto continua legível sobre o fundo transparente
 	toast.Position = UDim2.fromOffset(300, 0)
 	TweenService:Create(toast, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Position = UDim2.fromOffset(0, 0) }):Play()
 
@@ -205,6 +208,7 @@ function Notifications.init(parentGui: ScreenGui)
 		Position = UDim2.new(1, -16, 0, 56),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.35,
 		Visible = false,
 	})
 	UI.autoScale(banner)

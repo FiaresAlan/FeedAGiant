@@ -233,6 +233,7 @@ local function buildCard(gui: ScreenGui)
 		-- lado direito, abaixo da faixa de evento e acima do LUTAR: não cobre os botões da esquerda
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -14, 0.45, 0),
+		BackgroundTransparency = 0.35, -- semitransparente, como os outros avisos
 		Visible = false,
 	})
 	UI.stroke(card, Color3.fromRGB(255, 90, 60), 3)
