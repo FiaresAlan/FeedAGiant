@@ -237,7 +237,7 @@ local function claim(player: Player, index: number)
 		end
 		profile.objBonusClaimed = true
 		DataService.markDirty(player)
-		ShopService.openBox(player, GameRules.ObjectivesAllDoneBox, { free = true, force = true })
+		ShopService.awardBox(player, GameRules.ObjectivesAllDoneBox)
 		push(player)
 		return
 	end

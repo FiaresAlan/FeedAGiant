@@ -301,8 +301,7 @@ function PlotService.giveFood(player: Player, foodId: string, force: boolean?, p
 	if not profile or not Config.FoodById[foodId] then
 		return false
 	end
-	local cap = if paid then math.huge elseif force then Config.MaxInventoryHard else Config.MaxInventory
-	if #profile.inventory + 1 > cap then
+	if not PlotService.hasInventorySpace(profile, 1, force, paid) then
 		Remotes.Notify:FireClient(player, {
 			text = "Mochila cheia! Alimente seu Gigante ou coloque comida no pátio.",
 			color = Color3.fromRGB(255, 90, 90),
@@ -439,9 +438,11 @@ local function doFeed(
 	-- Funil do primeiro minuto: exatamente uma vez por conta para a 1ª e a 2ª alimentação.
 	-- Não envia o inventário nem dados pessoais; ajuda a medir se o loop central é compreendido.
 	if profile.totalFeeds == 1 then
-		Analytics.event(player, "ftue_first_feed", 1, { def.rarity, if levels > 0 then "leveled" else "no_level" })
+		local fields: { string } = { def.rarity, if levels > 0 then "leveled" else "no_level" }
+		Analytics.event(player, "ftue_first_feed", 1, fields)
 	elseif profile.totalFeeds == 2 then
-		Analytics.event(player, "ftue_second_feed", 1, { def.rarity })
+		local fields: { string } = { def.rarity }
+		Analytics.event(player, "ftue_second_feed", 1, fields)
 	end
 	Hooks.fire("fed", player, { xp = xp, crit = crit, streak = st.n, levels = levels, foodId = def.id })
 	TutorialService.signal(player, "Fed")
@@ -562,7 +563,11 @@ function PlotService.init()
 		end
 	end)
 	Remotes.RequestPlace.OnServerEvent:Connect(function(player, invIndex)
-		if Guard.isIndex(invIndex, Config.MaxInventoryHard) and Guard.allow(player, "Plot") then
+		if not Guard.allow(player, "Plot") then
+			return
+		end
+		local profile = DataService.get(player)
+		if profile and Guard.isIndex(invIndex, #profile.inventory) then
 			PlotService.place(player, invIndex)
 		end
 	end)
@@ -580,14 +585,20 @@ function PlotService.init()
 			Remotes.Notify:FireClient(player, Locale.msg("feed_far", nil, Color3.fromRGB(255, 170, 60)))
 			return
 		end
-		if type(arg) == "table" and Guard.isIndex(arg.inv, Config.MaxInventoryHard) then
-			PlotService.feedFromInventory(player, arg.inv)
+		if type(arg) == "table" then
+			local profile = DataService.get(player)
+			if profile and Guard.isIndex(arg.inv, #profile.inventory) then
+				PlotService.feedFromInventory(player, arg.inv)
+			end
 		elseif Guard.isIndex(arg, MAX_SLOT_INDEX) then
 			PlotService.feed(player, arg)
 		end
 	end)
 	local getFullState: RemoteFunction = Remotes.GetFullState :: any
 	getFullState.OnServerInvoke = function(player: Player): boolean?
+		if not Guard.allow(player, "FullState") then
+			return nil
+		end
 		local profile = DataService.waitFor(player)
 		if not profile then
 			return nil

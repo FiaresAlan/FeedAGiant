@@ -76,14 +76,10 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		})
 		return false
 	end
-	if not opts.free then
-		if profile.coins < box.price then
-			Remotes.Notify:FireClient(player, { text = "Moedas insuficientes!", color = Color3.fromRGB(255, 90, 90) })
-			return false
-		end
-		profile.coins -= box.price
+	if not opts.free and profile.coins < box.price then
+		Remotes.Notify:FireClient(player, { text = "Moedas insuficientes!", color = Color3.fromRGB(255, 90, 90) })
+		return false
 	end
-	profile.totalBoxes += 1
 	-- Pity v3 (GameRules.Pity): só caixas compradas (moedas) ou pagas (Robux) contam. A raridade
 	-- mínima vem da MESMA função que a tela de chances usa (LunchboxOdds.pityMin).
 	local counts = Features.on("LunchboxPity") and (not opts.free or opts.paid == true)
@@ -101,73 +97,107 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		end
 	end
 	local given = {}
+	local batch: { DataService.FoodInstance } = {}
 	for _, f in foods do
-		-- Todos os itens foram validados juntos acima. Se algum falhar inesperadamente,
-		-- não anunciar a abertura como entrega integral.
-		if not PlotService.giveFood(player, f.id, true, opts.paid == true) then
-			warn("[ShopService] falha inesperada na entrega de Lunchbox:", boxId)
-			return false
-		end
+		table.insert(batch, { id = f.id, uid = DataService.newUid() })
 		table.insert(given, { foodId = f.id, rarity = f.rarity, name = f.name })
 	end
-	if counts then
-		local before = profile.pityCount
-		profile.pityCount = LunchboxOdds.pityAfter(before, food.rarity, GameRules.Pity.MinRarity)
-		Analytics.event(player, "gacha_roll", before, { boxId, food.rarity, if minPity then "pity" else "base" })
+	local pityBefore = profile.pityCount
+	local pityAfter = if counts
+		then LunchboxOdds.pityAfter(pityBefore, food.rarity, GameRules.Pity.MinRarity)
+		else pityBefore
+	-- Monta o lote primeiro e aplica comida, cobrança e contadores sem ceder.
+	for _, item in batch do
+		table.insert(profile.inventory, item)
 	end
-	StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
-	Remotes.HatchResult:FireClient(player, {
-		foodId = food.id,
-		rarity = food.rarity,
-		name = food.name,
-		color = food.color,
-		boxId = boxId,
-		items = given,
-	})
-	-- Pedido do usuário (08/11): comida Épica ou melhor = fogos de artifício no servidor inteiro.
-	if Config.Rarities[food.rarity].order >= 4 then
-		local now = os.clock()
-		-- Lendária ou melhor anuncia SEMPRE (uma vez por conquista: fanfarra global); Épica respeita o intervalo.
-		if now - lastFireworks >= FIREWORKS_GAP or Config.Rarities[food.rarity].order >= 5 then
-			lastFireworks = now
-			local char = player.Character
-			Remotes.Fireworks:FireAllClients({
-				userId = player.UserId,
-				name = player.DisplayName,
-				foodId = food.id,
-				rarity = food.rarity,
-				pos = if char then char:GetPivot().Position else nil,
-				big = Config.Rarities[food.rarity].order >= 5,
-			})
-		end
-	end
-	if Config.Rarities[food.rarity].order >= 5 then
-		-- Fase 3: faixa grande com a comida 3D para todos, no máximo 1 a cada 6 s (servidor cheio
-		-- abrindo caixas não vira enxurrada); fora do limite fica só o aviso de texto.
-		local now = os.clock()
-		if now - lastRareBanner >= RARE_BANNER_GAP then
-			lastRareBanner = now
-			Remotes.RareFound:FireAllClients({
-				userId = player.UserId,
-				name = player.DisplayName,
-				foodId = food.id,
-				rarity = food.rarity,
-			})
-		end
-		Remotes.Notify:FireAllClients(
-			Locale.msg(
-				"found_food",
-				{ p = player.DisplayName, f = food.name, r = food.rarity },
-				Config.Rarities[food.rarity].color
-			)
-		)
-	end
-	DataService.markDirty(player)
-	PlotService.pushState(player)
 	if not opts.free then
-		TutorialService.signal(player, "BoughtBox")
+		profile.coins -= box.price
+	end
+	profile.totalBoxes += 1
+	profile.pityCount = pityAfter
+	DataService.markDirty(player)
+
+	-- Uma falha na apresentação não transforma uma entrega concluída em recibo pendente.
+	local presented, err = pcall(function()
+		if counts then
+			Analytics.event(
+				player,
+				"gacha_roll",
+				pityBefore,
+				{ boxId, food.rarity, if minPity then "pity" else "base" }
+			)
+		end
+		StealService.giveShield(player, Config.Steal.PurchaseShieldSec)
+		Remotes.HatchResult:FireClient(player, {
+			foodId = food.id,
+			rarity = food.rarity,
+			name = food.name,
+			color = food.color,
+			boxId = boxId,
+			items = given,
+		})
+		-- Pedido do usuário (08/11): comida Épica ou melhor = fogos de artifício no servidor inteiro.
+		if Config.Rarities[food.rarity].order >= 4 then
+			local now = os.clock()
+			-- Lendária ou melhor anuncia SEMPRE (uma vez por conquista: fanfarra global); Épica respeita o intervalo.
+			if now - lastFireworks >= FIREWORKS_GAP or Config.Rarities[food.rarity].order >= 5 then
+				lastFireworks = now
+				local char = player.Character
+				Remotes.Fireworks:FireAllClients({
+					userId = player.UserId,
+					name = player.DisplayName,
+					foodId = food.id,
+					rarity = food.rarity,
+					pos = if char then char:GetPivot().Position else nil,
+					big = Config.Rarities[food.rarity].order >= 5,
+				})
+			end
+		end
+		if Config.Rarities[food.rarity].order >= 5 then
+			-- Fase 3: faixa grande com a comida 3D para todos, no máximo 1 a cada 6 s (servidor cheio
+			-- abrindo caixas não vira enxurrada); fora do limite fica só o aviso de texto.
+			local now = os.clock()
+			if now - lastRareBanner >= RARE_BANNER_GAP then
+				lastRareBanner = now
+				Remotes.RareFound:FireAllClients({
+					userId = player.UserId,
+					name = player.DisplayName,
+					foodId = food.id,
+					rarity = food.rarity,
+				})
+			end
+			Remotes.Notify:FireAllClients(
+				Locale.msg(
+					"found_food",
+					{ p = player.DisplayName, f = food.name, r = food.rarity },
+					Config.Rarities[food.rarity].color
+				)
+			)
+		end
+		PlotService.pushState(player)
+		if not opts.free then
+			TutorialService.signal(player, "BoughtBox")
+		end
+	end)
+	if not presented then
+		warn("[ShopService] falha ao apresentar Lunchbox entregue:", boxId, err)
 	end
 	return true
+end
+
+-- Uma recompensa conquistada continua disponível quando a mochila não comporta o lote.
+function ShopService.awardBox(player: Player, boxId: string)
+	if not Config.LunchboxById[boxId] or ShopService.openBox(player, boxId, { free = true, force = true }) then
+		return
+	end
+	local profile = DataService.get(player)
+	if not profile then
+		return
+	end
+	table.insert(profile.pendingBoxes, boxId)
+	DataService.markDirty(player)
+	PlotService.pushState(player)
+	Remotes.PendingBox:FireClient(player, { boxId = boxId, count = #profile.pendingBoxes })
 end
 
 function ShopService.rebirth(player: Player)
@@ -252,7 +282,7 @@ function ShopService.claimDaily(player: Player)
 	profile.coins += reward
 	if profile.dailyStreak == #Config.DailyRewards then
 		-- Prêmio do 7º dia: entregue mesmo com a mochila cheia (só acontece uma vez por ciclo).
-		ShopService.openBox(player, "epic", { free = true, force = true })
+		ShopService.awardBox(player, "epic")
 		profile.dailyStreak = 0
 		if Features.on("StreakBackup") and profile.streakBackups < GameRules.StreakBackup.Max then
 			profile.streakBackups =
@@ -382,7 +412,7 @@ function ShopService.init()
 		end
 	end)
 	GiantService.OnReturnBonus = function(player, _away)
-		ShopService.openBox(player, Config.Decay.ReturnBonusBox, { free = true, force = true })
+		ShopService.awardBox(player, Config.Decay.ReturnBonusBox)
 	end
 	Remotes.RequestBuyBox.OnServerEvent:Connect(function(player, boxId)
 		if type(boxId) ~= "string" or not Config.LunchboxById[boxId] then

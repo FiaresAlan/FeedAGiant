@@ -69,20 +69,13 @@ local function cooldownLeft(p: Player): number
 	return math.max(0, profile.lastDuel + cd - os.time())
 end
 
-local function stealFromLoser(winner: Player, loser: Player): { string }
-	local wp, lp = DataService.get(winner), DataService.get(loser)
-	if not wp or not lp then
-		return {}
-	end
+local function transferArenaFood(wp: DataService.Profile, lp: DataService.Profile): { string }
 	local n = if wp.passes.ArenaVIP then A.WinStealFoodCount + 1 else A.WinStealFoodCount
 	local slots = {}
 	for key, food in lp.plot do
 		local def = Config.FoodById[food.id]
 		if def then
-			table.insert(
-				slots,
-				{ slot = tonumber(key) :: number, order = Config.Rarities[def.rarity].order, id = food.id }
-			)
+			table.insert(slots, { key = key, order = Config.Rarities[def.rarity].order, item = food, name = def.name })
 		end
 	end
 	table.sort(slots, function(a, b)
@@ -90,16 +83,29 @@ local function stealFromLoser(winner: Player, loser: Player): { string }
 	end)
 	local names = {}
 	for i = 1, math.min(n, #slots) do
-		local item = PlotService.removeFromPlot(loser, slots[i].slot)
-		if item then
-			-- force: a comida já existia (saiu do pátio do perdedor); nunca pode sumir.
-			PlotService.giveFood(winner, item.id, true)
-			table.insert(names, Config.FoodById[item.id].name)
+		if not PlotService.hasInventorySpace(wp, 1, true) then
+			break
 		end
+		local entry = slots[i]
+		table.insert(wp.inventory, entry.item)
+		lp.plot[entry.key] = nil
+		table.insert(names, entry.name)
 	end
+	return names
+end
+
+local function stealFromLoser(winner: Player, loser: Player): { string }
+	local wp, lp = DataService.get(winner), DataService.get(loser)
+	if not wp or not lp then
+		return {}
+	end
+	local names = transferArenaFood(wp, lp)
 	local coins = math.min(A.WinCoinsCap, math.floor(lp.coins * A.WinCoinsPct))
 	lp.coins -= coins
 	wp.coins += coins
+	if #names > 0 then
+		PlotService.rebuildPlot(loser)
+	end
 	return names
 end
 
@@ -806,7 +812,7 @@ local function runTournament()
 			profile.championUntil = os.time() + A.ChampionTrophyDays * 86400
 			profile.coins += A.TournamentPrizeCoins
 			DataService.markDirty(champ)
-			ShopService.openBox(champ, A.TournamentPrizeBox, { free = true, force = true })
+			ShopService.awardBox(champ, A.TournamentPrizeBox)
 			GiantService.refresh(champ, true)
 			PlotService.pushState(champ)
 		end
@@ -895,22 +901,9 @@ function ArenaService.init()
 		local coins = math.min(A.WinCoinsCap, math.floor(data.coins * A.WinCoinsPct))
 		data.coins -= coins
 		wp.coins += coins
-		local slots = {}
-		for key, food in data.plot do
-			local def = Config.FoodById[food.id]
-			if def then
-				table.insert(slots, { key = key, order = Config.Rarities[def.rarity].order, id = food.id })
-			end
-		end
-		table.sort(slots, function(x, y)
-			return x.order > y.order
-		end)
-		local n = if wp.passes.ArenaVIP then A.WinStealFoodCount + 1 else A.WinStealFoodCount
-		for i = 1, math.min(n, #slots) do
-			data.plot[slots[i].key] = nil
-			PlotService.giveFood(opponent, slots[i].id, true)
-		end
+		transferArenaFood(wp, data)
 		DataService.markDirty(opponent)
+		PlotService.pushState(opponent)
 		notify(opponent, player.DisplayName .. " fugiu da luta! A vitória é sua.", Color3.fromRGB(255, 220, 80))
 	end)
 	Players.PlayerRemoving:Connect(function(player)
