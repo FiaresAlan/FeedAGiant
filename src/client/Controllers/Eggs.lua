@@ -538,10 +538,14 @@ local hatchRunning = false
 
 -- Fragmentos visuais 2D: não exige malha rachada adicional, nem uploads externos.
 local function hatchShards(parent: Frame, color: Color3, amount: number)
+	local uiScale = UI.deviceScale()
 	for i = 1, amount do
 		local angle = (i / amount) * math.pi * 2
 		local shard = Instance.new("Frame")
-		shard.Size = UDim2.fromOffset(if i % 3 == 0 then 13 else 8, if i % 3 == 0 then 20 else 12)
+		shard.Size = UDim2.fromOffset(
+			math.max(4, math.floor((if i % 3 == 0 then 13 else 8) * uiScale)),
+			math.max(6, math.floor((if i % 3 == 0 then 20 else 12) * uiScale))
+		)
 		shard.AnchorPoint = Vector2.new(0.5, 0.5)
 		shard.Position = UDim2.fromScale(0.5, 0.44)
 		shard.Rotation = math.deg(angle)
@@ -550,7 +554,10 @@ local function hatchShards(parent: Frame, color: Color3, amount: number)
 		shard.ZIndex = 44
 		shard.Parent = parent
 		TweenService:Create(shard, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Position = UDim2.new(0.5, math.cos(angle) * (130 + (i % 3) * 26), 0.44, math.sin(angle) * (100 + (i % 4) * 16)),
+			Position = UDim2.new(
+				0.5, math.cos(angle) * (130 + (i % 3) * 26) * uiScale,
+				0.44, math.sin(angle) * (100 + (i % 4) * 16) * uiScale
+			),
 			BackgroundTransparency = 1,
 			Rotation = shard.Rotation + 100,
 		}):Play()
@@ -569,6 +576,7 @@ local function playHatch(data: { [string]: any })
 	local order = Config.Rarities[def.rarity].order
 	local color = rarityColor(size)
 	local reduced = UI.reducedMotion()
+	local uiScale = UI.deviceScale()
 	-- A animação inteira leva ~4 s; não prende o jogador em ~8 s de tela.
 	local crackTime = if reduced then 0.15 else math.clamp(1.1 + order * 0.18, 1.4, 2.2)
 	clear(hatchGui)
@@ -577,14 +585,14 @@ local function playHatch(data: { [string]: any })
 	local ring = Instance.new("Frame")
 	ring.AnchorPoint = Vector2.new(0.5, 0.5)
 	ring.Position = UDim2.fromScale(0.5, 0.44)
-	ring.Size = UDim2.fromOffset(320, 320)
+	ring.Size = UDim2.fromOffset(320 * uiScale, 320 * uiScale)
 	ring.BackgroundTransparency = 1
 	ring.ZIndex = 40
 	ring.Parent = hatchGui
 	UI.corner(ring, 160)
 	local ringStroke = UI.stroke(ring, color, 4)
 	local vf = eggView(hatchGui, size, {
-		Size = UDim2.fromOffset(300, 300),
+		Size = UDim2.fromOffset(300 * uiScale, 300 * uiScale),
 		Position = UDim2.fromScale(0.5, 0.44),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		ZIndex = 41,
@@ -598,16 +606,16 @@ local function playHatch(data: { [string]: any })
 	})
 	if not reduced then
 		TweenService:Create(vf, TweenInfo.new(crackTime, Enum.EasingStyle.Quad), {
-			Size = UDim2.fromOffset(340, 340),
+			Size = UDim2.fromOffset(340 * uiScale, 340 * uiScale),
 		}):Play()
 	end
 	local cracks = 0
 	local function crack()
 		cracks += 1
 		local line = Instance.new("Frame")
-		line.Size = UDim2.fromOffset(72 - cracks * 10, 5)
+		line.Size = UDim2.fromOffset((72 - cracks * 10) * uiScale, math.max(2, 5 * uiScale))
 		line.AnchorPoint = Vector2.new(0.5, 0.5)
-		line.Position = UDim2.new(0.5, (cracks - 2) * 18, 0.44, (cracks - 2) * 25)
+		line.Position = UDim2.new(0.5, (cracks - 2) * 18 * uiScale, 0.44, (cracks - 2) * 25 * uiScale)
 		line.Rotation = if cracks == 2 then 24 else -40
 		line.BackgroundColor3 = Color3.fromRGB(35, 27, 42)
 		line.BorderSizePixel = 0
