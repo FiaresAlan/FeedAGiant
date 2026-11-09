@@ -229,9 +229,10 @@ end
 local function buildCard(gui: ScreenGui)
 	card = UI.panel(gui, {
 		Name = "DragonInvite",
-		Size = UDim2.fromOffset(300, 170),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 14, 0.42, 0),
+		Size = UDim2.fromOffset(300, 186),
+		-- lado direito, abaixo da faixa de evento e acima do LUTAR: não cobre os botões da esquerda
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -14, 0.45, 0),
 		Visible = false,
 	})
 	UI.stroke(card, Color3.fromRGB(255, 90, 60), 3)
@@ -259,11 +260,11 @@ local function buildCard(gui: ScreenGui)
 		TextColor3 = UI.Colors.Accent,
 	})
 	prizeLabel = UI.label(card, "", {
-		Size = UDim2.new(1, -20, 0, 22),
-		Position = UDim2.fromOffset(10, 86),
+		Size = UDim2.new(1, -20, 0, 40),
+		Position = UDim2.fromOffset(10, 84),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
-		TextSize = 16,
+		TextSize = 18,
 		TextWrapped = true,
 	})
 	playBtn = UI.button(card, "JOGAR", Color3.fromRGB(40, 120, 255), {

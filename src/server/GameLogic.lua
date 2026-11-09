@@ -52,28 +52,6 @@ end
 
 -- Nível/XP que uma espécie NOVA herda do gigante ativo (fração configurável, 30%).
 function GameLogic.inherit(level: number, xp: number): (number, number)
-	-- Ovo do prêmio do Dragão: sorteio por peso (GameRules.Eggs.BossEggWeights), ordem fixa para ser
-	-- reprodutível com a mesma semente.
-	function GameLogic.bossEgg(weights: { [string]: number }, order: { string }, roll: number): string
-		local total = 0
-		for _, size in order do
-			total += weights[size] or 0
-		end
-		local x = roll * total
-		local last = order[1]
-		for _, size in order do
-			local w = weights[size] or 0
-			if w > 0 then
-				last = size
-				if x < w then
-					return size
-				end
-				x -= w
-			end
-		end
-		return last
-	end
-
 	return GameLogic.fromTotalXp(math.floor(GameLogic.totalXp(level, xp) * GameRules.Roster.TransferFraction))
 end
 
@@ -587,6 +565,28 @@ end
 function GameLogic.eggSpeedUp(hatchAt: number, now: number, fraction: number): number
 	local left = math.max(0, hatchAt - now)
 	return now + math.floor(left * (1 - fraction) + 0.5)
+end
+
+-- Ovo do prêmio do Dragão: sorteio por peso (GameRules.Eggs.BossEggWeights), ordem fixa para ser
+-- reprodutível com a mesma semente.
+function GameLogic.bossEgg(weights: { [string]: number }, order: { string }, roll: number): string
+	local total = 0
+	for _, size in order do
+		total += weights[size] or 0
+	end
+	local x = roll * total
+	local last = order[1]
+	for _, size in order do
+		local w = weights[size] or 0
+		if w > 0 then
+			last = size
+			if x < w then
+				return size
+			end
+			x -= w
+		end
+	end
+	return last
 end
 
 return GameLogic
