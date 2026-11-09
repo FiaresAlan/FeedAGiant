@@ -35,7 +35,7 @@ local CHANNEL_MAX_MOVE = 6
 local MAX_TRAVEL_SPEED = 45
 local DEPOSIT_MARGIN = 6 -- studs além da borda da base (latência)
 
-type Carry = { food: DataService.FoodInstance, from: Player, model: Model?, pickedAt: number, pickedPos: Vector3 }
+type Carry = { food: DataService.FoodInstance, from: Player?, model: Model?, pickedAt: number, pickedPos: Vector3 }
 local carrying: { [Player]: Carry } = {}
 local channeling: { [Player]: boolean } = {}
 
@@ -128,15 +128,16 @@ local function dropCarry(thief: Player, returnTo: boolean)
 	if c.model then
 		c.model:Destroy()
 	end
-	if returnTo and c.from.Parent then
-		local profile = DataService.get(c.from)
+	local from = c.from
+	if returnTo and from and from.Parent then
+		local profile = DataService.get(from)
 		if profile then
 			-- A comida já existia: volta mesmo com a mochila cheia.
 			table.insert(profile.inventory, c.food)
-			DataService.markDirty(c.from)
-			PlotService.pushState(c.from)
+			DataService.markDirty(from)
+			PlotService.pushState(from)
 			Remotes.Notify:FireClient(
-				c.from,
+				from,
 				{ text = "Você recuperou sua comida!", color = Color3.fromRGB(80, 255, 120) }
 			)
 		end
@@ -146,6 +147,85 @@ end
 -- Fase 3: quem entra numa luta da arena devolve a comida roubada ao dono (sem teleporte com item).
 function StealService.dropCarried(player: Player)
 	dropCarry(player, true)
+end
+
+-- Roubo da base de um BOT (pedido do usuário, 09/11: "tentei roubar a comida da base de um NPC, não
+-- dá"). Mesmo canal (tempo e não pode se mexer), mesmo limite diário do roubo normal; o bot é avisado e
+-- corre para brigar (BotService). A comida roubada é nova (o bot não tem perfil salvo).
+StealService.BotHooks = nil :: {
+	alert: (uid: number, thief: Player) -> (),
+	take: (uid: number, slot: number) -> string?,
+	has: (uid: number, slot: number) -> boolean,
+}?
+
+local function stealFromBot(thief: Player, foodModel: Model, botUid: number, slot: number)
+	local hooks = StealService.BotHooks
+	local primary = foodModel.PrimaryPart
+	local foodId = foodModel:GetAttribute("FoodId")
+	local def = if type(foodId) == "string" then Config.FoodById[foodId] else nil
+	if not hooks or not primary or not def or not hooks.has(botUid, slot) then
+		return
+	end
+	local thiefProfile = DataService.get(thief)
+	if not thiefProfile then
+		return
+	end
+	if Features.on("StealProtection") then
+		-- bot não é "jogador novo": só vale o limite de roubos por dia do ladrão
+		local okSteal = GameLogic.stealAllowed(thiefProfile.stealDay, thiefProfile.stealsToday, 999, os.time() // 86400)
+		if not okSteal then
+			Remotes.Notify:FireClient(thief, {
+				text = string.format("Você já fez %d roubos hoje. Volte amanhã!", GameRules.StealLimits.MaxPerDay),
+				color = Color3.fromRGB(255, 200, 80),
+			})
+			return
+		end
+	end
+	channeling[thief] = true
+	hooks.alert(botUid, thief)
+	Remotes.Notify:FireClient(thief, Locale.msg("stealing", { f = def.name }, Color3.fromRGB(255, 200, 80)))
+	local okRun, ok = pcall(function(): boolean
+		local startRoot = Guard.rootOf(thief)
+		local startPos = startRoot and startRoot.Position
+		local t0 = os.clock()
+		local alive = startPos ~= nil
+		while alive and os.clock() - t0 < Config.Steal.ChannelTime do
+			task.wait(0.1)
+			local root = Guard.rootOf(thief)
+			alive = root ~= nil
+				and foodModel.Parent ~= nil
+				and startPos ~= nil
+				and (root.Position - startPos).Magnitude <= CHANNEL_MAX_MOVE
+				and not CombatService.isKO(thief)
+		end
+		return alive
+	end)
+	channeling[thief] = nil
+	if not okRun or not ok or carrying[thief] then
+		Remotes.Notify:FireClient(thief, { text = "Roubo cancelado.", color = Color3.fromRGB(255, 90, 90) })
+		return
+	end
+	local taken = hooks.take(botUid, slot)
+	if not taken then
+		return
+	end
+	local tdef = Config.FoodById[taken]
+	if not tdef then
+		return
+	end
+	local visual = attachCarryVisual(thief, tdef)
+	carrying[thief] = {
+		food = { id = taken, uid = DataService.newUid() } :: any,
+		from = nil,
+		model = visual,
+		pickedAt = os.clock(),
+		pickedPos = primary.Position,
+	}
+	thief:SetAttribute("CarryingSteal", true)
+	Remotes.Notify:FireClient(
+		thief,
+		{ text = "Pegou! Corra para sua base: o dono está vindo atrás!", color = Color3.fromRGB(80, 255, 120) }
+	)
 end
 
 local function tryStartSteal(thief: Player, foodModel: Model)
@@ -160,6 +240,9 @@ local function tryStartSteal(thief: Player, foodModel: Model)
 	local slot = foodModel:GetAttribute("SlotIndex")
 	if type(ownerId) ~= "number" or type(slot) ~= "number" then
 		return
+	end
+	if ownerId < 0 then
+		return stealFromBot(thief, foodModel, ownerId, slot)
 	end
 	local owner = Players:GetPlayerByUserId(ownerId)
 	if not owner or owner == thief then

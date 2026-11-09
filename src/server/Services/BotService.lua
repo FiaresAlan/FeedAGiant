@@ -31,6 +31,7 @@ local DropService = require(script.Parent.DropService)
 local MeatService = require(script.Parent.MeatService)
 local BossService = require(script.Parent.BossService)
 local CombatService = require(script.Parent.CombatService)
+local StealService = require(script.Parent.StealService)
 local FoodModels = require(script.Parent.Parent.FoodModels)
 local World = require(script.Parent.Parent.World)
 
@@ -72,6 +73,8 @@ type Bot = {
 	arenaPts: number,
 	maxHp: number,
 	inDuel: boolean,
+	plot: { [number]: Model },
+	plotFolder: Instance?,
 }
 
 local BOT_HP = 110 -- um pouco menos que um jogador (150 na luta justa): dá para vencer, mas não é saco de pancada
@@ -330,25 +333,45 @@ local function placeGiant(bot: Bot)
 	bot.giant = giant
 end
 
--- Algumas comidas no pátio do bot (só visual)
+-- Comidas no pátio do bot. 09/11 (pedido do usuário): dá para ROUBAR (StealService, mesmo clique do
+-- pátio de um jogador). Cada comida roubada volta a aparecer depois de 2 a 4 min.
+local BOT_FOOD_POOL = { "apple", "bread", "banana", "pizza", "burger", "sushi", "lavacake", "goldtaco" }
+local function placeBotFood(bot: Bot, folder: Instance, i: number)
+	local slot = bot.base.slots[i]
+	if not slot or not bot.alive then
+		return
+	end
+	local foodId = BOT_FOOD_POOL[rng:NextInteger(1, #BOT_FOOD_POOL)]
+	local model = Instance.new("Model")
+	model.Name = "BotFood_" .. i
+	local holder = Instance.new("Part")
+	holder.Name = "Holder"
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(3, 3, 3)
+	holder.CFrame = slot.CFrame * CFrame.new(0, 2.2, 0)
+	holder.Parent = model
+	model.PrimaryPart = holder
+	FoodModels.dress(holder, foodId, 4)
+	model:SetAttribute("FoodId", foodId)
+	model:SetAttribute("OwnerUserId", bot.uid)
+	model:SetAttribute("SlotIndex", i)
+	local click = Instance.new("ClickDetector")
+	click.MaxActivationDistance = 25
+	click.Parent = holder
+	model.Parent = folder
+	bot.plot[i] = model
+end
+
 local function decorateBase(bot: Bot)
 	local folder = Instance.new("Folder")
 	folder.Name = "BotPlot"
-	local pool = { "apple", "bread", "banana", "pizza", "burger", "sushi", "lavacake", "goldtaco" }
-	for i = 1, rng:NextInteger(3, 7) do
-		local slot = bot.base.slots[i]
-		if slot then
-			local holder = Instance.new("Part")
-			holder.Anchored = true
-			holder.CanCollide = false
-			holder.CanQuery = false
-			holder.Size = Vector3.new(1, 1, 1)
-			holder.CFrame = slot.CFrame * CFrame.new(0, 2.2, 0)
-			holder.Parent = folder
-			FoodModels.dress(holder, pool[rng:NextInteger(1, #pool)], 4)
-		end
-	end
 	folder.Parent = bot.base.model
+	bot.plotFolder = folder
+	for i = 1, rng:NextInteger(3, 7) do
+		placeBotFood(bot, folder, i)
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -568,6 +591,14 @@ local function fightBack(bot: Bot)
 				-- erra às vezes (dá para fugir/bloquear); dano um pouco menor que o de um jogador
 				if rng:NextNumber() < 0.7 then
 					CombatService.npcHit(p, Config.Combat.PunchDamage * 0.8, bot.root.Position, "bot")
+					if StealService.isCarrying(p) then
+						-- o dono acertou o ladrão: a comida cai (igual a um jogador defendendo o pátio)
+						StealService.dropCarried(p)
+						Remotes.Notify:FireClient(p, {
+							text = bot.name .. " te acertou e você derrubou a comida!",
+							color = Color3.fromRGB(255, 90, 90),
+						})
+					end
 				end
 			end
 		end
@@ -885,6 +916,8 @@ local function spawnBot(): Bot?
 		arenaPts = 0,
 		maxHp = BOT_HP,
 		inDuel = false,
+		plot = {},
+		plotFolder = nil,
 	}
 	-- o cliente lista o bot na arena como qualquer oponente (item 7)
 	m:SetAttribute("BotUid", bot.uid)
@@ -1062,6 +1095,42 @@ function BotService.init()
 		end
 	end
 	table.insert(CombatService.NpcTargets, hitBotTarget)
+	StealService.BotHooks = {
+		has = function(uid: number, slot: number): boolean
+			local b = BotService.byUid(uid)
+			local m = b and b.plot[slot]
+			return m ~= nil and m.Parent ~= nil
+		end,
+		alert = function(uid: number, thief: Player)
+			local b = BotService.byUid(uid)
+			if not b or b.inDuel then
+				return
+			end
+			-- o dono larga o que estava fazendo e vai brigar com o ladrão (por até 14 s)
+			b.aggro = thief
+			b.fightUntil = os.clock() + 14
+			if not b.fighting then
+				task.spawn(fightBack, b)
+			end
+		end,
+		take = function(uid: number, slot: number): string?
+			local b = BotService.byUid(uid)
+			local m = b and b.plot[slot]
+			if not b or not m or not m.Parent then
+				return nil
+			end
+			local foodId = m:GetAttribute("FoodId")
+			m:Destroy()
+			b.plot[slot] = nil
+			local folder = b.plotFolder
+			task.delay(rng:NextNumber(120, 240), function()
+				if b.alive and folder and folder.Parent and not b.plot[slot] then
+					placeBotFood(b, folder, slot)
+				end
+			end)
+			return if type(foodId) == "string" then foodId else nil
+		end,
+	}
 	task.spawn(fillNamePool :: any)
 	task.spawn(function()
 		task.wait(8)
