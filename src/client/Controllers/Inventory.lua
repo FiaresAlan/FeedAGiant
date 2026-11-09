@@ -51,7 +51,8 @@ local function foodRow(
 	parent: Instance,
 	def: Config.FoodDef,
 	order: number,
-	actions: { { text: string, color: Color3, cb: () -> () } }
+	actions: { { text: string, color: Color3, cb: () -> () } },
+	mut: string?
 ): Frame
 	local rar = Config.Rarities[def.rarity]
 	local row =
@@ -72,11 +73,17 @@ local function foodRow(
 		})
 		UI.corner(swatch, def.shape == "Ball" and 18 or 8)
 	end
-	UI.label(row, def.name, {
+	-- Mutação (noite 09/11): nome na frente, na cor dela, e contorno da cor
+	local m = mut and GameRules.Mutations[mut]
+	UI.label(row, (if m then m.name .. " · " else "") .. def.name, {
 		Size = UDim2.new(1, -60 - #actions * 92, 0, 26),
 		Position = UDim2.fromOffset(56, 4),
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = if m then m.color else nil,
 	})
+	if m then
+		UI.stroke(row, m.color, 3)
+	end
 	-- 4.3: a característica muda o XP (ao comer) e a renda (exposta): mostra os valores JÁ ajustados
 	-- e o selo colorido da característica no nome.
 	local trait = GameRules.traitOf(def.id)
@@ -141,7 +148,7 @@ local function refresh(s: State.PlayerState)
 						Remotes.RequestFeed:FireServer({ inv = idx })
 					end,
 				},
-			})
+			}, (food :: any).mut)
 		end
 	end
 	if #s.inventory == 0 then
@@ -177,7 +184,7 @@ local function refresh(s: State.PlayerState)
 						Remotes.RequestFeed:FireServer(slotIdx)
 					end,
 				},
-			})
+			}, (food :: any).mut)
 		end
 	end
 	if #keys == 0 then

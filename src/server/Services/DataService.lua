@@ -31,7 +31,7 @@ local STORE_NAME = "FeedAGiant_Profiles_v1"
 local SCHEMA_VERSION = 1
 local LEADERBOARD_INTERVAL = 120
 
-export type FoodInstance = { id: string, uid: string }
+export type FoodInstance = { id: string, uid: string, mut: string? } -- mut: Mutação (GameRules.Mutations)
 export type Profile = {
 	coins: number,
 	level: number,
@@ -245,6 +245,18 @@ local function sanitize(player: Player, profile: Profile)
 	profile.pityCount = num(profile.pityCount, 0, GameRules.Pity.Hard, 0)
 	profile.streakBackups = num(profile.streakBackups, 0, GameRules.StreakBackup.Max, 0)
 	profile.stealsToday = num(profile.stealsToday, 0, 1e6, 0)
+	-- Mutações: só as conhecidas (save antigo/corrompido perde só a etiqueta inválida, nunca a comida)
+	local function cleanMut(f: any)
+		if type(f) == "table" and f.mut ~= nil and not GameRules.Mutations[f.mut] then
+			f.mut = nil
+		end
+	end
+	for _, f in profile.inventory do
+		cleanMut(f)
+	end
+	for _, f in profile.plot do
+		cleanMut(f)
+	end
 	-- Ovos: só tamanhos conhecidos; lugares do ninho "1".."3" com dados válidos.
 	local Sizes = GameRules.Eggs.Sizes
 	local eggs = {}

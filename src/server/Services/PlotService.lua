@@ -122,7 +122,9 @@ function PlotService.coinsPerSecond(player: Player): number
 		local def = Config.FoodById[food.id]
 		if def then
 			local trait = GameRules.traitOf(def.id)
-			total += Config.Rarities[def.rarity].cps * (if trait then trait.incomeMult else 1)
+			total += Config.Rarities[def.rarity].cps * (if trait then trait.incomeMult else 1) * GameRules.mutationIncome(
+				(food :: any).mut
+			) -- Mutações (noite 09/11)
 		end
 	end
 	local sp = GiantService.species(profile)
@@ -144,7 +146,7 @@ local PLOT_FOOD_SIZE = 4.4 -- maior dimensão da comida 3D no pátio (vaga de 6x
 -- Letreiro da comida só de perto (antes: 400 studs; 16 nomes por base poluíam a tela).
 local FOOD_LABEL_DISTANCE = 30
 
-local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
+local function buildFoodModel(def: Config.FoodDef, slot: Part, mut: string?): Model
 	local model = Instance.new("Model")
 	model.Name = "Food_" .. def.id
 	local bounds = FoodModels.boundsFor(def.id, PLOT_FOOD_SIZE)
@@ -214,6 +216,30 @@ local function buildFoodModel(def: Config.FoodDef, slot: Part): Model
 		sel.LineThickness = 0.05
 		sel.Parent = p
 	end
+	-- Mutação: brilho da cor dela + nome na etiqueta (barato: 1 luz e 1 emissor leve por comida)
+	local m = mut and GameRules.Mutations[mut]
+	if m then
+		label.Text = m.name .. " · " .. label.Text
+		label.TextColor3 = m.color
+		local light = Instance.new("PointLight")
+		light.Color = m.color
+		light.Range = 9
+		light.Brightness = 1.4
+		light.Shadows = false
+		light.Parent = p
+		local pe = Instance.new("ParticleEmitter")
+		pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		pe.Color = ColorSequence.new(m.color)
+		pe.LightEmission = 1
+		pe.LightInfluence = 0
+		pe.Size = NumberSequence.new(0.5, 0)
+		pe.Lifetime = NumberRange.new(0.8, 1.2)
+		pe.Rate = 4
+		pe.Speed = NumberRange.new(1, 2)
+		pe.SpreadAngle = Vector2.new(60, 60)
+		pe.Parent = p
+		model:SetAttribute("Mutation", mut)
+	end
 	model:SetAttribute("FoodId", def.id)
 	model:SetAttribute("SlotIndex", slot:GetAttribute("SlotIndex"))
 	model:SetAttribute("BaseIndex", slot:GetAttribute("BaseIndex"))
@@ -236,7 +262,7 @@ function PlotService.rebuildPlot(player: Player)
 		local idx = tonumber(key)
 		local def = Config.FoodById[food.id]
 		if idx and def and base.slots[idx] then
-			local model = buildFoodModel(def, base.slots[idx])
+			local model = buildFoodModel(def, base.slots[idx], (food :: any).mut)
 			model:SetAttribute("OwnerUserId", player.UserId)
 			foodModels[player][idx] = model
 		end
@@ -351,7 +377,7 @@ end
 --   * 4.3 traço da comida (Crescimento / Renda / Picante / Doce, GameRules.Traits);
 --   * 4.4 crítica: chance pequena (x3 com Picante) de x2,5 de crescimento.
 local streaks: { [Player]: { n: number, at: number } } = {}
-local function doFeed(player: Player, profile: DataService.Profile, def: Config.FoodDef, from: Vector3?)
+local function doFeed(player: Player, profile: DataService.Profile, def: Config.FoodDef, from: Vector3?, mut: string?)
 	local now = os.clock()
 	local trait = GameRules.traitOf(def.id)
 	local prev = streaks[player]
@@ -364,6 +390,7 @@ local function doFeed(player: Player, profile: DataService.Profile, def: Config.
 	local st = { n = n, at = now }
 	streaks[player] = st
 	local xp, crit, streakMult = GameLogic.feedXp(def.id, def.rarity, st.n, math.random())
+	xp = math.floor(xp * GameRules.mutationXp(mut)) -- comida com mutação dá mais XP
 	if trait and trait.fillHunger then
 		profile.hunger = 100
 	end
@@ -404,7 +431,7 @@ function PlotService.feed(player: Player, slot: number)
 	local fromModel = foodModels[player] and foodModels[player][slot]
 	local from = if fromModel then fromModel:GetPivot().Position else nil
 	profile.plot[tostring(slot)] = nil
-	local ok, err = pcall(doFeed :: any, player, profile, def, from)
+	local ok, err = pcall(doFeed :: any, player, profile, def, from, (item :: any).mut)
 	if not ok then
 		profile.plot[tostring(slot)] = item -- devolve a comida: nada se perde por um erro
 		warn("[PlotService] alimentar falhou:", err)
@@ -429,7 +456,7 @@ function PlotService.feedFromInventory(player: Player, invIndex: number)
 	table.remove(profile.inventory, invIndex)
 	local char = player.Character
 	local from = if char then char:GetPivot().Position + Vector3.new(0, 2, 0) else nil
-	local ok, err = pcall(doFeed :: any, player, profile, def, from)
+	local ok, err = pcall(doFeed :: any, player, profile, def, from, (item :: any).mut)
 	if not ok then
 		table.insert(profile.inventory, invIndex, item)
 		warn("[PlotService] alimentar falhou:", err)

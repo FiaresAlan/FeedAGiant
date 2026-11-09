@@ -503,4 +503,62 @@ GameRules.Eggs = {
 	RareAnnounceOrder = 4, -- espécie nova Épica ou melhor: aviso para o servidor (1 a cada 10 s)
 }
 
+---------------------------------------------------------------------------
+-- Mutações (noite de 09/11/2026; ideia de "clima + mutação" dos simuladores de jardim, adaptada).
+-- Durante os eventos que JÁ existem, a comida EXPOSTA no pátio pode ganhar uma mutação permanente
+-- (vai junto para a mochila e até num roubo). Grátis: nunca sai de caixa (chances pagas intactas).
+-- Escolha do jogador: deixar no pátio (mais renda) ou alimentar o gigante (mais XP). Features.Mutations.
+---------------------------------------------------------------------------
+GameRules.Mutations =
+	{
+		gold = {
+			name = "Dourada",
+			income = 1.5,
+			xp = 1.5,
+			color = Color3.fromRGB(255, 205, 60),
+			event = "GoldenHour",
+			chance = 0.04,
+		},
+		juicy = {
+			name = "Suculenta",
+			income = 1.25,
+			xp = 2,
+			color = Color3.fromRGB(90, 200, 255),
+			event = "FoodRain",
+			chance = 0.04,
+		},
+		rainbow = {
+			name = "Arco-íris",
+			income = 2,
+			xp = 2.5,
+			color = Color3.fromRGB(255, 120, 230),
+			event = "LuckyBoxes",
+			chance = 0.015,
+		},
+	} :: { [string]: { name: string, income: number, xp: number, color: Color3, event: string, chance: number } }
+GameRules.MutationTick = 15 -- segundos entre sorteios durante o evento (chance acima é por sorteio e por comida)
+
+-- Mutação que um evento pode dar (nil se nenhum).
+function GameRules.mutationForEvent(eventId: string?): string?
+	if not eventId then
+		return nil
+	end
+	for id, m in GameRules.Mutations do
+		if m.event == eventId then
+			return id
+		end
+	end
+	return nil
+end
+
+-- Multiplicadores de uma comida (sem mutação = 1).
+function GameRules.mutationIncome(mut: string?): number
+	local m = mut and GameRules.Mutations[mut]
+	return if m then m.income else 1
+end
+function GameRules.mutationXp(mut: string?): number
+	local m = mut and GameRules.Mutations[mut]
+	return if m then m.xp else 1
+end
+
 return GameRules

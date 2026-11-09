@@ -397,6 +397,33 @@ function GameLogic.weeklyClaim(wq: Weekly, week: number): GameRules.ObjectiveDef
 end
 
 ---------------------------------------------------------------------------
+-- Mutações (noite de 09/11): sorteio numa rodada do evento
+---------------------------------------------------------------------------
+-- Para cada comida do pátio SEM mutação, `rand()` < chance dá a mutação. Devolve as chaves que mudaram.
+-- Comida que já tem mutação nunca troca (sem perder uma Arco-íris por causa de uma Dourada).
+function GameLogic.rollMutations(
+	plot: { [string]: { id: string, mut: string? } },
+	mutId: string,
+	chance: number,
+	rand: () -> number
+): { string }
+	local changed = {}
+	local keys = {}
+	for key in plot do
+		table.insert(keys, key)
+	end
+	table.sort(keys) -- ordem fixa: o mesmo rand dá o mesmo resultado (teste)
+	for _, key in keys do
+		local food = plot[key]
+		if food.mut == nil and rand() < chance then
+			food.mut = mutId
+			table.insert(changed, key)
+		end
+	end
+	return changed
+end
+
+---------------------------------------------------------------------------
 -- Espécies iniciais (prompt v4 §1)
 ---------------------------------------------------------------------------
 -- starterSpecies no perfil: "" = nunca ofertada; "?" = ofertada e ainda não escolhida (vale entre

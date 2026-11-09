@@ -31,6 +31,8 @@ local Features = {
 	Revange = false, -- revanche do roubo pelo LUTAR — aguardando a cópia de teste
 	WeeklyQuest = false, -- missão semanal: escolher 1 de 3 no Diário (implementada)
 	DragonRaidPhase1 = false, -- fase 1 do Dragão (alimentar para enfraquecer) — aguardando a cópia de teste
+	-- Noite de 09/11/2026 (melhorias autônomas)
+	Mutations = false, -- comida exposta ganha mutação durante os eventos (Dourada, Suculenta, Arco-íris)
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).

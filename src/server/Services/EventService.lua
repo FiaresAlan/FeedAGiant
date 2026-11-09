@@ -67,6 +67,11 @@ local RUNNERS = {
 	FoodRain = runFoodRain,
 }
 
+-- Evento rolando agora (nil se nenhum). Usado pelas Mutações.
+function EventService.activeId(): string?
+	return active
+end
+
 function EventService.start(id: string)
 	if active then
 		return
