@@ -39,6 +39,7 @@ local Features = {
 	Fusion = true, -- 3 comidas iguais da mochila viram 1 Gigantesca (renda e XP x3,2)
 	Ancestral = true, -- Gigante Ancestral: banquete coletivo do servidor, chuva de comida e +XP para todos
 	EggSteal = true, -- 09/11: ninho em cada base + roubo leve de ovo (pedido do usuário). false = só o ninho da praça
+	SocialFeast = true, -- Banquete presencial em dupla: 2 humanos, oferta segura e buff de XP temporário
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).
