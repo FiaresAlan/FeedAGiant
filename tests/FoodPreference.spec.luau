@@ -38,9 +38,10 @@ return function()
 		it("alimentação rápida escolhe favorito normal, mas nunca versão mutada", function()
 			local t = 110 * 86400
 			local fav = Preference.favorite("human", t)
+			local other = if fav == "bread" then "banana" else "bread"
 			local slot, idx = Choice.choose({}, {
 				{ id = "apple", mut = "golden" },
-				{ id = "bread" },
+				{ id = other },
 				{ id = fav },
 			}, fav)
 			expect(slot).to.equal(nil)
