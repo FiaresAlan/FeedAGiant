@@ -29,6 +29,7 @@ local CombatService = require(script.Parent.CombatService)
 local DropService = require(script.Parent.DropService)
 local StealService = require(script.Parent.StealService)
 local BossService = require(script.Parent.BossService)
+local ArenaService = require(script.Parent.ArenaService)
 
 local TravelService = {}
 
@@ -301,6 +302,10 @@ local function inArenaRing(root: BasePart): boolean
 	return flat < World.Arena.floorR + 2 and root.Position.Y < World.Arena.floorTop + 12
 end
 
+local function say(player: Player, text: string)
+	Remotes.Notify:FireClient(player, { text = text, color = Color3.fromRGB(255, 170, 80) })
+end
+
 local function travel(player: Player, id: string, invite: boolean?)
 	local char = player.Character
 	-- fwjelaa-ignore: findfirstchild-chain (conferido logo abaixo)
@@ -309,8 +314,9 @@ local function travel(player: Player, id: string, invite: boolean?)
 		return
 	end
 	local now = os.clock()
-	if now - (lastTravel[player] or 0) < COOLDOWN then
-		return
+	local left = COOLDOWN - (now - (lastTravel[player] or 0))
+	if left > 0 then
+		return say(player, string.format("Espere %d s para viajar de novo.", math.ceil(left)))
 	end
 	-- Convite do Dragão (botão JOGAR): vale de qualquer lugar, mas só enquanto o Dragão está vivo.
 	if invite then
@@ -327,8 +333,14 @@ local function travel(player: Player, id: string, invite: boolean?)
 		})
 		return
 	end
-	if CombatService.isKO(player) or inArenaRing(root) then
-		return
+	if CombatService.isKO(player) then
+		return say(player, "Você está nocauteado. Espere levantar!")
+	end
+	if ArenaService.inFight(player) then
+		return say(player, "Você está numa luta da arena agora.")
+	end
+	if inArenaRing(root) then
+		return say(player, "Não dá para viajar de dentro do ringue.")
 	end
 	local dest: CFrame? = nil
 	if id == "base" then
@@ -343,6 +355,13 @@ local function travel(player: Player, id: string, invite: boolean?)
 	lastTravel[player] = now
 	Remotes.TravelDone:FireClient(player, { id = id })
 	task.wait(0.25) -- o cliente escurece a tela; a troca acontece no escuro
+	-- confere de novo depois da espera (pegou drop ou levou nocaute nesse meio segundo)
+	if StealService.isCarrying(player) or DropService.isCarrying(player) or CombatService.isKO(player) then
+		return
+	end
+	if invite and not BossService.center() then
+		return
+	end
 	if char.Parent then
 		char:PivotTo(dest)
 		root.AssemblyLinearVelocity = Vector3.zero

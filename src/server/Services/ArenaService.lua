@@ -494,6 +494,10 @@ local function botDuelBody(a: Player, bot: any)
 	local reason = "time"
 	while a.Parent do
 		task.wait(0.2)
+		if not BotService.byUid(bot.uid) then
+			reason = "botgone"
+			break
+		end
 		local hpB, koB, posB = BotService.duelState(bot.uid)
 		if CombatService.isKO(a) or koB then
 			playerWon, reason = koB, "ko"
@@ -522,6 +526,15 @@ local function botDuelBody(a: Player, bot: any)
 			playerWon = if fa == hpB then math.random() < 0.5 else fa > hpB
 			break
 		end
+	end
+	if reason == "botgone" then
+		-- o bot saiu do servidor (vaga para jogador real): luta anulada, ninguém ganha nem perde
+		notify(a, bot.name .. " saiu do servidor. Luta anulada.", Color3.fromRGB(255, 200, 80))
+		Remotes.ArenaState:FireAllClients({ kind = "End", a = a.UserId, b = bot.uid, winner = 0, aborted = true })
+		task.delay(2, function()
+			sendHome(a)
+		end)
+		return
 	end
 	if playerWon == nil then
 		playerWon = false
@@ -572,6 +585,10 @@ local function runBotDuel(a: Player, bot: any)
 		warn("[ArenaService] duelo com bot:", err)
 		BotService.duelEnd(bot.uid)
 		Remotes.ArenaState:FireAllClients({ kind = "End", a = a.UserId, b = bot.uid, winner = 0, aborted = true })
+		if a.Parent then
+			CombatService.resetFighter(a)
+			sendHome(a) -- não fica preso no ringue com as luvas depois de um erro
+		end
 	end
 end
 
@@ -608,7 +625,17 @@ local function requestBotDuel(challenger: Player, uid: number)
 	busy[challenger] = true
 	task.delay(1.5 + math.random() * 1.5, function()
 		busy[challenger] = nil
-		if not challenger.Parent or arenaInUse or not BotService.byUid(uid) then
+		local other2 = ArenaService.OtherBusy
+		local b2 = BotService.byUid(uid)
+		if
+			not challenger.Parent
+			or arenaInUse
+			or not b2
+			or b2.inDuel
+			or (other2 and other2())
+			or not canFight(challenger)
+			or CombatService.isKO(challenger)
+		then
 			Remotes.ArenaState:FireClient(challenger, { kind = "Declined", by = uid })
 			return
 		end
@@ -619,6 +646,11 @@ local function requestBotDuel(challenger: Player, uid: number)
 		PlotService.pushState(challenger)
 		task.spawn(runBotDuel, challenger, bot)
 	end)
+end
+
+-- Jogador em luta, esperando a vez no campeonato ou com desafio aceito (a viagem rápida consulta).
+function ArenaService.inFight(p: Player): boolean
+	return busy[p] ~= nil or inTournament[p] ~= nil or (fighting :: { [Player]: any })[p] ~= nil or botFight[p] ~= nil
 end
 
 local function requestDuel(challenger: Player, targetId: number)

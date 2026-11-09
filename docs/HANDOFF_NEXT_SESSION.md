@@ -1,6 +1,6 @@
 # Handoff — Feed a Giant ("Alimente um Gigante")
 
-**Atualizado em:** 08/11/2026 (noite, missão "evolução integrada") · **Repositório:** https://github.com/FiaresAlan/FeedAGiant (branch `main`, último commit `292ce41` + o deste handoff)
+**Atualizado em:** 09/11/2026 (pedido dos 17 pontos) · **Repositório:** https://github.com/FiaresAlan/FeedAGiant (branch `main`, último commit `292ce41` + o deste handoff)
 **Pasta local:** `C:\Users\Administrador\Pictures\FeedAGiant PRINCIPAL`
 **Idioma obrigatório:** português brasileiro em toda comunicação, documentação e relatório. O usuário é **leigo** em programação: explicar em linguagem simples.
 
@@ -10,6 +10,21 @@
 ---
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
+
+## A0000000000. 09/11/2026 (dia) — PEDIDO DOS 17 PONTOS ("tudo aprovado")
+- **Status item por item:** `docs/PEDIDO_17_PONTOS_2026-11-09.md`. Backup: tag `backup-2026-11-09-antes-dos-17-pontos`.
+- **Sistemas novos:**
+  - `TravelService` + `Controllers/Travel` (blips de viagem rápida e turbo da ponte);
+  - `Controllers/Dragon` (animação do Dragão e convite com o botão JOGAR);
+  - duelo de boxe contra bot (`ArenaService.botDuelBody` e `BotService.duel*`);
+  - bots levam soco (`CombatService.NpcTargets`);
+  - Lunchbox v5 (`LunchboxOdds.Contents` e `rollBox`).
+- **MAP_VERSION 4:** a arena foi para r 192 e o ninho foi para o centro da praça. O mapa assado do place oficial (v3) deixa de ser usado até um novo bake.
+- **Testado no Play** (cópia de teste gerada do código): 156/156.
+- **Falta:**
+  - teste com 2 jogadores e no celular;
+  - novo bake do mapa no place oficial;
+  - revisar a política de itens aleatórios pagos (a Lucky Lunchbox agora dá 2 a 3 comidas).
 
 ## A000000000. NOITE DE 09/11/2026 — o diretor como DONO (autonomia total dada pelo usuário)
 - **Relatório completo:** `docs/NOITE_2026-11-09_RELATORIO.md`.
