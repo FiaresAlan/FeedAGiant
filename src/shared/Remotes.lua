@@ -71,6 +71,9 @@ local EVENTS = {
 	"RequestStarter", -- client -> server: speciesId (só os 3 iniciais, 1 vez por conta; servidor valida)
 	"RequestFuse", -- client -> server: foodId (3 iguais da mochila → 1 Gigantesca; Features.Fusion)
 	"WelcomeBack", -- server -> client: {away, lines = {{id, text, action?}}} (Features.WelcomeBack)
+	"TravelMenu", -- server -> client: {from, spots = {{id, name, color}}} (blip de viagem rápida, 09/11)
+	"RequestTravel", -- client -> server: spotId (o servidor confere se está num blip)
+	"TravelDone", -- server -> client: {id} (escurece a tela) | {turbo = true} (turbo da ponte)
 }
 
 local FUNCTIONS = {

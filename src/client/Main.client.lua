@@ -28,6 +28,7 @@ local Meat = require(Controllers.Meat)
 local Admin = require(Controllers.Admin)
 local V3 = require(Controllers.V3)
 local Eggs = require(Controllers.Eggs)
+local Travel = require(Controllers.Travel)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -66,6 +67,7 @@ Meat.init(gui)
 Admin.init(gui)
 V3.init(gui)
 Eggs.init(gui)
+Travel.init(gui) -- 09/11: menu dos blips de viagem rápida
 Arena.OnOpenGiantBattle = GiantBattle.open
 -- ARENA única (09/11, item 7): a lista da batalha de gigantes vira a 2ª aba da janela da arena.
 GiantBattle.embed(Arena.giantContainer())

@@ -35,6 +35,7 @@ local EggNotificationService = require(Services.EggNotificationService)
 local MutationService = require(Services.MutationService)
 local AncestralService = require(Services.AncestralService)
 local WelcomeService = require(Services.WelcomeService)
+local TravelService = require(Services.TravelService)
 local WorldFx = require(script.Parent.WorldFx)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
@@ -68,6 +69,7 @@ EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até
 MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (flag)
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
 WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
+TravelService.init() -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
 TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
 -- Coliseu compartilhado: boxe e gigantes, um de cada vez (item 9.4). O Dragão mora na Ilha do

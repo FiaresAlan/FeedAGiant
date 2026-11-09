@@ -27,6 +27,7 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Admin = { burst = 6, perSecond = 2 }, -- comandos do painel de admin
 	Meat = { burst = 4, perSecond = 2 }, -- cortar porção da Carne Gigante
 	Egg = { burst = 3, perSecond = 1 }, -- ninho de ovos: comprar, colocar, alimentar, chocar
+	Travel = { burst = 2, perSecond = 0.5 }, -- viagem rápida (a espera real de 4 s fica no TravelService)
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.
