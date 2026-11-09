@@ -11,6 +11,17 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A000000000. NOITE DE 09/11/2026 — o diretor como DONO (autonomia total dada pelo usuário)
+- **Relatório completo:** `docs/NOITE_2026-11-09_RELATORIO.md`.
+- **Backup:** a tag `backup-2026-11-09-antes-da-noite`.
+- **Novidades:**
+  - Mutações (`MutationService`);
+  - Fusão (`PlotService.fuse`);
+  - Gigante Ancestral (`AncestralService`);
+  - Bem-vindo de volta (`WelcomeService`).
+- **13 funções LIGADAS em `Features.lua`.** O teste integrado com tudo ligado deu 147/147, sem erros.
+- **Sem publicar, sem Robux.** O usuário precisa salvar o place (o MainModule foi apagado) e testar.
+
 ## 🚨 A00000000. ALERTA DE SEGURANÇA (09/11/2026) — LER PRIMEIRO
 O place "Alimente um Gigante" (115578986093768) contém **`Workspace.MainModule`**, que NÃO é do projeto:
 - é um ModuleScript com `module.load(racismo)`: faz aparecer o modelo **"Racista"** (NPCs com armas, "Made by
