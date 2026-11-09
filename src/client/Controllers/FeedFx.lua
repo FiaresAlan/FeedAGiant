@@ -183,7 +183,7 @@ local function burst(at: Vector3, color: Color3, xp: number, e: { [string]: any 
 	local trait = if type(e.trait) == "string" then GameRules.Traits[e.trait] else nil
 	local text = "+" .. Util.formatNumber(xp) .. " XP"
 	if e.favorite and e.userId == player.UserId then
-		text = "SABOR FAVORITO!  " .. text
+		text = Locale.t("SABOR FAVORITO!") .. "  " .. text
 	end
 	if e.userId == player.UserId and e.feedNumber == 1 then
 		text = "PRIMEIRA MORDIDA!\n" .. text
