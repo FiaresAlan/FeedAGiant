@@ -197,4 +197,24 @@ return function()
 			expect(old.starterSpecies).to.equal("")
 		end)
 	end)
+
+	describe("Ovo do prêmio do Dragão", function()
+		it("só sai Pequeno, Médio, Grande ou Enorme, nas proporções definidas", function()
+			local E = GameRules.Eggs
+			local w = E.BossEggWeights
+			expect(w.massive).to.equal(nil)
+			local counts = {}
+			local n = 4000
+			for i = 0, n - 1 do
+				local size = GameLogic.bossEgg(w, E.Order, (i + 0.5) / n)
+				counts[size] = (counts[size] or 0) + 1
+			end
+			expect(counts.massive).to.equal(nil)
+			local total = w.small + w.medium + w.large + w.huge
+			for size, wt in w do
+				expect(math.abs(counts[size] / n - wt / total) < 0.01).to.equal(true)
+				expect(E.Sizes[size]).to.be.ok()
+			end
+		end)
+	end)
 end

@@ -170,7 +170,10 @@ function Meat.init(gui: ScreenGui)
 				)
 			end
 			if e.box then
-				text ..= "  +" .. Locale.t("Lunchbox Épica")
+				text ..= "  +" .. Locale.t("Lunchbox Épica") .. " (4 a 5 comidas)"
+			end
+			if type(e.egg) == "string" then
+				text ..= "  +" .. e.egg
 			end
 			show(text, Color3.fromRGB(255, 215, 90))
 			task.delay(6, function()

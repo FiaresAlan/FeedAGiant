@@ -501,6 +501,9 @@ GameRules.Eggs = {
 	DropSpeed = 0.88, -- quem carrega o ovo anda a 88%
 	DropUnlock = 10, -- segundos até poder pegar depois de cair
 	RareAnnounceOrder = 4, -- espécie nova Épica ou melhor: aviso para o servidor (1 a cada 10 s)
+	-- Prêmio de vitória contra o Dragão (pedido do usuário, 09/11, item 16): 1 ovo aleatório GRÁTIS
+	-- junto da Lunchbox, dentro do mesmo limite diário da caixa. O texto do prêmio lista os tamanhos.
+	BossEggWeights = { small = 40, medium = 32, large = 20, huge = 8 },
 }
 
 ---------------------------------------------------------------------------

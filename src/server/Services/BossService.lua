@@ -39,6 +39,8 @@ local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Hooks = require(script.Parent.Parent.Hooks)
 local GameLogic = require(script.Parent.Parent.GameLogic)
 local ProgressService = require(script.Parent.ProgressService)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local rewardRng = Random.new()
 
 local BossService = {}
 
@@ -326,8 +328,18 @@ local function finish(f: Fight, won: boolean)
 				profile.coins += coins + bonus
 				DataService.markDirty(p)
 				GiantService.addXp(p, xp, nil, nil)
+				local eggName: string? = nil
 				if box then
 					ShopService.openBox(p, box, { free = true, force = true, minRarity = B.RewardMinRarity })
+					-- + 1 ovo aleatório (item 16). Require tardio: o EggService já depende de serviços daqui.
+					if Features.on("EggSystem") then
+						local E = GameRules.Eggs
+						local size = GameLogic.bossEgg(E.BossEggWeights, E.Order, rewardRng:NextNumber())
+						local EggService = require(script.Parent.EggService) :: any
+						if EggService.giveEgg(p, size, "boss") then
+							eggName = E.Sizes[size].name
+						end
+					end
 				end
 				PlotService.pushState(p)
 				Remotes.BossState:FireClient(p, {
@@ -338,6 +350,7 @@ local function finish(f: Fight, won: boolean)
 					xp = xp,
 					share = share,
 					box = box ~= nil,
+					egg = eggName,
 				})
 				if won then
 					Hooks.fire("bossHelped", p)
