@@ -67,7 +67,9 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 		return false
 	end
 	local contents = LunchboxOdds.contents(boxId)
-	if not opts.force and not PlotService.hasInventorySpace(profile, contents.max) then
+	-- Pré-valida o lote inteiro antes de cobrar ou sortear: um prêmio gratuito não
+	-- pode sumir pela metade quando a mochila já está perto do teto estendido.
+	if not PlotService.hasInventorySpace(profile, contents.max, opts.force, opts.paid) then
 		Remotes.Notify:FireClient(player, {
 			text = "Mochila cheia! Alimente seu Gigante ou coloque comida no pátio.",
 			color = Color3.fromRGB(255, 90, 90),
@@ -100,13 +102,13 @@ function ShopService.openBox(player: Player, boxId: string, options: OpenOptions
 	end
 	local given = {}
 	for _, f in foods do
+		-- Todos os itens foram validados juntos acima. Se algum falhar inesperadamente,
+		-- não anunciar a abertura como entrega integral.
 		if not PlotService.giveFood(player, f.id, true, opts.paid == true) then
-			break -- teto duro da mochila (só prêmios grátis chegam aqui)
+			warn("[ShopService] falha inesperada na entrega de Lunchbox:", boxId)
+			return false
 		end
 		table.insert(given, { foodId = f.id, rarity = f.rarity, name = f.name })
-	end
-	if #given == 0 then
-		return false
 	end
 	if counts then
 		local before = profile.pityCount
