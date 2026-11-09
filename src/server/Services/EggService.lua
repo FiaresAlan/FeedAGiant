@@ -328,6 +328,9 @@ local function loadMesh(name: string): MeshPart?
 	local mesh = model:FindFirstChildWhichIsA("MeshPart", true)
 	if mesh then
 		mesh.Parent = nil
+		-- A cor padrão da MeshPart (163,162,165) multiplica a textura e apaga as cores originais
+		-- (mesmo bug das comidas cinza, item 13 de 08/11). Branco = cor da textura exata.
+		mesh.Color = Color3.new(1, 1, 1)
 	end
 	model:Destroy()
 	return mesh
@@ -402,7 +405,7 @@ local function buildNest()
 		anchor,
 		"NINHO DE OVOS",
 		UDim2.fromOffset(240, 50),
-		Vector3.new(0, 7, 0),
+		Vector3.new(0, 11, 0), -- acima dos cronômetros dos ovos maiores (até 5,2 studs)
 		Color3.fromRGB(255, 200, 90)
 	)
 	label.TextScaled = true

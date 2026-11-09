@@ -304,6 +304,8 @@ local function render()
 				Position = UDim2.fromOffset(12, 0),
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextTransparency = 0.4,
+				TextScaled = false,
+				TextSize = 22,
 				ZIndex = 14,
 			})
 			continue
@@ -314,6 +316,8 @@ local function render()
 				Size = UDim2.new(1, -20, 1, 0),
 				Position = UDim2.fromOffset(12, 0),
 				TextXAlignment = Enum.TextXAlignment.Left,
+				TextScaled = false,
+				TextSize = 22,
 				ZIndex = 14,
 			})
 			continue
