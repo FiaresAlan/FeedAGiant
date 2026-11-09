@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local FoodChoice = require(game.ReplicatedStorage.Shared.FoodChoice)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -681,7 +682,7 @@ local function buildFeedButton(gui: ScreenGui)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = feed.ZIndex + 1,
 	})
-	local sub = UI.label(feed, "Dá a comida mais rara do pátio", {
+	local sub = UI.label(feed, "Usa comida comum e preserva seus itens raros", {
 		Size = UDim2.fromOffset(310, 24),
 		Position = UDim2.fromOffset(86, 50),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -692,19 +693,13 @@ local function buildFeedButton(gui: ScreenGui)
 	})
 
 	feed.Activated:Connect(function()
-		local best: number? = nil
-		local bestOrder = 0
-		for key, food in State.current.plot do
-			local def = Config.FoodById[food.id]
-			if def and Config.Rarities[def.rarity].order > bestOrder then
-				bestOrder = Config.Rarities[def.rarity].order
-				best = tonumber(key)
-			end
-		end
-		if best then
-			Remotes.RequestFeed:FireServer(best)
-		elseif #State.current.inventory > 0 then
-			Remotes.RequestFeed:FireServer({ inv = 1 })
+		-- Alimentação rápida NUNCA escolhe automaticamente rara, mutada ou gigante.
+		-- O jogador ainda pode oferecer qualquer uma manualmente em ITENS.
+		local slot, index = FoodChoice.choose(State.current.plot, State.current.inventory)
+		if index then
+			Remotes.RequestFeed:FireServer({ inv = index })
+		elseif slot then
+			Remotes.RequestFeed:FireServer(slot)
 		end
 	end)
 
@@ -814,9 +809,15 @@ local function buildFeedButton(gui: ScreenGui)
 		{ Scale = 1.04 }
 	)
 	State.onChanged(function(s)
-		local hasFood = next(s.plot) ~= nil or #s.inventory > 0
+		local plotSlot, inventoryIndex = FoodChoice.choose(s.plot, s.inventory)
+		local hasFood = plotSlot ~= nil or inventoryIndex ~= nil
+		local hasSpecial = next(s.plot) ~= nil or #s.inventory > 0
 		feed.BackgroundColor3 = if hasFood then UI.Colors.Green else Color3.fromRGB(90, 90, 100)
-		sub.Text = if hasFood then Locale.t("Dá a comida mais rara do pátio") else Locale.t("Compre comida na LOJA")
+		feed.Active = hasFood
+		sub.Text = if hasFood
+			then Locale.t("Alimenta sem consumir comida rara")
+			elseif hasSpecial then Locale.t("Comida especial: selecione em ITENS")
+			else Locale.t("Compre comida na LOJA")
 		if hasFood and s.hunger < 75 then
 			pulse:Play()
 		else
