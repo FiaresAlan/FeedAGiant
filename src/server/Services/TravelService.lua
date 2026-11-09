@@ -364,22 +364,27 @@ local function travel(player: Player, id: string, invite: boolean?)
 	lastTravel[player] = now
 	Remotes.TravelDone:FireClient(player, { id = id })
 	task.wait(0.25) -- o cliente escurece a tela; a troca acontece no escuro
-	-- confere de novo depois da espera (pegou drop ou levou nocaute nesse meio segundo)
+	-- A janela do fade também é uma janela de corrida: o jogador pode entrar em combate,
+	-- sair do blip ou trocar de personagem depois da validação inicial.
+	if player.Parent ~= Players or player.Character ~= char or not char.Parent or root.Parent ~= char then
+		return
+	end
 	if
 		StealService.isCarrying(player)
 		or DropService.isCarrying(player)
 		or player:GetAttribute("CarryingEgg")
 		or CombatService.isKO(player)
+		or ArenaService.inFight(player)
+		or inArenaRing(root)
+		or (not invite and not nearPad(player))
 	then
-		return
+		return say(player, "Viagem cancelada: volte ao blip quando estiver livre.")
 	end
 	if invite and not BossService.center() then
-		return
+		return say(player, "O Dragão já não está disponível para a viagem.")
 	end
-	if char.Parent then
-		char:PivotTo(dest)
-		root.AssemblyLinearVelocity = Vector3.zero
-	end
+	char:PivotTo(dest)
+	root.AssemblyLinearVelocity = Vector3.zero
 end
 
 ---------------------------------------------------------------------------
