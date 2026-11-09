@@ -498,19 +498,21 @@ local function refreshVisual(player: Player, pulse: boolean)
 		if lbl then
 			local tag = if profile.championUntil > os.time() then "  👑" else ""
 			lbl.Text = string.format(
-				"%s%s\n%s • %s\nLv. %d • %s",
+				"%s%s\n%s • %s\nNv. %d • %s\nTAMANHO %.1fx",
 				player.DisplayName,
 				tag,
 				sp.name,
 				stage.name,
 				profile.level,
-				GiantService.mood(profile)
+				GiantService.mood(profile),
+				scale
 			)
 			lbl.TextColor3 = sp.color
 		end
 		if info then
 			info.StudsOffset = Vector3.new(0, 4 * scale, 0)
-			info.Size = UDim2.fromOffset(260 + scale * 10, 100 + scale * 3)
+			info.Size = UDim2.fromOffset(280 + scale * 10, 120 + scale * 3)
+			info.MaxDistance = 155 -- apenas perto da base: não poluir a praça com oito placas flutuantes
 		end
 	end
 	if lastStage[player] and lastStage[player] ~= stage.name and Config.stageForLevel(profile.level).minLevel > 1 then
