@@ -448,6 +448,9 @@ end
 -- Eclosão (animação depois que o servidor já entregou)
 ---------------------------------------------------------------------------
 local hatchGui: Frame
+local hatchQueue: { { [string]: any } } = {}
+local hatchRunning = false
+
 local function playHatch(data: { [string]: any })
 	local size = data.size
 	if type(size) ~= "string" or not E.Sizes[size] then
@@ -564,7 +567,20 @@ function Eggs.init(gui: ScreenGui)
 	Remotes.EggHatched.OnClientEvent:Connect(function(data: any)
 		if type(data) == "table" then
 			win.Visible = false
-			task.spawn(playHatch, data)
+			-- fila: uma eclosão por vez (dois CHOCAR seguidos não sobrepõem as animações)
+			table.insert(hatchQueue, data)
+			if not hatchRunning then
+				hatchRunning = true
+				task.spawn(function()
+					while #hatchQueue > 0 do
+						local nextData = table.remove(hatchQueue, 1)
+						if nextData then
+							playHatch(nextData)
+						end
+					end
+					hatchRunning = false
+				end)
+			end
 		end
 	end)
 	-- cronômetros: 1 vez por segundo (janela e etiquetas no mundo); giro leve dos ovos raros

@@ -20,7 +20,11 @@
   - notificação de "ovo pronto".
 - **Pacote de assets:** pasta "50 Stylized Eggs – Free 3D Asset Pack" em Pictures. Licença comercial, mas sem redistribuir, então o upload tem de ser privado.
 - **Validação:** `docs/VALIDACAO_OVOS_V1.md` traz a análise do pacote e **9 perguntas pendentes**.
-- **Estado:** o próprio pedido proíbe codar antes das respostas. Nada foi implementado nem enviado.
+- **Respostas (08/11):** "aceito todas, menos a 7" (usar os ovos do pacote com as cores originais).
+- **IMPLEMENTADO (desligado em `Features.EggSystem`/`EggVFX`):** EggService, Eggs.lua, EggOdds, ninho na praça, 6 modelos
+  privados (`egg-*` em CreatureAssets). Suíte 108/108; nota 7,5 (rascunho). Detalhes: `docs/VALIDACAO_OVOS_V1.md` §5.
+- **Falta:** 3 espécies iniciais + ovo de tutorial (modelos pela IA do Studio exigem um place de TESTE aberto, não o oficial),
+  notificação (pós-lançamento), teste com 2 jogadores e no celular.
 
 ## A00000. Especificação v3 (08/11/2026, fim da noite) — parte 1 entregue
 O usuário mandou a "Especificação Final v2.1 → v3.0" (com esqueletos em `src/shared/Config/`) e pediu: validar e implementar.

@@ -179,6 +179,10 @@ local function place(player: Player, profile: any, index: any)
 	local size: string = table.remove(profile.eggs, index) :: any
 	local def = E.Sizes[size]
 	profile.nest[free] = { size = size, hatchAt = os.time() + def.seconds, fed = false, warmed = false }
+	local acc = warmAcc[player]
+	if acc then
+		acc[free] = nil
+	end
 	DataService.markDirty(player)
 	Analytics.event(player, "egg_placed", def.seconds, { size })
 end
@@ -208,6 +212,8 @@ local function feed(player: Player, profile: any, key: any)
 	)
 end
 
+local checkMilestones: (Player) -> () -- definida mais abaixo (prêmios por nível)
+
 local function hatch(player: Player, profile: any, key: any)
 	local slot = type(key) == "string" and profile.nest[key]
 	if not slot or os.time() < slot.hatchAt or busy[player] then
@@ -227,6 +233,7 @@ local function hatch(player: Player, profile: any, key: any)
 	elseif profile.ownedSpecies[speciesId] then
 		rec = profile.giants[speciesId] or { level = 1, xp = 0 }
 	end
+	local levelBefore = profile.level
 	local level, xp, duplicate, gain = GameLogic.eggApply(rec, def.level)
 	if not duplicate then
 		-- espécie nova: nasce no nível do ovo, ou no herdado (30%) se for maior; nunca perde nada
@@ -243,15 +250,25 @@ local function hatch(player: Player, profile: any, key: any)
 	end
 	profile.peakLevel = math.max(profile.peakLevel, level)
 	profile.nest[key] = nil
+	local acc = warmAcc[player]
+	if acc then
+		acc[key] = nil -- o próximo ovo neste lugar começa o calor do zero (revisão cega)
+	end
 	profile.eggsHatched += 1
 	DataService.markDirty(player)
 	Analytics.event(player, "egg_hatched", level, { size, speciesId, if duplicate then "dup" else "new" })
-	-- 3) save imediato; 4) só então a animação
-	local saved = DataService.saveNow(player)
-	if not saved then
+	-- 3) save imediato; 4) só então a animação. pcall: um erro no save nunca deixa o ninho travado
+	-- (revisão cega: busy ficava preso se saveNow lançasse erro).
+	local okSave, saved = pcall(DataService.saveNow, player)
+	busy[player] = nil
+	if not okSave or not saved then
 		warn("[EggService] save extra falhou; a entrega fica no perfil em memória (autosave/saída gravam)")
 	end
-	busy[player] = nil
+	-- Nível do gigante ativo subiu pelo XP de repetido: avisa os outros sistemas (recordes, marcos).
+	if isActive and profile.level > levelBefore then
+		Hooks.fire("leveled", player, profile.level - levelBefore, profile.level)
+	end
+	checkMilestones(player)
 	if player.Parent == nil then
 		return
 	end
@@ -465,7 +482,7 @@ local function warmTick()
 	end
 end
 
-local function checkMilestones(player: Player)
+function checkMilestones(player: Player)
 	local profile = DataService.get(player)
 	if not profile then
 		return

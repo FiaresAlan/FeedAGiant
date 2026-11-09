@@ -80,3 +80,42 @@ nunca salvo nele. Recomendo uma cópia separada para testes (eu crio com `rojo b
 
 **O que NÃO foi feito agora:** nenhum código, nenhum upload, nenhuma mudança de economia. Só a análise do pacote (medição
 e render do ninho) e este documento.
+
+---
+
+## 5. Implementação (08/11/2026, depois das respostas: "aceito todas, menos a 7")
+P7 respondida: usar os ovos do pacote com as **texturas e cores originais**, escolhidos pelo nome, no melhor formato.
+
+### Feito e testado no Studio (modo Play, nada salvo no place)
+- **Assets:** escolhidos pelo nome e pela cor da raridade: Pequeno = `Egg_46_Moss` (verde), Médio = `Egg_47_Ice` (azul),
+  Grande = `Egg_48_Lava`, Enorme = `Egg_04_Golden`, Colossal = `Egg_50_Rainbow`. Formato: **GLB** (o mesmo do projeto,
+  mantém materiais). `tools/blender/prep_egg.py` junta as 3 a 21 cores de cada ovo numa paleta (1 malha, 1 textura,
+  cores **exatas**). Ninho: 468.562 → 15.000 triângulos, textura 1K. Os 6 modelos subiram como assets **privados**;
+  os arquivos ficam fora do Git (o repositório é público e a licença proíbe redistribuir).
+- **Servidor** (`EggService`): loja de moedas (Pequeno 3.000, Médio 12.000), até 3 guardados, ninho com 1/2/3 lugares
+  (níveis 1/25/50), `hatchAt` absoluto, fome −20% (gasta 1 comida Comum), calor −10% (30 s a ≤10 studs, medido no
+  servidor), eclosão na ordem segura (entrega sem pausa → save → aviso), repetido vira XP, prêmios do Dragão (1 Ovo
+  Grande por dia) e dos níveis 100 (Enorme) e 200 (Colossal), limite de pedidos (`Guard` "Egg"), métricas
+  `egg_bought/placed/need_fed/need_warmed/hatched/received`.
+- **Cliente** (`Eggs.lua`): janela NINHO DE OVOS com miniaturas 3D, CHANCES por espécie (mesma tabela do servidor),
+  ovos do próprio jogador no ninho com cronômetro e efeito por raridade (verde → arco-íris; 0 a 3 feixes; ≤ 30
+  partículas), animação de eclosão de 3 a 5 s e revelação. Dica de META "ovo pronto" / "choca em X min".
+- **Testes:** `tests/Eggs.spec.luau` (18) → suíte no Play **108 passed, 0 failed**. Fluxo real: compra, colocar, recusas,
+  eclosão com **save antes do aviso** (conferido), repetido → +XP, espécie nova no nível do ovo, 3 lugares, feixes 1/2/3.
+  Fotos `docs/qa/shots/ovos/01-06`. Corrigido no teste: cor cinza padrão da malha apagava as cores (agora branco) e
+  texto gigante nos lugares trancados.
+
+### Não feito (e por quê)
+| Item | Motivo | O que destrava |
+|---|---|---|
+| 3 espécies iniciais (Fogo, Gelo, Pedra) + escolha no 1º acesso | Os modelos pela IA do Studio são gerados **dentro do place aberto**, e o único Studio aberto é o seu place oficial (regra: nunca escrever nele). | Abrir uma cópia de teste (eu crio com `rojo build`) ou você gerar lá e me avisar. O código da escolha é pequeno depois disso |
+| Ovo de tutorial (Médio, 75 s, chuva individual) | Choca a espécie inicial escolhida: depende do item acima | Idem |
+| Notificação "ovo pronto" | Exige jogo publicado com ≥ 100 visitas, mensagem no Creator Dashboard, pacote Open Cloud e fila no MemoryStore | Lançamento |
+| Teste com 2 jogadores e no celular | Não feito nesta sessão | Próxima rodada de testes |
+
+### Revisão cega (1 revisor, rubrica system)
+- Nota **7,5** (notas [1,2,1,2,2,1]; soma refeita pelo diretor: 18/24). Abaixo de 8,5 = **rascunho**.
+- Corrigido depois: erro no save não trava mais o ninho (`pcall`); marcos e "subiu de nível" disparam depois da eclosão;
+  animações em fila (uma por vez, testado com 2 eclosões seguidas); calor zera ao chocar/colocar.
+  Suíte no Play de novo: **108 passed, 0 failed**.
+- Para passar de 8,5: teste com 2 jogadores, medição no celular e teste automático do fluxo do EggService.
