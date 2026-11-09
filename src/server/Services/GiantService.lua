@@ -624,6 +624,7 @@ function GiantService.addXp(
 		streak = ex.streak,
 		streakMult = ex.streakMult,
 		trait = ex.trait,
+		favorite = ex.favorite == true,
 	})
 	if leveled then
 		Remotes.Notify:FireClient(player, Locale.msg("levelup", { n = profile.level }, Color3.fromRGB(255, 220, 80)))
