@@ -15,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local FoodChoice = require(game.ReplicatedStorage.Shared.FoodChoice)
+local FoodPreference = require(game.ReplicatedStorage.Shared.FoodPreference)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -695,7 +696,8 @@ local function buildFeedButton(gui: ScreenGui)
 	feed.Activated:Connect(function()
 		-- Alimentação rápida NUNCA escolhe automaticamente rara, mutada ou gigante.
 		-- O jogador ainda pode oferecer qualquer uma manualmente em ITENS.
-		local slot, index = FoodChoice.choose(State.current.plot, State.current.inventory)
+		local favorite = (State.current :: any).favoriteFoodId
+		local slot, index = FoodChoice.choose(State.current.plot, State.current.inventory, favorite)
 		if index then
 			Remotes.RequestFeed:FireServer({ inv = index })
 		elseif slot then
@@ -809,13 +811,16 @@ local function buildFeedButton(gui: ScreenGui)
 		{ Scale = 1.04 }
 	)
 	State.onChanged(function(s)
-		local plotSlot, inventoryIndex = FoodChoice.choose(s.plot, s.inventory)
+		local favoriteId = (s :: any).favoriteFoodId
+		local plotSlot, inventoryIndex = FoodChoice.choose(s.plot, s.inventory, favoriteId)
 		local hasFood = plotSlot ~= nil or inventoryIndex ~= nil
 		local hasSpecial = next(s.plot) ~= nil or #s.inventory > 0
 		feed.BackgroundColor3 = if hasFood then UI.Colors.Green else Color3.fromRGB(90, 90, 100)
 		feed.Active = hasFood
-		sub.Text = if hasFood
-			then Locale.t("Alimenta sem consumir comida rara")
+		local fav = if type(favoriteId) == "string" then Config.FoodById[favoriteId] else nil
+		sub.Text = if hasFood and fav
+			then string.format("%s: %s (+%d%% XP)", Locale.t("PREFERE"), fav.name, math.floor((FoodPreference.BonusMult - 1) * 100 + 0.5))
+			elseif hasFood then Locale.t("Alimenta sem consumir comida rara")
 			elseif hasSpecial then Locale.t("Comida especial: selecione em ITENS")
 			else Locale.t("Compre comida na LOJA")
 		if hasFood and s.hunger < 75 then
