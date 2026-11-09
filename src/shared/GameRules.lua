@@ -487,7 +487,7 @@ GameRules.Eggs = {
 	WarmCut = 0.10, -- ficar perto por WarmSeconds: -10% do tempo que falta (1 vez por ovo)
 	WarmSeconds = 30,
 	WarmRadius = 10, -- studs do centro do ninho (conferido no servidor)
-	NestReach = 24, -- distância máxima para usar o ninho (servidor)
+	NestReach = 32, -- distância máxima para usar o ninho (servidor)
 	BossEggSize = "large", -- vitória sobre o Dragão: 1 Ovo Grande por dia
 	Milestones = { { level = 100, size = "huge" }, { level = 200, size = "massive" } },
 	TutorialSeconds = 75, -- ovo do primeiro acesso (Médio, 60-90 s)

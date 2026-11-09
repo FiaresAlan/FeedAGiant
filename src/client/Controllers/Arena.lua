@@ -108,26 +108,57 @@ local function statsText(s: State.PlayerState): string
 	})
 end
 
+local boxTab: Frame
+local giantTab: Frame
+local tabButtons: { [string]: TextButton } = {}
+Arena.OnShowGiantTab = nil :: (() -> ())?
+
+-- 09/11 (item 7): os dois modos do coliseu ficam JUNTOS, em duas abas da mesma janela. Antes o botão
+-- "BATALHA DE GIGANTES" fechava esta janela e abria outra, e o jogador via a tela "mudar do nada".
+local function showTab(which: string)
+	boxTab.Visible = which == "box"
+	giantTab.Visible = which == "giant"
+	for id, b in tabButtons do
+		local on = id == which
+		b.BackgroundColor3 = if on then (if id == "box" then UI.Colors.Red else UI.Colors.Green) else UI.Colors.Panel2
+		b.TextTransparency = if on then 0 else 0.35
+	end
+	if which == "giant" and Arena.OnShowGiantTab then
+		Arena.OnShowGiantTab()
+	end
+end
+
 local function buildWindow(gui: ScreenGui)
-	local body: Frame
-	win, body = UI.window(gui, "GIANT CLASH — COLISEU", UDim2.fromOffset(620, 540))
-	local stats = UI.label(body, "", { Size = UDim2.new(1, 0, 0, 26), TextColor3 = UI.Colors.Accent })
-	-- Dois modos no mesmo coliseu (item 9): boxe entre jogadores (aqui embaixo) e a batalha de gigantes.
-	local giantBtn = UI.button(body, "BATALHA DE GIGANTES  (seu gigante luta!)", UI.Colors.Green, {
-		Size = UDim2.new(1, 0, 0, 56),
-		Position = UDim2.fromOffset(0, 32),
-		TextScaled = false,
-		TextSize = 24,
+	local root: Frame
+	win, root = UI.window(gui, "ARENA — COLISEU", UDim2.fromOffset(620, 580))
+	local stats = UI.label(root, "", { Size = UDim2.new(1, 0, 0, 26), TextColor3 = UI.Colors.Accent })
+	for i, t in { { id = "box", text = "BOXE  x  oponente" }, { id = "giant", text = "BATALHA DE GIGANTES" } } do
+		local b = UI.button(root, t.text, UI.Colors.Panel2, {
+			Size = UDim2.new(0.5, -4, 0, 50),
+			Position = UDim2.new((i - 1) * 0.5, if i == 1 then 0 else 4, 0, 32),
+			TextScaled = false,
+			TextSize = 22,
+		})
+		b.Activated:Connect(function()
+			showTab(t.id)
+		end)
+		tabButtons[t.id] = b
+	end
+	boxTab = UI.frame(root, {
+		Size = UDim2.new(1, 0, 1, -92),
+		Position = UDim2.fromOffset(0, 92),
+		BackgroundTransparency = 1,
 	})
-	giantBtn.Activated:Connect(function()
-		win.Visible = false
-		if Arena.OnOpenGiantBattle then
-			Arena.OnOpenGiantBattle()
-		end
-	end)
-	UI.label(body, "BOXE: JOGADOR x JOGADOR", {
+	giantTab = UI.frame(root, {
+		Size = UDim2.new(1, 0, 1, -92),
+		Position = UDim2.fromOffset(0, 92),
+		BackgroundTransparency = 1,
+		Visible = false,
+	})
+	local body = boxTab
+	UI.label(body, "BOXE: VOCÊ x OPONENTE", {
 		Size = UDim2.new(1, 0, 0, 28),
-		Position = UDim2.fromOffset(0, 100),
+		Position = UDim2.fromOffset(0, 0),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Red,
 	})
@@ -136,7 +167,7 @@ local function buildWindow(gui: ScreenGui)
 		"Vencedor rouba as 2 comidas mais raras do PÁTIO do perdedor + 5% das moedas. Luta justa: mesma vida e força para os dois.",
 		{
 			Size = UDim2.new(1, 0, 0, 52),
-			Position = UDim2.fromOffset(0, 130),
+			Position = UDim2.fromOffset(0, 30),
 			TextScaled = false,
 			TextSize = 20,
 			TextWrapped = true,
@@ -145,8 +176,8 @@ local function buildWindow(gui: ScreenGui)
 		}
 	)
 	local scroll = Instance.new("ScrollingFrame")
-	scroll.Size = UDim2.new(1, 0, 1, -190)
-	scroll.Position = UDim2.fromOffset(0, 188)
+	scroll.Size = UDim2.new(1, 0, 1, -90)
+	scroll.Position = UDim2.fromOffset(0, 88)
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 6
@@ -279,9 +310,20 @@ local function buildFight(gui: ScreenGui)
 	)
 end
 
-function Arena.open()
+function Arena.open(tab: string?)
 	rebuildList()
-	UI.pop(win)
+	showTab(tab or "box")
+	if not win.Visible then
+		UI.pop(win)
+	end
+end
+
+function Arena.giantContainer(): Frame
+	return giantTab
+end
+
+function Arena.close()
+	win.Visible = false
 end
 
 function Arena.init(gui: ScreenGui)

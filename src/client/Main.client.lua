@@ -67,6 +67,13 @@ Admin.init(gui)
 V3.init(gui)
 Eggs.init(gui)
 Arena.OnOpenGiantBattle = GiantBattle.open
+-- ARENA única (09/11, item 7): a lista da batalha de gigantes vira a 2ª aba da janela da arena.
+GiantBattle.embed(Arena.giantContainer())
+GiantBattle.OpenHost = function()
+	Arena.open("giant")
+end
+GiantBattle.OnLaunch = Arena.close
+Arena.OnShowGiantTab = GiantBattle.refresh
 -- Música: trilha mais baixa durante as lutas; fanfarra de vitória só no fim (item 3, regra 9)
 Arena.OnFight = function(started: boolean, won: boolean?)
 	Music.setFighting(started)

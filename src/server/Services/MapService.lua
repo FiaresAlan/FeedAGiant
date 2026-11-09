@@ -154,7 +154,7 @@ end
 -- o jogo gera de novo (o place salvo não muda; é só re-assar para atualizar a visão no modo edição).
 -- v2 (08/11/2026): arena física (World.buildArena) + estrada da praça até ela.
 -- v3 (08/11/2026 noite): Ilha do Dragão flutuante + ponte (World.buildBossIsland).
-local MAP_VERSION = 3
+local MAP_VERSION = 4 -- 4: arena colada na praça, ninho no centro, atalhos (09/11)
 
 -- Places antigos (ex.: o place oficial) ainda têm o Baseplate de 1200x4 com topo em y=2, acima do chão
 -- novo (topo em 0): árvores, estrada e bases ficavam "enterradas". Move para o ServerStorage (não apaga).

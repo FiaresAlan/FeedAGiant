@@ -225,7 +225,11 @@ local function renderNest()
 			local part: BasePart
 			if t then
 				part = t:Clone()
-				local k = E.Sizes[slot.size].scale / math.max(t.Size.Y, 0.01)
+				local nestModel = Workspace:FindFirstChild("EggNest")
+				local big = nestModel and nestModel:GetAttribute("EggScale")
+				local k = E.Sizes[slot.size].scale
+					* (if type(big) == "number" then big else 1)
+					/ math.max(t.Size.Y, 0.01)
 				part.Size = t.Size * k
 			else
 				part = Util.makePart({ Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 3, 2.4) })

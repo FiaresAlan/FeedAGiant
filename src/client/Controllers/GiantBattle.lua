@@ -21,7 +21,13 @@ local GiantBattle = {}
 local G = Config.GiantBattle
 
 local win: Frame
+local winBody: Frame
+local embedded = false
 local list: Frame
+-- 09/11 (item 7): a lista de gigantes mora numa ABA da janela ARENA (junto do boxe). Quem abrir a
+-- batalha de gigantes por outro caminho cai na mesma aba (OpenHost).
+GiantBattle.OpenHost = nil :: (() -> ())?
+GiantBattle.OnLaunch = nil :: (() -> ())?
 local hud: Frame
 local movesBar: Frame
 local meName: TextLabel
@@ -112,6 +118,9 @@ local function rebuild()
 		go.Activated:Connect(function()
 			Remotes.RequestGiantBattle:FireServer(sp.id)
 			win.Visible = false
+			if GiantBattle.OnLaunch then
+				GiantBattle.OnLaunch()
+			end
 		end)
 	end
 	if order == 0 then
@@ -126,9 +135,27 @@ end
 
 function GiantBattle.open()
 	rebuild()
+	if embedded and GiantBattle.OpenHost then
+		GiantBattle.OpenHost()
+		return
+	end
 	if not win.Visible then
 		UI.pop(win)
 	end
+end
+
+function GiantBattle.refresh()
+	rebuild()
+end
+
+-- Move o conteúdo da janela (texto + lista) para dentro de outro quadro (a aba da ARENA).
+function GiantBattle.embed(container: Frame)
+	for _, child in winBody:GetChildren() do
+		if child:IsA("GuiObject") then
+			child.Parent = container
+		end
+	end
+	embedded = true
 end
 
 local function setTurn(on: boolean, seconds: number?)
@@ -169,6 +196,7 @@ end
 function GiantBattle.init(gui: ScreenGui)
 	local body: Frame
 	win, body = UI.window(gui, "BATALHA DE GIGANTES", UDim2.fromOffset(620, 520))
+	winBody = body
 	UI.label(
 		body,
 		string.format(

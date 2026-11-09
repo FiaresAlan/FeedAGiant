@@ -489,12 +489,12 @@ function World.buildHub(root: Instance): Part
 
 	-- Placares entre os caminhos (os caminhos chegam nos múltiplos de 45°)
 	leaderboard(1, "MAIORES GIGANTES", -22.5, root)
-	leaderboard(2, "MAIS REBIRTHS", 22.5, root)
+	leaderboard(2, "MAIS REBIRTHS", 67.5, root) -- saiu de 22,5° (frente do portão da arena)
 	leaderboard(3, "REIS DA ARENA", 157.5, root)
 
 	-- Canteiros nos outros vãos entre caminhos
 	local rng = Random.new(SEED + 7)
-	for _, phi in { 67.5, 112.5, 202.5, 247.5, 292.5 } do
+	for _, phi in { 112.5, 202.5, 247.5, 292.5 } do
 		local c = polar(phi, 129, 1)
 		local bed = Build.part({
 			Name = "Planter",
@@ -880,9 +880,11 @@ end
 -- chão de areia com anéis e uma coroa pintada no centro. Só peças (estilo do mapa), ~260 peças.
 -- Lugar: vão entre as bases a φ 22,5° (bases a cada 45° começando em 90°; lagos em 67,5/202,5/292,5).
 ---------------------------------------------------------------------------
+-- 09/11 (item 8, pedido do usuário): a arena veio para COLADA na praça central (portão encostado no
+-- degrau da praça, perto do caldeirão). A placa "MAIS REBIRTHS" que ficava na frente foi para 67,5°.
 World.Arena = {
 	phi = 22.5,
-	r = 235,
+	r = 192,
 	floorR = 24, -- área de luta (sair dela = derrota por ringue)
 	floorTop = 0.6,
 	outerR = 38,
@@ -1214,7 +1216,7 @@ function World.buildArena(root: Instance): Model
 	-- Estrada de pedra da praça até a rampa do portão
 	local from = PLAZA_OUTER_R
 	local to = A.r - gateR - 10
-	local len = to - from
+	local len = math.max(2, to - from)
 	local dir = polar(A.phi, 1, 0)
 	local mid = dir * (from + len / 2)
 	local road = Build.part({

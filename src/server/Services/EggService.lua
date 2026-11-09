@@ -374,6 +374,11 @@ local function loadMesh(name: string): MeshPart?
 	return mesh
 end
 
+local NEST_PHI = 270
+local NEST_R = 64
+local NEST_WIDTH = 26
+local NEST_EGG_SCALE = 1.6
+
 local function buildNest()
 	local map = Workspace:WaitForChild("Map", 60)
 	local pad = map and map:WaitForChild("ShopPad", 60)
@@ -381,8 +386,11 @@ local function buildNest()
 		warn("[EggService] ShopPad não encontrado; ninho não criado")
 		return
 	end
-	-- ao lado da loja, do lado oposto ao caldeirão (direita de quem olha a loja), no chão
-	local cf = pad.CFrame * CFrame.new(-26, 0, -2)
+	-- 09/11 (item 2, pedido do usuário): o ninho era pequeno e escondido ao lado da loja. Agora é GRANDE
+	-- e fica no vão vazio da praça, do lado oposto à arena (φ 270°, r 64 do caldeirão), virado para o centro.
+	local phi = math.rad(NEST_PHI)
+	local spot = Vector3.new(math.sin(phi) * NEST_R, pad.Position.Y, -math.cos(phi) * NEST_R)
+	local cf = CFrame.lookAt(spot, Vector3.new(0, spot.Y, 0))
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { pad }
@@ -398,6 +406,8 @@ local function buildNest()
 		nest.Name = "Nest"
 		nest.Anchored = true
 		nest.CanCollide = true
+		local k = NEST_WIDTH / math.max(nest.Size.X, nest.Size.Z, 0.01)
+		nest.Size = nest.Size * k
 		local h = nest.Size.Y
 		nest.CFrame = base * CFrame.new(0, h / 2, 0)
 		nest.Parent = folder
@@ -407,7 +417,7 @@ local function buildNest()
 		local p = Util.makePart({
 			Name = "Nest",
 			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(2, 14, 14),
+			Size = Vector3.new(2, NEST_WIDTH, NEST_WIDTH),
 			CFrame = base * CFrame.new(0, 1, 0) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = Color3.fromRGB(214, 110, 60),
 			Material = Enum.Material.SmoothPlastic,
@@ -431,7 +441,7 @@ local function buildNest()
 	prompt.ObjectText = "Chocar gigantes"
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
-	prompt.MaxActivationDistance = 14
+	prompt.MaxActivationDistance = 22
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = anchor
 	prompt.Triggered:Connect(function(p)
@@ -443,12 +453,13 @@ local function buildNest()
 		anchor,
 		"NINHO DE OVOS",
 		UDim2.fromOffset(240, 50),
-		Vector3.new(0, 11, 0), -- acima dos cronômetros dos ovos maiores (até 5,2 studs)
+		Vector3.new(0, 16, 0), -- acima dos cronômetros dos ovos maiores (até 5,2 × 1,6 studs)
 		Color3.fromRGB(255, 200, 90)
 	)
 	label.TextScaled = true
 	folder.PrimaryPart = anchor
-	folder:SetAttribute("SlotOffsets", "0,0,0;-4.5,0,1.5;4.5,0,1.5") -- posições dos ovos (cliente)
+	folder:SetAttribute("SlotOffsets", "0,0,0;-7,0,2.5;7,0,2.5") -- posições dos ovos (cliente)
+	folder:SetAttribute("EggScale", NEST_EGG_SCALE) -- ovos no ninho maiores (item 2)
 	folder.Parent = Workspace
 	nestCenter = anchor.Position
 end
