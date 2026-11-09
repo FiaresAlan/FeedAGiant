@@ -20,6 +20,7 @@
 -- Desempenho (celular): 30 Hz, só gigantes perto da câmera; squash só em modelos de até 4 peças.
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local GiantPersonality = require(game.ReplicatedStorage.Shared.GiantPersonality)
@@ -65,6 +66,9 @@ type Track = {
 	velZ: number,
 	lastNow: number,
 	landedAt: number, -- última poeira (para emitir 1 vez por aterrissagem)
+	watchNext: number,
+	watchTarget: number,
+	watchYaw: number,
 }
 
 local tracks: { [Model]: Track } = {}
@@ -146,6 +150,9 @@ local function newTrack(giant: Model): Track
 		velZ = 0,
 		lastNow = os.clock(),
 		landedAt = 0,
+		watchNext = 0,
+		watchTarget = 0,
+		watchYaw = 0,
 	}
 	capture(t)
 	return t
@@ -385,6 +392,34 @@ local function startAction(t: Track, kind: string, now: number, impact: number?)
 	end
 end
 
+-- O gigante acompanha quem visita a base com um pequeno giro do corpo.
+-- Amostragem a cada 0,7 s: evita buscar jogadores em todos os frames no celular.
+local function visitorYaw(t: Track, now: number): number
+	if now >= t.watchNext then
+		t.watchNext = now + 0.7
+		t.watchTarget = 0
+		local nearest = 40
+		for _, pl in Players:GetPlayers() do
+			local root = pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")
+			if root and root:IsA("BasePart") then
+				local off = root.Position - t.base.Position
+				local horizontal = Vector3.new(off.X, 0, off.Z)
+				local dist = horizontal.Magnitude
+				if dist > 4 and dist < nearest then
+					local localPos = t.base:VectorToObjectSpace(horizontal)
+					local ang = math.deg(math.atan2(localPos.X, -localPos.Z))
+					if math.abs(ang) <= 85 then
+						nearest = dist
+						t.watchTarget = math.clamp(ang, -17, 17)
+					end
+				end
+			end
+		end
+	end
+	t.watchYaw += (t.watchTarget - t.watchYaw) * math.min(1, STEP * 4)
+	return t.watchYaw
+end
+
 -- Pose completa no instante `now`: idle + humor + ação.
 local function pose(t: Track, now: number): (CFrame, number, number)
 	local P = GiantPersonality.get(t.giant:GetAttribute("Species") :: string?)
@@ -395,7 +430,7 @@ local function pose(t: Track, now: number): (CFrame, number, number)
 	local br = math.sin(now * hz * math.pi * 2 + t.phase)
 	local sy = 1 + br * amp
 	local sxz = 1 - br * amp * 0.5
-	local sway = math.sin(now * 0.45 + t.phase) * P.sway
+	local sway = math.sin(now * 0.45 + t.phase) * P.sway + visitorYaw(t, now)
 	local roll = math.sin(now * 0.6 + t.phase * 1.3) * P.roll
 	local lift = P.hover * h * (0.5 + 0.5 * math.sin(now * 1.1 + t.phase))
 	local lean = P.lean + (if mood == "Faminto" then 4 else 0)
