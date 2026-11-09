@@ -26,7 +26,8 @@ local StarterSpecies = require(game.ReplicatedStorage.Shared.StarterSpecies)
 
 local OnboardingService = {}
 
-local firstFeedPending: { [Player]: boolean } = {}
+-- Momento em que o jogador novo teve a base pronta; usado só para medir o primeiro feed.
+local firstFeedPending: { [Player]: number } = {}
 
 local function isNewPlayer(profile: any): boolean
 	return profile.onboardingAt == 0 and profile.totalFeeds == 0 and profile.totalBoxes == 0
@@ -76,7 +77,7 @@ function OnboardingService.onJoin(player: Player)
 	if not profile or not isNewPlayer(profile) then
 		return
 	end
-	firstFeedPending[player] = true
+	firstFeedPending[player] = os.clock()
 	-- Marca a conta como "começou como novata" (-1). Só ela pode ganhar o presente no fim do tutorial:
 	-- veterano que refaz o tutorial não ganha (revisão cega 08/11). Vira os.time() ao terminar.
 	profile.onboardingAt = -1
@@ -136,10 +137,12 @@ function OnboardingService.init()
 	end)
 	-- Primeira alimentação: o servidor manda o "efeito dobrado" só para o próprio jogador.
 	Hooks.on("fed", function(player: Player)
-		if firstFeedPending[player] then
+		local startedAt = firstFeedPending[player]
+		if startedAt then
 			firstFeedPending[player] = nil
 			Remotes.OnboardingV2:FireClient(player, { kind = "FirstFeed" })
 			Analytics.event(player, "onboarding_phase_started", 2, { "first_feed" })
+			Analytics.event(player, "ftue_first_feed_seconds", math.max(0, os.clock() - startedAt), { "new_player" })
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(p)
