@@ -6,7 +6,8 @@ local Config = require(script.Parent.Config)
 local SocialFeastRules = {}
 
 SocialFeastRules.WindowSeconds = 120
-SocialFeastRules.CooldownSeconds = 180
+SocialFeastRules.CooldownSeconds = 180 -- por pessoa, não bloqueia o servidor inteiro
+SocialFeastRules.GlobalResetSeconds = 10 -- só a curta celebração do pedestal
 SocialFeastRules.BuffSeconds = 240
 SocialFeastRules.BuffMult = 1.15
 SocialFeastRules.RewardCoins = 150
