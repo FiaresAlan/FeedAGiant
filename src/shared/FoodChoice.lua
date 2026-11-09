@@ -21,12 +21,12 @@ end
 
 -- Devolve (slot do pátio, índice da mochila). Nunca consome nada: a decisão real
 -- continua sendo validada e executada no servidor.
-function FoodChoice.choose(plot: { [string]: any }, inventory: { any }): (number?, number?)
+function FoodChoice.choose(plot: { [string]: any }, inventory: { any }, preferredId: string?): (number?, number?)
 	-- A mochila vem antes do pátio para preservar renda passiva já exposta.
 	local bestInv, bestOrder = nil :: number?, math.huge
 	for index, item in inventory do
 		if FoodChoice.isSafe(item) then
-			local rank = Config.Rarities[Config.FoodById[item.id].rarity].order
+			local rank = if preferredId and item.id == preferredId then 0 else Config.Rarities[Config.FoodById[item.id].rarity].order
 			if rank < bestOrder then
 				bestOrder, bestInv = rank, index
 			end
@@ -35,17 +35,16 @@ function FoodChoice.choose(plot: { [string]: any }, inventory: { any }): (number
 	if bestInv then
 		return nil, bestInv
 	end
-	local bestPlot, bestSlot, lowest = nil :: any, nil :: number?, math.huge
+	local bestSlot, lowest = nil :: number?, math.huge
 	for key, item in plot do
 		local index = tonumber(key)
 		if index and index % 1 == 0 and FoodChoice.isSafe(item) then
-			local rank = Config.Rarities[Config.FoodById[item.id].rarity].order
+			local rank = if preferredId and item.id == preferredId then 0 else Config.Rarities[Config.FoodById[item.id].rarity].order
 			if rank < lowest or (rank == lowest and (bestSlot == nil or index < bestSlot)) then
-				lowest, bestPlot, bestSlot = rank, item, index
+				lowest, bestSlot = rank, index
 			end
 		end
 	end
-	local _ = bestPlot
 	return bestSlot, nil
 end
 
