@@ -109,6 +109,7 @@ export type Profile = {
 	-- Prompt v4 (09/11/2026). Aditivos (slices): perfis antigos ganham o padrão sem perder nada.
 	mysteryChest: { unlockAt: number }, -- baú de 24 h (ainda sem código: espera a cópia de teste)
 	revangeTarget: number, -- UserId do ladrão para a revanche (0 = nenhum; ainda sem código)
+	eggNotifyHatchAt: number, -- hatchAt do último ovo já avisado por notificação (nunca 2 vezes)
 	weeklyQuest: {
 		week: number, -- semana (segunda a domingo, UTC) a que a escolha pertence
 		chosenId: string, -- "" = ainda não escolheu
@@ -187,6 +188,7 @@ local function defaultProfile(): Profile
 		starterSpecies = "",
 		mysteryChest = { unlockAt = 0 },
 		revangeTarget = 0,
+		eggNotifyHatchAt = 0,
 		weeklyQuest = { week = 0, chosenId = "", chosenAt = 0, swappedThisWeek = false, progress = 0, claimed = false },
 	}
 end

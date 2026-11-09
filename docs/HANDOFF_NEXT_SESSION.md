@@ -11,6 +11,22 @@
 
 # PARTE A — ESTADO ATUAL E PRÓXIMOS PASSOS
 
+## A0000000. Prompt v4 (09/11/2026) — parte liberada feita
+- **Feito:**
+  - flags `TutorialEgg`, `Revange`, `WeeklyQuest` e `DragonRaidPhase1` (todas desligadas);
+  - campos `mysteryChest`, `revangeTarget`, `weeklyQuest` e `eggNotifyHatchAt`;
+  - **missão semanal 1-de-3** no Diário;
+  - faixas de drop dos ovos do usuário (`EggDropTables.lua`, com as espécies reais);
+  - estrutura da notificação de ovo, sem API (`EggNotificationService`, `docs/PENDENCIAS_POS_PUBLICACAO.md`).
+- **Testes:** suíte 121/121. Nota 8,3, ainda rascunho.
+- **Ressalvas para o usuário** (`docs/VALIDACAO_ESPEC_V4.md`):
+  - o teto do jogo é 250 (o usuário pediu aviso antes de mudar o Colossal);
+  - o Pequeno agora só dá o Humano;
+  - o Goblin ficou fora das faixas;
+  - as espécies iniciais podem ser feitas por cor no Blender, sem a cópia de teste;
+  - na revanche, o "50%" de um roubo de COMIDA ainda não foi definido.
+- **Bloqueado até a cópia de teste do place:** §1, §3.1, §3.2, §4.1, §4.3 e os testes com 2 jogadores e no celular.
+
 ## A000000. Sistema de Ovos (08/11/2026, madrugada): VALIDADO, NÃO IMPLEMENTADO
 - **Pedido do usuário:**
   - ovos de 5 tamanhos num Ninho na praça;

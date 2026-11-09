@@ -10,8 +10,6 @@
 --   3. fila no MemoryStore (uma chave por usuário, ordenada pela hora, "reivindicar antes de enviar",
 --      não enviar se o jogador estiver online) — vault "Experience Notifications and Return Prompts" §5.
 -- A Roblox só entrega para quem tem 13+ e ativou notificações; isso é filtrado por ela, não por nós.
-local Players = game:GetService("Players")
-
 local Features = require(game.ReplicatedStorage.Shared.Features)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local DataService = require(script.Parent.DataService)
@@ -54,17 +52,17 @@ function EggNotificationService.send(_job: Job): boolean
 end
 
 function EggNotificationService.init()
-	Players.PlayerRemoving:Connect(function(player: Player)
+	-- onReleasing recebe o perfil ANTES do save final (no PlayerRemoving ele já pode ter sido liberado).
+	DataService.onReleasing(function(player: Player, profile: DataService.Profile)
 		if not Features.on("EggNotifications") or EggNotificationService.MESSAGE_ID == "" then
 			return
 		end
-		local profile = DataService.get(player)
-		if not profile then
-			return
-		end
-		local job = EggNotificationService.planJob(player.UserId, profile.nest :: any, os.time(), nil)
+		local sent = profile.eggNotifyHatchAt
+		local job = EggNotificationService.planJob(player.UserId, profile.nest :: any, os.time(), sent)
 		if job then
-			EggNotificationService.send(job)
+			-- marca no perfil (salvo agora) para nunca avisar 2 vezes o mesmo ovo
+			profile.eggNotifyHatchAt = job.dueAt
+			task.spawn(EggNotificationService.send, job)
 		end
 	end)
 end

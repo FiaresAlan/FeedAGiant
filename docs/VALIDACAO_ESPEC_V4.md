@@ -69,3 +69,12 @@ com estrutura, sem chamar a API; tabela de drops pela regra da resposta 2.
 | §3.1 Soco guiado (Treinador) · §3.2 Baú 24 h · §4.1 Revanche · §4.3 Dragão fase 1 | Cópia de teste (conforme pedido) |
 | §2.1 2 jogadores · §2.2 celular | Cópia de teste + contas/aparelho |
 | §2.3 Notificação (envio) | Publicar + 100 visitas (`docs/PENDENCIAS_POS_PUBLICACAO.md`) |
+
+## 5. Revisão cega (1 revisor, rubrica system)
+- Nota **8,3** (notas [1,2,2,2,1,2]; soma refeita pelo diretor: 20/24). Ainda abaixo de 8,5 = **rascunho**.
+- Corrigido depois:
+  - se a Lunchbox Épica da semana não abrir, ela vai para as **caixas guardadas** na base e nunca se perde;
+  - o progresso **aparece ao vivo** no Diário aberto;
+  - notificação: lê o perfil antes do save final e grava `eggNotifyHatchAt` (nunca avisa 2 vezes o mesmo ovo).
+- Suíte no Play depois das correções: **121 passed, 0 failed**.
+- Para fechar ≥ 8,5: painel de 3 revisores depois das correções e teste com 2 jogadores (resgate em servidor cheio).

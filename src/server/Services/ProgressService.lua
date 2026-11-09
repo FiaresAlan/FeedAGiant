@@ -144,8 +144,9 @@ local function weeklyBump(player: Player, kind: string, amount: number)
 				text = "MISSÃO SEMANAL COMPLETA! Resgate no DIÁRIO.",
 				color = Color3.fromRGB(255, 200, 80),
 			})
-			Remotes.DiaryState:FireClient(player, ProgressService.state(player))
 		end
+		-- progresso ao vivo no Diário aberto (revisão cega): só quando a missão escolhida mudou
+		Remotes.DiaryState:FireClient(player, ProgressService.state(player))
 	end
 end
 ProgressService.weeklyBump = weeklyBump
@@ -464,13 +465,24 @@ function ProgressService.init()
 				if def.xp > 0 then
 					GiantService.addXp(player, def.xp, nil, nil)
 				end
-				ShopService.openBox(player, GameRules.WeeklyBox, { free = true, force = true })
+				-- A caixa nunca se perde: se não abrir agora (mochila no teto duro), fica GUARDADA na
+				-- base para abrir depois (mesmo caminho das caixas do mapa). Revisão cega 09/11.
+				local opened = ShopService.openBox(player, GameRules.WeeklyBox, { free = true, force = true })
+				if not opened then
+					table.insert(profile.pendingBoxes, GameRules.WeeklyBox)
+					DataService.markDirty(player)
+					Remotes.PendingBox:FireClient(
+						player,
+						{ boxId = GameRules.WeeklyBox, count = #profile.pendingBoxes }
+					)
+				end
 				PlotService.pushState(player)
 				Analytics.event(player, "weekly_quest_claimed", def.coins, { def.id })
 				Remotes.Notify:FireClient(player, {
 					text = string.format(
-						"Missão semanal resgatada! +%s moedas e uma Lunchbox Épica.",
-						Util.formatNumber(def.coins)
+						"Missão semanal resgatada! +%s moedas e uma Lunchbox Épica%s.",
+						Util.formatNumber(def.coins),
+						if opened then "" else " (guardada na base: abra quando tiver espaço)"
 					),
 					color = Color3.fromRGB(120, 255, 160),
 				})
