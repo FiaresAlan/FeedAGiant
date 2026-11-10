@@ -65,7 +65,7 @@ local function finish(player: Player, profile: any, now: number)
 	end
 	local updated = Rules.claim(saved, now)
 	updated.bestSeconds = best
-	(profile :: any).ingredientTrail = updated
+	profile.ingredientTrail = updated
 	profile.coins += Rules.RewardCoins
 	DataService.markDirty(player)
 	-- Com mochila cheia, prêmios em moedas continuam entregues sem criar dívida

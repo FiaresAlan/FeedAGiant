@@ -162,8 +162,10 @@ local function completeCooking(now: number)
 	table.remove(profile.inventory, index)
 	firstProfile.coins += Rules.RewardCoins
 	profile.coins += Rules.RewardCoins
-	(firstProfile :: any).communityFeast = Rules.completed(ownedSlice(firstProfile), now)
-	(profile :: any).communityFeast = Rules.completed(ownedSlice(profile), now)
+	local firstData: any = firstProfile
+	local secondData: any = profile
+	firstData.communityFeast = Rules.completed(ownedSlice(firstProfile), now)
+	secondData.communityFeast = Rules.completed(ownedSlice(profile), now)
 	DataService.markDirty(firstPlayer)
 	DataService.markDirty(secondPlayer)
 	GiantService.grantCoopBuff(firstPlayer, Rules.BuffSeconds, Rules.BuffMult)
