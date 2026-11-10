@@ -37,7 +37,7 @@ end
 local function progress(profile: any): any
 	local value = profile.ingredientTrail
 	if type(value) ~= "table" then
-		value = { v = 1, day = 0, rewards = 0, lifetime = 0 }
+		value = { v = 1, day = 0, rewards = 0, lifetime = 0, bestSeconds = 0 }
 		profile.ingredientTrail = value
 	end
 	return value
