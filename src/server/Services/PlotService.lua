@@ -442,6 +442,9 @@ local function doFeed(
 		trait = if trait then trait.id else nil,
 		favorite = favorite,
 	})
+	if favorite then
+		Analytics.event(player, "giant_favorite_fed", 1, { def.id })
+	end
 	-- Funil do primeiro minuto: exatamente uma vez por conta para a 1ª e a 2ª alimentação.
 	-- Não envia o inventário nem dados pessoais; ajuda a medir se o loop central é compreendido.
 	if profile.totalFeeds == 1 then
