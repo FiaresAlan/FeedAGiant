@@ -8,6 +8,16 @@ local CollectionService = game:GetService("CollectionService")
 
 local PlazaDistrict = {}
 
+-- Cada ponto ocupa um vão entre as estradas da praça, a 22,5° de uma estrada radial.
+-- Usado pelo layout procedural e por testes de não colisão.
+PlazaDistrict.Layout = {
+	Kitchen = { angle = 112.5, radius = 98 },
+	TrailStart = { angle = 202.5, radius = 98 },
+	TrailSteps = { 247.5, 292.5, 337.5 },
+	Lookout = { angle = 67.5, radius = 98 },
+}
+local L = PlazaDistrict.Layout
+
 local WOOD = Color3.fromRGB(136, 86, 54)
 local WOOD_DARK = Color3.fromRGB(82, 54, 46)
 local WARM = Color3.fromRGB(252, 201, 102)
@@ -106,7 +116,7 @@ local function tableTop(parent: Instance, cf: CFrame, name: string, color: Color
 end
 
 local function createKitchen(root: Instance)
-	local center = polar(112.5, 98, 2.35)
+	local center = polar(L.Kitchen.angle, L.Kitchen.radius, 2.35)
 	local cf = CFrame.lookAt(center, Vector3.new(0, center.Y, 0))
 	local kitchen = Instance.new("Model")
 	kitchen.Name = "ColossalKitchen"
@@ -163,13 +173,13 @@ local function createTrail(root: Instance)
 	local trail = Instance.new("Model")
 	trail.Name = "IngredientTrail"
 	trail.Parent = root
-	local start = trailSpot(trail, "TrailStart", CFrame.new(polar(202.5, 98, 2.2)),
+	local start = trailSpot(trail, "TrailStart", CFrame.new(polar(L.TrailStart.angle, L.TrailStart.radius, 2.2)),
 		TEAL, "TRILHA DA COMIDA")
 	start:SetAttribute("TrailStage", 0)
-	for i, angle in { 247.5, 292.5, 337.5 } do
+	for i, angle in L.TrailSteps do
 		local colors = { Color3.fromRGB(115, 180, 95), Color3.fromRGB(237, 164, 71), TEAL_LIGHT }
 		local names = { "PISTA 1 · HORTA", "PISTA 2 · DESPENSA", "PISTA 3 · RECEITA" }
-		local p = trailSpot(trail, "TrailStep" .. i, CFrame.new(polar(angle, 98, 2.2)),
+		local p = trailSpot(trail, "TrailStep" .. i, CFrame.new(polar(angle, L.TrailStart.radius, 2.2)),
 			colors[i], names[i])
 		p:SetAttribute("TrailStage", i)
 	end
@@ -177,7 +187,7 @@ local function createTrail(root: Instance)
 end
 
 local function createLookout(root: Instance)
-	local center = polar(67.5, 98, 2.2)
+	local center = polar(L.Lookout.angle, L.Lookout.radius, 2.2)
 	local cf = CFrame.lookAt(center, Vector3.new(0, center.Y, 0))
 	local lookout = Instance.new("Model")
 	lookout.Name = "ColossusLookout"
