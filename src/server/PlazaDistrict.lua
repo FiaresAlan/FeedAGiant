@@ -5,6 +5,7 @@
 -- Os modelos não possuem Scripts de terceiros e não exigem upload de assets.
 local Workspace = game:GetService("Workspace")
 local CollectionService = game:GetService("CollectionService")
+local AssetDecorator = require(script.Parent.AssetDecorator)
 
 local PlazaDistrict = {}
 
@@ -156,6 +157,12 @@ local function createKitchen(root: Instance)
 	barrel(kitchen, cf * CFrame.new(14, 0, 7), 0.7)
 	serve:SetAttribute("UseBySocialFeast", true)
 	tray:SetAttribute("UseBySocialFeast", false)
+	-- Os templates opcionais devem ser importados pelo dono em ServerStorage;
+	-- sem eles, todas as primitivas acima permanecem visíveis e funcionais.
+	local imported = AssetDecorator.apply(kitchen)
+	if imported > 0 then
+		print("[PlazaDistrict] modelos auditados aplicados à Cozinha:", imported)
+	end
 	return kitchen
 end
 
