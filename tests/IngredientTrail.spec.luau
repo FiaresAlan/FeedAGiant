@@ -1,0 +1,41 @@
+--!nonstrict
+local Rules = require(game.ReplicatedStorage.Shared.IngredientTrailRules)
+
+return function()
+	describe("Trilha da Comida: limite e progresso", function()
+		it("não avança sem iniciar nem permite pular pistas", function()
+			expect(Rules.canAdvance(0, 1, 200, 100)).to.equal(true)
+			expect(Rules.canAdvance(0, 3, 200, 100)).to.equal(false)
+			expect(Rules.canAdvance(2, 1, 200, 100)).to.equal(false)
+			expect(Rules.canAdvance(2, 4, 200, 100)).to.equal(false)
+		end)
+		it("o tempo precisa ser anterior ao vencimento, sem perda se expirar", function()
+			expect(Rules.canAdvance(2, 3, 200, 199)).to.equal(true)
+			expect(Rules.canAdvance(2, 3, 200, 200)).to.equal(false)
+		end)
+		it("dois prêmios no dia, terceiro recusado", function()
+			local now = 10 * 86400 + 600
+			local start = { v = 1, day = 0, rewards = 0, lifetime = 0 }
+			expect(Rules.canClaim(start, now)).to.equal(true)
+			local once = Rules.claim(start, now)
+			expect(once.rewards).to.equal(1)
+			expect(once.lifetime).to.equal(1)
+			local twice = Rules.claim(once, now)
+			expect(twice.rewards).to.equal(2)
+			expect(Rules.canClaim(twice, now)).to.equal(false)
+		end)
+		it("dia seguinte libera novamente sem apagar o histórico", function()
+			local old = { v = 1, day = 10, rewards = 2, lifetime = 9 }
+			local now = 11 * 86400 + 10
+			expect(Rules.canClaim(old, now)).to.equal(true)
+			local next = Rules.claim(old, now)
+			expect(next.rewards).to.equal(1)
+			expect(next.lifetime).to.equal(10)
+		end)
+		it("não depende de inventário ou compras para percorrer as pistas", function()
+			expect(Rules.RewardCoins > 0).to.equal(true)
+			expect(Rules.LastStage).to.equal(3)
+			expect(Rules.DurationSeconds).to.equal(180)
+		end)
+	end)
+end
