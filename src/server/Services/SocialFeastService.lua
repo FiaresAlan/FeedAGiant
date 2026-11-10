@@ -186,7 +186,8 @@ local function completeCooking(now: number)
 	end
 	for _, pl in { firstPlayer, secondPlayer } do
 		local discovered = if pl == firstPlayer then learnedByA else learnedByB
-		local count = KitchenRecipes.count(ownedSlice(DataService.get(pl)).recipes)
+		local currentProfile = if pl == firstPlayer then firstProfile else profile
+		local count = KitchenRecipes.count(ownedSlice(currentProfile).recipes)
 		Remotes.Callout:FireClient(pl, {
 			title = recipe.name,
 			sub = string.format("+%d moedas e +15%% XP por 4 min!%s", Rules.RewardCoins,
