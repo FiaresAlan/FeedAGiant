@@ -50,6 +50,7 @@ local function make(
 	p.Anchored = true
 	p.CanCollide = false -- a praça original continua sendo o piso físico
 	p.CanTouch = false
+	p.CanQuery = false -- não interferir com raycasts de comida, bots ou mira
 	p.CastShadow = false
 	p.Parent = parent
 	return p
