@@ -35,6 +35,7 @@ local individualCooldown: { [number]: number } = {}
 local stand: BasePart? = nil
 local label: TextLabel? = nil
 local prompt: ProximityPrompt? = nil
+local prepPrompts: { ProximityPrompt } = {}
 local sparks: ParticleEmitter? = nil
 local lastInviteAt = -math.huge
 
@@ -76,6 +77,12 @@ end
 
 local function updateDisplay(now: number)
 	local l, p = label, prompt
+	local active = reservation
+	local ready = on() and Features.on("ColossalKitchenSteps") and active ~= nil
+		and active.partner ~= nil and now < active.untilTime and now >= cooldownUntil
+	for _, chefPrompt in prepPrompts do
+		chefPrompt.Enabled = ready
+	end
 	if not l or not p then
 		return
 	end
@@ -375,6 +382,8 @@ local function build()
 		actionPrompt.MaxActivationDistance = Rules.PromptReach
 		actionPrompt.RequiresLineOfSight = false
 		actionPrompt.Parent = station
+		actionPrompt.Enabled = false
+		table.insert(prepPrompts, actionPrompt)
 		actionPrompt.Triggered:Connect(function(player: Player)
 			prepare(player, role, station)
 		end)
