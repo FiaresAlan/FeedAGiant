@@ -42,6 +42,7 @@ local Features = {
 	SocialFeast = true, -- Banquete presencial em dupla: 2 humanos, oferta segura e buff de XP temporário
 	ColossalKitchenSteps = true, -- 2 tarefas físicas de preparo para concluir a dupla
 	IngredientTrail = true, -- 3 pistas no anel da praça, 2 prêmios grátis/dia
+	ToyBrickVisual = true, -- look studded toy/baseplate em todo cenário construído, reversível
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).
