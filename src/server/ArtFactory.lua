@@ -5,6 +5,7 @@
 -- geometria visual, ancorada e sem física, scripts ou prompts.
 local ServerStorage = game:GetService("ServerStorage")
 local Manifest = require(game.ReplicatedStorage.Shared.ArtManifest)
+local Features = require(game.ReplicatedStorage.Shared.Features)
 
 local ArtFactory = {}
 
@@ -80,6 +81,9 @@ local function safeVisualOnly(source: Instance, key: string): Model?
 end
 
 local function imported(key: string): Instance?
+	if not Features.on("ImportedArt") then
+		return nil -- rollback imediato e seguro, sem apagar assets privados do place
+	end
 	local entry = Manifest.get(key)
 	if not entry then
 		warnOnce(key, "chave de arte desconhecida")
