@@ -89,7 +89,8 @@ local function updateDisplay(now: number)
 end
 
 local function tryContribute(player: Player)
-	if not on() or not stand or not Guard.withinReach(player, stand, Rules.PromptReach) then
+	if not on() or not stand or not Guard.allow(player, "SocialFeast")
+		or not Guard.withinReach(player, stand, Rules.PromptReach) then
 		return
 	end
 	local now = os.time()
