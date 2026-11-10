@@ -51,15 +51,18 @@ print("[FeedAGiant] Iniciando servidor...")
 LightingRecipes.apply(if Features.on("ToyBrickVisual") then "ToyboxDaylight" else "GoldenAfternoon")
 MapService.init()
 PlazaDistrict.build() -- cenário da praça, independente do mapa assado ou gerado
-if Features.on("ToyBrickVisual") then
-	local map = Workspace:FindFirstChild("Map")
-	if map then
+local map = Workspace:FindFirstChild("Map")
+if map then
+	if Features.on("ToyBrickVisual") then
 		local ok, stats = pcall(ToyBrickTheme.apply, map)
 		if ok then
 			print("[ToyBrickTheme] identidade visual aplicada:", stats)
 		else
 			warn("[ToyBrickTheme] tema não aplicado:", stats)
 		end
+	else
+		-- Um place já salvo com o overlay também reverte ao desligar o flag.
+		ToyBrickTheme.remove(map)
 	end
 end
 DataService.init()
