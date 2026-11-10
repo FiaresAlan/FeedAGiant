@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local KitchenRecipes = require(game.ReplicatedStorage.Shared.KitchenRecipes)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -497,7 +498,11 @@ local function refreshVisual(player: Player, pulse: boolean)
 		local info = torso:FindFirstChild("InfoGui") :: BillboardGui?
 		local lbl = info and info:FindFirstChild("Info") :: TextLabel?
 		if lbl then
-			local tag = if profile.championUntil > os.time() then "  👑" else ""
+			local savedFeasts = (profile :: any).communityFeast
+			local chef = type(savedFeasts) == "table"
+				and KitchenRecipes.count(savedFeasts.recipes) >= #KitchenRecipes.Specials
+			local tag = (if profile.championUntil > os.time() then "  👑" else "")
+				.. (if chef then "  ★ CHEF" else "")
 			lbl.Text = string.format(
 				"%s%s\n%s • %s\nNv. %d • %s\nTAMANHO %.1fx",
 				player.DisplayName,
