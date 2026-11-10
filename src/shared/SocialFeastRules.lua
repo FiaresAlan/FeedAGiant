@@ -57,6 +57,24 @@ function SocialFeastRules.completed(slice: any, now: number): any
 	}
 end
 
+function SocialFeastRules.canPrepare(state: any, role: string, userId: number, now: number): boolean
+	if
+		type(state) ~= "table"
+		or not state.player
+		or not state.partner
+		or type(state.untilTime) ~= "number"
+		or now >= state.untilTime
+	then
+		return false
+	end
+	if role == "A" then
+		return state.player.UserId == userId and state.preparedA ~= true
+	elseif role == "B" then
+		return state.partner.UserId == userId and state.preparedB ~= true
+	end
+	return false
+end
+
 function SocialFeastRules.canPair(a: number, b: number, expiry: number, now: number): boolean
 	-- UserIds negativos são contas de teste locais do Roblox Studio.
 	-- Só uma instância Player real passa pelo ProximityPrompt do servidor.

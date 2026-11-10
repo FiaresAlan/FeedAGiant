@@ -115,9 +115,9 @@ local function build()
 	})
 	anchor.Parent = m
 	label =
-		Util.makeBillboard(anchor, "", UDim2.fromOffset(520, 70), Vector3.new(0, 8, 0), Color3.fromRGB(255, 210, 120))
+		Util.makeBillboard(anchor, "", UDim2.fromOffset(390, 55), Vector3.new(0, 8, 0), Color3.fromRGB(255, 225, 165))
 	local bb = (label :: TextLabel).Parent :: BillboardGui
-	bb.MaxDistance = 2000
+	bb.MaxDistance = 320 -- a silhueta pode ser vista de longe; o texto, não
 	bb.AlwaysOnTop = false
 	-- "Zzz" do sono
 	local zz = Instance.new("ParticleEmitter")

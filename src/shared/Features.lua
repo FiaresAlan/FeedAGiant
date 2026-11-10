@@ -40,6 +40,8 @@ local Features = {
 	Ancestral = true, -- Gigante Ancestral: banquete coletivo do servidor, chuva de comida e +XP para todos
 	EggSteal = true, -- 09/11: ninho em cada base + roubo leve de ovo (pedido do usuário). false = só o ninho da praça
 	SocialFeast = true, -- Banquete presencial em dupla: 2 humanos, oferta segura e buff de XP temporário
+	ColossalKitchenSteps = true, -- 2 tarefas físicas de preparo para concluir a dupla
+	IngredientTrail = true, -- 3 pistas no anel da praça, 2 prêmios grátis/dia
 }
 
 -- Studio: permite ligar tudo para teste sem editar o arquivo (atributo no ReplicatedStorage).
