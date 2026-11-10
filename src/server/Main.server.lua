@@ -9,6 +9,9 @@ local Services = script.Parent.Services
 local DataService = require(Services.DataService)
 local MapService = require(Services.MapService)
 local PlazaDistrict = require(script.Parent.PlazaDistrict)
+local ToyBrickTheme = require(script.Parent.ToyBrickTheme)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local Workspace = game:GetService("Workspace")
 local GiantService = require(Services.GiantService)
 local PlotService = require(Services.PlotService)
 local StealService = require(Services.StealService)
@@ -45,9 +48,20 @@ local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
 
 print("[FeedAGiant] Iniciando servidor...")
 
-LightingRecipes.apply("GoldenAfternoon") -- Fase 1: luz, céu e nuvens (um único dono: o servidor)
+LightingRecipes.apply(if Features.on("ToyBrickVisual") then "ToyboxDaylight" else "GoldenAfternoon")
 MapService.init()
 PlazaDistrict.build() -- cenário da praça, independente do mapa assado ou gerado
+if Features.on("ToyBrickVisual") then
+	local map = Workspace:FindFirstChild("Map")
+	if map then
+		local ok, stats = pcall(ToyBrickTheme.apply, map)
+		if ok then
+			print("[ToyBrickTheme] identidade visual aplicada:", stats)
+		else
+			warn("[ToyBrickTheme] tema não aplicado:", stats)
+		end
+	end
+end
 DataService.init()
 GiantService.init()
 PlotService.init()
