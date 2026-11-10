@@ -68,7 +68,7 @@ local function disk(parent: Instance, name: string, cf: CFrame, diameter: number
 	)
 end
 
-local function sign(parent: Instance, anchor: BasePart, title: string, color: Color3, range: number)
+local function sign(anchor: BasePart, title: string, color: Color3, range: number)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "DistrictSign"
 	gui.Size = UDim2.fromOffset(280, 46)
@@ -133,7 +133,7 @@ local function createKitchen(root: Instance)
 	serve:SetAttribute("Role", "Serve")
 	local signAnchor = make(kitchen, "TotemCozinha", Vector3.new(2, 7, 1),
 		cf * CFrame.new(0, 3.5, -12), WOOD_DARK, Enum.Material.Wood)
-	sign(kitchen, signAnchor, "COZINHA COLOSSAL", CREAM, 105)
+	sign(signAnchor, "COZINHA COLOSSAL", CREAM, 105)
 	-- Estação A: cortar. Estação B: mexer na panela. A atividade real fica no SocialFeastService.
 	local prepA = tableTop(kitchen, cf * CFrame.new(-10, 0, -2), "PrepA", WOOD)
 	local prepB = tableTop(kitchen, cf * CFrame.new(10, 0, -2), "PrepB", WOOD)
@@ -165,7 +165,7 @@ local function trailSpot(parent: Instance, name: string, cf: CFrame, color: Colo
 		WOOD, Enum.Material.WoodPlanks)
 	make(parent, "Cristal", Vector3.new(2.8, 2.8, 2.8), cf * CFrame.new(0, 5.7, 0),
 		color, Enum.Material.Neon, Enum.PartType.Ball)
-	sign(parent, pillar, label, CREAM, 85)
+	sign(pillar, label, CREAM, 85)
 	return pillar
 end
 
@@ -215,7 +215,7 @@ local function createLookout(root: Instance)
 	marker.CanQuery = false
 	local labelPart = make(lookout, "PlacaMirante", Vector3.new(1, 5, 1),
 		cf * CFrame.new(0, 3, -9), WOOD, Enum.Material.Wood)
-	sign(lookout, labelPart, "MIRANTE DOS COLOSSOS", CREAM, 110)
+	sign(labelPart, "MIRANTE DOS COLOSSOS", CREAM, 110)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "PhotoPrompt"
 	prompt.ActionText = "ENQUADRAR FOTO"
