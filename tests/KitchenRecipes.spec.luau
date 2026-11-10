@@ -1,0 +1,50 @@
+--!nonstrict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Recipes = require(ReplicatedStorage.Shared.KitchenRecipes)
+local Feast = require(ReplicatedStorage.Shared.SocialFeastRules)
+
+return function()
+	describe("Cozinha Colossal — receitas colecionáveis", function()
+		it("combinações funcionam na ordem A+B e B+A", function()
+			expect(Recipes.fromPair("apple", "banana").id).to.equal("fruit_feast")
+			expect(Recipes.fromPair("banana", "apple").id).to.equal("fruit_feast")
+			expect(Recipes.fromPair("bread", "burger").id).to.equal("king_sandwich")
+			expect(Recipes.fromPair("burger", "pizza").id).to.equal("fire_festival")
+			expect(Recipes.fromPair("sushi", "pizza").id).to.equal("world_banquet")
+		end)
+		it("qualquer par normal sem receita especial prepara prato surpresa", function()
+			expect(Recipes.fromPair("bread", "bread").id).to.equal("mystery")
+			expect(Recipes.fromPair("banana", "sushi").id).to.equal("mystery")
+		end)
+		it("receita do dia varia em quatro dias, nunca sorteia item premium", function()
+			local seen = {}
+			for day = 1, 4 do
+				local recipe = Recipes.daily(day * 86400)
+				seen[recipe.id] = true
+			end
+			expect(Recipes.count(seen)).to.equal(4)
+		end)
+		it("não ganha descoberta novamente na mesma receita", function()
+			local old = { fruit_feast = true }
+			expect(Recipes.known(old, "fruit_feast")).to.equal(true)
+			local next = Recipes.learn(old, "fruit_feast")
+			expect(Recipes.count(next)).to.equal(1)
+		end)
+		it("só marca receitas reconhecidas e não conta prato surpresa", function()
+			local saved = Recipes.learn({}, "mystery")
+			expect(Recipes.count(saved)).to.equal(0)
+			local new = Recipes.learn(saved, "world_banquet")
+			expect(Recipes.count(new)).to.equal(1)
+		end)
+		it("reconexão preserva progresso de receitas mesmo quando o dia muda", function()
+			local after = Feast.completed({ day = 100, count = 0, total = 3, recipes = { king_sandwich = true } },
+				101 * 86400, "fruit_feast")
+			expect(after.day).to.equal(101)
+			expect(after.count).to.equal(1)
+			expect(after.total).to.equal(4)
+			expect(Recipes.count(after.recipes)).to.equal(2)
+			expect(after.recipes.king_sandwich).to.equal(true)
+			expect(after.recipes.fruit_feast).to.equal(true)
+		end)
+	end)
+end
