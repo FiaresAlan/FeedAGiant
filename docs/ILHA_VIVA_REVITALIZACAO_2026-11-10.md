@@ -29,7 +29,7 @@ As capturas mostram ilha em anel, oito bases, arena, caldeirão central e montan
 ### B. Trilha da Comida — exploração solo opcional
 **Posições:** início phi202,5°, pistas phi247,5°, phi292,5° e phi337,5°, todos em r98. Marcadores turquesa de baixa geometria conectam o circuito.
 **Fluxo:** ativar o Totem, percorrer três pistas EM ORDEM em até 180 s, pressionando os prompts próximos. O servidor valida posição, ordem e tempo. Conclusão dá **200 moedas** e uma comida de preferência diária, se houver espaço na mochila. Com mochila cheia, recebe as moedas normalmente.
-**Retenção:** até dois prêmios por dia; progresso da sessão não persistido, mas limite e histórico de conclusão ficam no slice `ingredientTrail`. Falhar não remove alimentos nem cobra nada.
+**Retenção:** até dois prêmios por dia; após isso, a pessoa pode repetir somente para melhorar o **recorde pessoal de tempo**, sem receber mais moedas/comidas. Há medalhas Ouro (até 30 s), Prata (até 50 s), Bronze (demais conclusões). O tempo recorde e o histórico ficam no slice `ingredientTrail`, mas o progresso da corrida em andamento não persiste. Falhar não remove alimentos nem cobra nada.
 **Por quê:** garante algo divertido para 1 jogador enquanto aguarda parceria, devolvendo o prêmio ao loop de alimentar.
 
 **Feature flag:** `Features.IngredientTrail`, desligável sem mexer em DataStore.
