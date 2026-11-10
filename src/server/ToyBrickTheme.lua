@@ -3,8 +3,6 @@
 -- Não altera gameplay, collision ou Terrain; só materiais/cores e overlays visuais.
 -- Funciona com MapService v4 assado e com mapa gerado; rollback pelo feature flag.
 -- Não usa asset remoto, textura PBR, scripts externos, clones de criaturas ou HTTP.
-local Workspace = game:GetService("Workspace")
-
 local ToyBrickTheme = {}
 
 ToyBrickTheme.Palette = {
@@ -30,6 +28,8 @@ ToyBrickTheme.Layout = {
 	MeadowLimit = 210, -- orçamento aproximado de peças para o chão
 	PlazaLimit = 390,
 	ArenaLimit = 90,
+	DragonLimit = 84,
+	DistrictLimit = 90,
 }
 local P = ToyBrickTheme.Palette
 local L = ToyBrickTheme.Layout
@@ -84,6 +84,7 @@ local function saveOriginal(part: Part)
 		return
 	end
 	part:SetAttribute(ORIGINAL_PREFIX .. "Material", part.Material.Name)
+	part:SetAttribute(ORIGINAL_PREFIX .. "Variant", part.MaterialVariant)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Color", part.Color)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Top", part.TopSurface.Name)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Reflectance", part.Reflectance)
@@ -94,12 +95,16 @@ local function restoreOriginal(part: Part)
 	if type(oldMaterial) ~= "string" then
 		return
 	end
+	local oldVariant = part:GetAttribute(ORIGINAL_PREFIX .. "Variant")
 	local oldColor = part:GetAttribute(ORIGINAL_PREFIX .. "Color")
 	local oldTop = part:GetAttribute(ORIGINAL_PREFIX .. "Top")
 	local oldReflectance = part:GetAttribute(ORIGINAL_PREFIX .. "Reflectance")
 	local material = Enum.Material[oldMaterial]
 	if material then
 		part.Material = material
+	end
+	if type(oldVariant) == "string" then
+		part.MaterialVariant = oldVariant
 	end
 	if typeof(oldColor) == "Color3" then
 		part.Color = oldColor
@@ -113,7 +118,7 @@ local function restoreOriginal(part: Part)
 	if type(oldReflectance) == "number" then
 		part.Reflectance = oldReflectance
 	end
-	for _, key in { "Material", "Color", "Top", "Reflectance" } do
+	for _, key in { "Material", "Variant", "Color", "Top", "Reflectance" } do
 		part:SetAttribute(ORIGINAL_PREFIX .. key, nil)
 	end
 end
@@ -121,6 +126,7 @@ end
 local function stylePart(part: Part, category: string)
 	saveOriginal(part)
 	part.Material = Enum.Material.Plastic
+	part.MaterialVariant = "" -- PBR anterior não pode encobrir os studs clássicos
 	part.TopSurface = Enum.SurfaceType.Studs
 	part.Reflectance = 0.025
 	if category == "base" then
