@@ -176,7 +176,8 @@ local function createKitchen(root: Instance)
 	barrel(kitchen, cf * CFrame.new(14, 0, 7), 0.7)
 	-- Props de feira opcionais: nunca são carregados por assetId em tempo de jogo.
 	ArtFactory.decorate(kitchen, "marketStall", cf * CFrame.new(-15, 0, -13), 15)
-	ArtFactory.decorate(kitchen, "burger", cf * CFrame.new(0, 2.9, 7), 4.2)
+	-- O prato final só aparece de verdade quando a dupla completa a receita.
+	-- SocialFeastService.showDish cria visual local à estação e remove após a celebração.
 	serve:SetAttribute("UseBySocialFeast", true)
 	tray:SetAttribute("UseBySocialFeast", false)
 	return kitchen
