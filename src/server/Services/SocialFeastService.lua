@@ -430,6 +430,34 @@ local function build()
 	pp.Parent = p
 	prompt = pp
 	pp.Triggered:Connect(tryContribute)
+	local recipeTotem = kitchen:FindFirstChild("TotemCozinha")
+	if recipeTotem and recipeTotem:IsA("BasePart") then
+		local bookPrompt = Instance.new("ProximityPrompt")
+		bookPrompt.Name = "RecipeBookPrompt"
+		bookPrompt.ActionText = "VER RECEITAS"
+		bookPrompt.ObjectText = "LIVRO DE RECEITAS"
+		bookPrompt.KeyboardKeyCode = Enum.KeyCode.E
+		bookPrompt.MaxActivationDistance = 12
+		bookPrompt.RequiresLineOfSight = false
+		bookPrompt.HoldDuration = 0.25
+		bookPrompt.Parent = recipeTotem
+		bookPrompt.Triggered:Connect(function(player: Player)
+			if not Guard.allow(player, "SocialFeast") or not Guard.withinReach(player, recipeTotem, 12) then
+				return
+			end
+			local profile = DataService.get(player)
+			if not profile then
+				return
+			end
+			local daily = KitchenRecipes.daily(os.time())
+			local discovered = KitchenRecipes.count(ownedSlice(profile).recipes)
+			Remotes.Callout:FireClient(player, {
+				title = string.format("RECEITAS DESCOBERTAS: %d/%d", discovered, #KitchenRecipes.Specials),
+				sub = "DESTAQUE DO DIA: " .. daily.hint .. " · qualquer dupla pode cozinhar!",
+				color = daily.color,
+			})
+		end)
+	end
 	for _, entry in { { a, "A", "CORTAR INGREDIENTES" }, { b, "B", "MEXER PANELÃO" } } do
 		local station = entry[1] :: BasePart
 		local role = entry[2] :: "A" | "B"
