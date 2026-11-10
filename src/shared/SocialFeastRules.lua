@@ -2,6 +2,7 @@
 -- Regras puras do Banquete em Dupla; teste sem Roblox Studio.
 -- O desafio não retira comida na inscrição: consome ambas apenas no sucesso.
 local Config = require(script.Parent.Config)
+local KitchenRecipes = require(script.Parent.KitchenRecipes)
 
 local SocialFeastRules = {}
 
@@ -46,7 +47,7 @@ function SocialFeastRules.available(slice: any, now: number): boolean
 	return slice.day ~= day or (tonumber(slice.count) or 0) < SocialFeastRules.MaxPerDay
 end
 
-function SocialFeastRules.completed(slice: any, now: number): any
+function SocialFeastRules.completed(slice: any, now: number, recipeId: string?): any
 	local day = math.floor(now / 86400)
 	return {
 		v = 1,
@@ -54,6 +55,7 @@ function SocialFeastRules.completed(slice: any, now: number): any
 		count = (if slice.day == day then (tonumber(slice.count) or 0) else 0) + 1,
 		total = (tonumber(slice.total) or 0) + 1,
 		buffUntil = now + SocialFeastRules.BuffSeconds, -- relógio absoluto: continua correndo offline
+		recipes = KitchenRecipes.learn(slice.recipes, recipeId or KitchenRecipes.Surprise.id),
 	}
 end
 
