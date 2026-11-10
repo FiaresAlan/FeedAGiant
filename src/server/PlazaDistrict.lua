@@ -70,11 +70,11 @@ local function disk(parent: Instance, name: string, cf: CFrame, diameter: number
 	)
 end
 
-local function sign(anchor: BasePart, title: string, color: Color3, range: number)
+local function sign(anchor: BasePart, title: string, color: Color3, range: number, rise: number?)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "DistrictSign"
 	gui.Size = UDim2.fromOffset(280, 46)
-	gui.StudsOffset = Vector3.new(0, 6, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, rise or 6, 0)
 	gui.MaxDistance = range
 	gui.AlwaysOnTop = false
 	gui.Parent = anchor
@@ -157,12 +157,12 @@ local function createKitchen(root: Instance)
 		Vector3.new(5, 0.4, 5),
 		serve.CFrame * CFrame.new(0, 1.15, 0),
 		WARM,
-		Enum.Material.Neon
+		Enum.Material.Wood
 	)
 	serve:SetAttribute("Role", "Serve")
 	local signAnchor =
 		make(kitchen, "TotemCozinha", Vector3.new(2, 7, 1), cf * CFrame.new(0, 3.5, -12), WOOD_DARK, Enum.Material.Wood)
-	sign(signAnchor, "COZINHA COLOSSAL", CREAM, 105)
+	sign(signAnchor, "COZINHA COLOSSAL", CREAM, 90, 8.5)
 	-- Estação A: cortar. Estação B: mexer na panela. A atividade real fica no SocialFeastService.
 	local prepA = tableTop(kitchen, cf * CFrame.new(-10, 0, -2), "PrepA", WOOD)
 	local prepB = tableTop(kitchen, cf * CFrame.new(10, 0, -2), "PrepB", WOOD)
