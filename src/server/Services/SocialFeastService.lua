@@ -63,11 +63,14 @@ end
 
 local function expire(now: number)
 	local current = reservation
-	if current and (
-		now >= current.untilTime
-		or current.player.Parent ~= Players
-		or (current.partner ~= nil and current.partner.Parent ~= Players)
-	) then
+	if
+		current
+		and (
+			now >= current.untilTime
+			or current.player.Parent ~= Players
+			or (current.partner ~= nil and current.partner.Parent ~= Players)
+		)
+	then
 		reservation = nil
 		if current.player.Parent then
 			notify(current.player, "O Banquete em Dupla expirou. Sua comida continua guardada!")
@@ -78,8 +81,12 @@ end
 local function updateDisplay(now: number)
 	local l, p = label, prompt
 	local active = reservation
-	local ready = on() and Features.on("ColossalKitchenSteps") and active ~= nil
-		and active.partner ~= nil and now < active.untilTime and now >= cooldownUntil
+	local ready = on()
+		and Features.on("ColossalKitchenSteps")
+		and active ~= nil
+		and active.partner ~= nil
+		and now < active.untilTime
+		and now >= cooldownUntil
 	for _, chefPrompt in prepPrompts do
 		chefPrompt.Enabled = ready
 	end
@@ -115,22 +122,33 @@ local function updateDisplay(now: number)
 	end
 end
 
-
 -- Só completa depois de dois participantes e duas tarefas ativas.
 -- Todos os dados são revalidados no servidor; se alguém for embora, nada é debitado.
 local function completeCooking(now: number)
 	local current = reservation
 	local center = stand
-	if not current or not current.partner or not current.partnerUid or not current.preparedA
-		or not current.preparedB or not center or now >= current.untilTime then
+	if
+		not current
+		or not current.partner
+		or not current.partnerUid
+		or not current.preparedA
+		or not current.preparedB
+		or not center
+		or now >= current.untilTime
+	then
 		return
 	end
 	local firstPlayer = current.player
 	local secondPlayer = current.partner
 	local firstRoot, secondRoot = Guard.rootOf(firstPlayer), Guard.rootOf(secondPlayer)
-	if firstPlayer.Parent ~= Players or secondPlayer.Parent ~= Players
-		or not firstRoot or not secondRoot or (firstRoot.Position - center.Position).Magnitude > 27
-		or (secondRoot.Position - center.Position).Magnitude > 27 then
+	if
+		firstPlayer.Parent ~= Players
+		or secondPlayer.Parent ~= Players
+		or not firstRoot
+		or not secondRoot
+		or (firstRoot.Position - center.Position).Magnitude > 27
+		or (secondRoot.Position - center.Position).Magnitude > 27
+	then
 		reservation = nil
 		updateDisplay(now)
 		return
@@ -142,8 +160,12 @@ local function completeCooking(now: number)
 	end
 	local firstProfile = DataService.get(firstPlayer)
 	local profile = DataService.get(secondPlayer)
-	if not firstProfile or not profile or not Rules.available(ownedSlice(firstProfile), now)
-		or not Rules.available(ownedSlice(profile), now) then
+	if
+		not firstProfile
+		or not profile
+		or not Rules.available(ownedSlice(firstProfile), now)
+		or not Rules.available(ownedSlice(profile), now)
+	then
 		reservation = nil
 		updateDisplay(now)
 		return
@@ -152,7 +174,10 @@ local function completeCooking(now: number)
 	local index, item = Rules.findFood(profile.inventory, current.partnerUid)
 	if not firstIndex or not firstFood or not index or not item then
 		reservation = nil
-		notify(firstPlayer, "Uma comida foi usada antes do preparo. Inscrevam-se novamente; nada foi debitado pelo banquete.")
+		notify(
+			firstPlayer,
+			"Uma comida foi usada antes do preparo. Inscrevam-se novamente; nada foi debitado pelo banquete."
+		)
 		notify(secondPlayer, "Faltou ingrediente na mochila. Inscrevam-se de novo.")
 		updateDisplay(now)
 		return
@@ -192,8 +217,12 @@ local function completeCooking(now: number)
 end
 
 local function tryContribute(player: Player)
-	if not on() or not stand or not Guard.allow(player, "SocialFeast")
-		or not Guard.withinReach(player, stand, Rules.PromptReach) then
+	if
+		not on()
+		or not stand
+		or not Guard.allow(player, "SocialFeast")
+		or not Guard.withinReach(player, stand, Rules.PromptReach)
+	then
 		return
 	end
 	local now = os.time()
@@ -231,7 +260,10 @@ local function tryContribute(player: Player)
 	end
 	if not first then
 		reservation = { player = player, foodUid = item.uid, untilTime = now + Rules.WindowSeconds }
-		notify(player, "Banquete iniciado! Chame alguém à praça em até 2 minutos. Sua comida ainda não foi consumida.")
+		notify(
+			player,
+			"Banquete iniciado! Chame alguém à praça em até 2 minutos. Sua comida ainda não foi consumida."
+		)
 		-- Não transformar uma atividade social em spam de mensagens para toda a sala.
 		if now - lastInviteAt >= 60 then
 			lastInviteAt = now
@@ -257,16 +289,22 @@ local function tryContribute(player: Player)
 	-- Duas pessoas PRECISAM estar presentes. O segundo não pode completar
 	-- com uma inscrição distante ou uma conta que já foi embora.
 	local firstPlayer = first.player
-	if firstPlayer.Parent ~= Players or Guard.distanceBetween(firstPlayer, player) > Rules.PartnerReach
-		or not Guard.withinReach(firstPlayer, stand, Rules.PromptReach) then
+	if
+		firstPlayer.Parent ~= Players
+		or Guard.distanceBetween(firstPlayer, player) > Rules.PartnerReach
+		or not Guard.withinReach(firstPlayer, stand, Rules.PromptReach)
+	then
 		reservation = nil
 		notify(player, "O primeiro cozinheiro saiu da praça. Comece outra rodada.")
 		updateDisplay(now)
 		return
 	end
 	local firstProfile = DataService.get(firstPlayer)
-	if not firstProfile or not Rules.available(ownedSlice(firstProfile), now)
-		or now < (individualCooldown[firstPlayer.UserId] or 0) then
+	if
+		not firstProfile
+		or not Rules.available(ownedSlice(firstProfile), now)
+		or now < (individualCooldown[firstPlayer.UserId] or 0)
+	then
 		reservation = nil
 		updateDisplay(now)
 		return
@@ -297,9 +335,12 @@ local function tryContribute(player: Player)
 end
 
 local function prepare(player: Player, role: "A" | "B", station: BasePart)
-	if not on() or not Features.on("ColossalKitchenSteps")
+	if
+		not on()
+		or not Features.on("ColossalKitchenSteps")
 		or not Guard.allow(player, "SocialFeast")
-		or not Guard.withinReach(player, station, Rules.PromptReach) then
+		or not Guard.withinReach(player, station, Rules.PromptReach)
+	then
 		return
 	end
 	local current = reservation
@@ -310,7 +351,10 @@ local function prepare(player: Player, role: "A" | "B", station: BasePart)
 		return
 	end
 	if not Rules.canPrepare(current, role, player.UserId, now) then
-		notify(player, if role == "A" then "A TÁBUA é do primeiro cozinheiro." else "A PANELA é do segundo cozinheiro.")
+		notify(
+			player,
+			if role == "A" then "A TÁBUA é do primeiro cozinheiro." else "A PANELA é do segundo cozinheiro."
+		)
 		return
 	end
 	if role == "A" then
@@ -319,7 +363,10 @@ local function prepare(player: Player, role: "A" | "B", station: BasePart)
 		current.preparedB = true
 	end
 	Analytics.event(player, "social_feast_prepared", 1, { role })
-	notify(player, if role == "A" then "INGREDIENTES CORTADOS! Aguarde a panela." else "PANELA PRONTA! Aguarde a tábua.")
+	notify(
+		player,
+		if role == "A" then "INGREDIENTES CORTADOS! Aguarde a panela." else "PANELA PRONTA! Aguarde a tábua."
+	)
 	updateDisplay(now)
 	completeCooking(now)
 end
@@ -335,8 +382,7 @@ local function build()
 	local p = kitchen:FindFirstChild("ServeSpot")
 	local a = kitchen:FindFirstChild("PrepA")
 	local b = kitchen:FindFirstChild("PrepB")
-	if not p or not p:IsA("BasePart") or not a or not a:IsA("BasePart")
-		or not b or not b:IsA("BasePart") then
+	if not p or not p:IsA("BasePart") or not a or not a:IsA("BasePart") or not b or not b:IsA("BasePart") then
 		warn("[SocialFeast] cozinha sem balcão ou estações")
 		return
 	end
@@ -354,7 +400,8 @@ local function build()
 		sparkle.Parent = top
 		sparks = sparkle
 	end
-	local txt = Util.makeBillboard(p, "", UDim2.fromOffset(340, 78), Vector3.new(0, 5, 0), Color3.fromRGB(255, 225, 160))
+	local txt =
+		Util.makeBillboard(p, "", UDim2.fromOffset(340, 78), Vector3.new(0, 5, 0), Color3.fromRGB(255, 225, 160))
 	local board = txt.Parent :: BillboardGui
 	board.MaxDistance = 90
 	label = txt
@@ -412,8 +459,10 @@ function SocialFeastService.init()
 		return { v = 1, day = 0, count = 0, total = 0, buffUntil = 0 }
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		if reservation and ((reservation :: Reservation).player == player
-			or (reservation :: Reservation).partner == player) then
+		if
+			reservation
+			and ((reservation :: Reservation).player == player or (reservation :: Reservation).partner == player)
+		then
 			reservation = nil -- a comida estava na mochila: nada a devolver
 		end
 	end)

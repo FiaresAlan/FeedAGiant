@@ -8,14 +8,16 @@ TrailRules.LastStage = 3
 
 function TrailRules.canClaim(saved: any, now: number): boolean
 	local day = math.floor(now / 86400)
-	return type(saved) ~= "table" or saved.day ~= day
-		or (tonumber(saved.rewards) or 0) < TrailRules.MaxRewardsPerDay
+	return type(saved) ~= "table" or saved.day ~= day or (tonumber(saved.rewards) or 0) < TrailRules.MaxRewardsPerDay
 end
 
 function TrailRules.canAdvance(current: number, requested: number, deadline: number, now: number): boolean
-	return type(current) == "number" and type(requested) == "number"
-		and requested >= 1 and requested <= TrailRules.LastStage
-		and current + 1 == requested and now < deadline
+	return type(current) == "number"
+		and type(requested) == "number"
+		and requested >= 1
+		and requested <= TrailRules.LastStage
+		and current + 1 == requested
+		and now < deadline
 end
 
 function TrailRules.medal(seconds: number): string

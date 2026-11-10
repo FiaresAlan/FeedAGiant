@@ -26,7 +26,9 @@ function FoodChoice.choose(plot: { [string]: any }, inventory: { any }, preferre
 	local bestInv, bestOrder = nil :: number?, math.huge
 	for index, item in inventory do
 		if FoodChoice.isSafe(item) then
-			local rank = if preferredId and item.id == preferredId then 0 else Config.Rarities[Config.FoodById[item.id].rarity].order
+			local rank = if preferredId and item.id == preferredId
+				then 0
+				else Config.Rarities[Config.FoodById[item.id].rarity].order
 			if rank < bestOrder then
 				bestOrder, bestInv = rank, index
 			end
@@ -39,7 +41,9 @@ function FoodChoice.choose(plot: { [string]: any }, inventory: { any }, preferre
 	for key, item in plot do
 		local index = tonumber(key)
 		if index and index % 1 == 0 and FoodChoice.isSafe(item) then
-			local rank = if preferredId and item.id == preferredId then 0 else Config.Rarities[Config.FoodById[item.id].rarity].order
+			local rank = if preferredId and item.id == preferredId
+				then 0
+				else Config.Rarities[Config.FoodById[item.id].rarity].order
 			if rank < lowest or (rank == lowest and (bestSlot == nil or index < bestSlot)) then
 				lowest, bestSlot = rank, index
 			end

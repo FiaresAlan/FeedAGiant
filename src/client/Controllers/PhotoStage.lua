@@ -73,9 +73,17 @@ local function previewOwnGiant(spot: BasePart, cam: Camera)
 	clone:SetAttribute("OwnerUserId", nil)
 	local count = 0
 	for _, d in clone:GetDescendants() do
-		if d:IsA("Script") or d:IsA("LocalScript") or d:IsA("ModuleScript")
-			or d:IsA("ProximityPrompt") or d:IsA("BillboardGui") or d:IsA("ParticleEmitter")
-			or d:IsA("Sound") or d:IsA("PointLight") or d:IsA("Highlight") then
+		if
+			d:IsA("Script")
+			or d:IsA("LocalScript")
+			or d:IsA("ModuleScript")
+			or d:IsA("ProximityPrompt")
+			or d:IsA("BillboardGui")
+			or d:IsA("ParticleEmitter")
+			or d:IsA("Sound")
+			or d:IsA("PointLight")
+			or d:IsA("Highlight")
+		then
 			d:Destroy()
 		elseif d:IsA("BasePart") then
 			count += 1

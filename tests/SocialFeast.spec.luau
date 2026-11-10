@@ -78,7 +78,7 @@ return function()
 		end)
 	end)
 
-		describe("Alimentação segura", function()
+	describe("Alimentação segura", function()
 		it("prefere comida comum da mochila e preserva a renda exposta", function()
 			local slot, index = FoodChoice.choose({ ["1"] = { id = "apple" } }, {
 				{ id = "pizza" },

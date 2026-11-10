@@ -14,7 +14,9 @@ return function()
 		it("nunca cruza o eixo das oito estradas radiais", function()
 			local L = District.Layout
 			local spots = {
-				L.Kitchen, L.TrailStart, L.Lookout,
+				L.Kitchen,
+				L.TrailStart,
+				L.Lookout,
 				{ angle = L.TrailSteps[1], radius = L.TrailStart.radius },
 				{ angle = L.TrailSteps[2], radius = L.TrailStart.radius },
 				{ angle = L.TrailSteps[3], radius = L.TrailStart.radius },

@@ -58,8 +58,15 @@ local function finish(player: Player, profile: any, now: number)
 	if not Rules.canClaim(saved, now) then
 		saved.bestSeconds = best
 		DataService.markDirty(player)
-		notify(player, string.format("TRILHA %s! %d s%s · hoje sem novo prêmio.",
-			medal, seconds, if improved then " · NOVO RECORDE!" else ""))
+		notify(
+			player,
+			string.format(
+				"TRILHA %s! %d s%s · hoje sem novo prêmio.",
+				medal,
+				seconds,
+				if improved then " · NOVO RECORDE!" else ""
+			)
+		)
 		Analytics.event(player, "ingredient_trail_practice", seconds, { medal })
 		return
 	end
@@ -71,15 +78,20 @@ local function finish(player: Player, profile: any, now: number)
 	-- Com mochila cheia, prêmios em moedas continuam entregues sem criar dívida
 	-- ou oferecer compra de espaço. A comida extra é sempre comum/incomum.
 	local foodId = FoodPreference.favorite(profile.species, now)
-	local gotFood = if PlotService.hasInventorySpace(profile)
-		then PlotService.giveFood(player, foodId)
-		else false
+	local gotFood = if PlotService.hasInventorySpace(profile) then PlotService.giveFood(player, foodId) else false
 	PlotService.pushState(player)
-	notify(player,
-		string.format("TRILHA %s! %d s%s · +%d moedas%s", medal, seconds,
-			if improved then " · NOVO RECORDE!" else "", Rules.RewardCoins,
-			if gotFood then " + " .. foodId else " (mochila cheia, sem comida extra)"),
-		Color3.fromRGB(255, 220, 114))
+	notify(
+		player,
+		string.format(
+			"TRILHA %s! %d s%s · +%d moedas%s",
+			medal,
+			seconds,
+			if improved then " · NOVO RECORDE!" else "",
+			Rules.RewardCoins,
+			if gotFood then " + " .. foodId else " (mochila cheia, sem comida extra)"
+		),
+		Color3.fromRGB(255, 220, 114)
+	)
 	Analytics.event(player, "ingredient_trail_finished", seconds, {
 		medal,
 		if gotFood then "food" else "coins_only",
@@ -124,7 +136,15 @@ local function interact(player: Player, step: number, part: BasePart)
 	if step >= Rules.LastStage then
 		finish(player, profile, now)
 	else
-		notify(player, string.format("PISTA %d/3! Continue pelo anel até a PISTA %d. Restam %d s.", step, step + 1, run.deadline - now))
+		notify(
+			player,
+			string.format(
+				"PISTA %d/3! Continue pelo anel até a PISTA %d. Restam %d s.",
+				step,
+				step + 1,
+				run.deadline - now
+			)
+		)
 	end
 end
 

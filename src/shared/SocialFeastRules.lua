@@ -58,8 +58,13 @@ function SocialFeastRules.completed(slice: any, now: number): any
 end
 
 function SocialFeastRules.canPrepare(state: any, role: string, userId: number, now: number): boolean
-	if type(state) ~= "table" or not state.player or not state.partner
-		or type(state.untilTime) ~= "number" or now >= state.untilTime then
+	if
+		type(state) ~= "table"
+		or not state.player
+		or not state.partner
+		or type(state.untilTime) ~= "number"
+		or now >= state.untilTime
+	then
 		return false
 	end
 	if role == "A" then
