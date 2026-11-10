@@ -18,7 +18,6 @@ local currentCamera: Camera? = nil
 local oldSubject: Instance? = nil
 local panel: Frame? = nil
 local bound: { [Instance]: boolean } = {}
-local exitButton: TextButton? = nil
 
 local function hide()
 	serial += 1
@@ -35,7 +34,11 @@ local function hide()
 		cam.CameraType = Enum.CameraType.Custom
 		local char = player.Character
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		cam.CameraSubject = if hum then hum else oldSubject
+		if hum then
+			cam.CameraSubject = hum
+		elseif oldSubject then
+			cam.CameraSubject = oldSubject
+		end
 	end
 	currentCamera, oldSubject = nil, nil
 end
@@ -145,7 +148,6 @@ function PhotoStage.init(gui: ScreenGui)
 	exitRound.CornerRadius = UDim.new(0, 7)
 	exitRound.Parent = exit
 	exit.Activated:Connect(hide)
-	exitButton = exit
 	panel = frame
 	for _, spot in CollectionService:GetTagged("ColossusPhotoSpot") do
 		bind(spot)
