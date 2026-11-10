@@ -10,6 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local Features = require(game.ReplicatedStorage.Shared.Features)
 local Rules = require(game.ReplicatedStorage.Shared.SocialFeastRules)
+local KitchenRecipes = require(game.ReplicatedStorage.Shared.KitchenRecipes)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Guard = require(script.Parent.Parent.Guard)
@@ -109,7 +110,8 @@ local function updateDisplay(now: number)
 			p.ActionText = "ENTRAR NO BANQUETE"
 		end
 	else
-		l.Text = "BANQUETE EM DUPLA  0/2\nVenha com um amigo! +15% XP por 4 min"
+		local daily = KitchenRecipes.daily(now)
+		l.Text = "COZINHA COLOSSAL  0/2\nRECEITA DO DIA: " .. daily.hint
 		p.Enabled = true
 		p.ActionText = "INICIAR BANQUETE"
 	end
@@ -157,13 +159,18 @@ local function completeCooking(now: number)
 		updateDisplay(now)
 		return
 	end
+	local recipe = KitchenRecipes.fromPair(firstFood.id, item.id)
+	local learnedByA = recipe.id ~= KitchenRecipes.Surprise.id
+		and not KitchenRecipes.known(ownedSlice(firstProfile).recipes, recipe.id)
+	local learnedByB = recipe.id ~= KitchenRecipes.Surprise.id
+		and not KitchenRecipes.known(ownedSlice(profile).recipes, recipe.id)
 	-- Ponto de commit: nenhum yield até remover ambos os ingredientes e conceder os prêmios.
 	table.remove(firstProfile.inventory, firstIndex)
 	table.remove(profile.inventory, index)
 	firstProfile.coins += Rules.RewardCoins
 	profile.coins += Rules.RewardCoins
-	(firstProfile :: any).communityFeast = Rules.completed(ownedSlice(firstProfile), now)
-	(profile :: any).communityFeast = Rules.completed(ownedSlice(profile), now)
+	(firstProfile :: any).communityFeast = Rules.completed(ownedSlice(firstProfile), now, recipe.id)
+	(profile :: any).communityFeast = Rules.completed(ownedSlice(profile), now, recipe.id)
 	DataService.markDirty(firstPlayer)
 	DataService.markDirty(secondPlayer)
 	GiantService.grantCoopBuff(firstPlayer, Rules.BuffSeconds, Rules.BuffMult)
@@ -178,13 +185,19 @@ local function completeCooking(now: number)
 		sparks:Emit(28)
 	end
 	for _, pl in { firstPlayer, secondPlayer } do
+		local discovered = if pl == firstPlayer then learnedByA else learnedByB
+		local count = KitchenRecipes.count(ownedSlice(DataService.get(pl)).recipes)
 		Remotes.Callout:FireClient(pl, {
-			title = "PRATO COLOSSAL PRONTO!",
-			sub = string.format("+%d moedas e +15%% XP por 4 min!", Rules.RewardCoins),
-			color = Color3.fromRGB(255, 220, 110),
+			title = recipe.name,
+			sub = string.format("+%d moedas e +15%% XP por 4 min!%s", Rules.RewardCoins,
+				if discovered then string.format(" · NOVA RECEITA %d/%d!", count, #KitchenRecipes.Specials) else ""),
+			color = recipe.color,
 		})
 		Remotes.GiantReact:FireAllClients({ userId = pl.UserId, kind = "cheer" })
-		Analytics.event(pl, "social_feast_completed", 1, { "two_humans", "cooked" })
+		Analytics.event(pl, "social_feast_completed", 1, { "two_humans", "cooked", recipe.id })
+		if discovered then
+			Analytics.event(pl, "kitchen_recipe_discovered", 1, { recipe.id })
+		end
 	end
 	updateDisplay(now)
 end
@@ -407,7 +420,7 @@ end
 
 function SocialFeastService.init()
 	DataService.registerSlice("communityFeast", function()
-		return { v = 1, day = 0, count = 0, total = 0, buffUntil = 0 }
+		return { v = 1, day = 0, count = 0, total = 0, buffUntil = 0, recipes = {} }
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		if reservation and ((reservation :: Reservation).player == player
