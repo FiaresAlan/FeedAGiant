@@ -29,6 +29,7 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Meat = { burst = 4, perSecond = 2 }, -- cortar porção da Carne Gigante
 	Egg = { burst = 3, perSecond = 1 }, -- ninho de ovos: comprar, colocar, alimentar, chocar
 	Travel = { burst = 2, perSecond = 0.5 }, -- viagem rápida (a espera real de 4 s fica no TravelService)
+	SocialFeast = { burst = 2, perSecond = 0.3 }, -- prompt da praça; impede flood por clientes alterados
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.
