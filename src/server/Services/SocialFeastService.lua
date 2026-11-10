@@ -302,20 +302,13 @@ local function prepare(player: Player, role: "A" | "B", station: BasePart)
 		notify(player, "Primeiro formem uma dupla no balcão da Cozinha Colossal.")
 		return
 	end
-	if (role == "A" and current.player ~= player)
-		or (role == "B" and current.partner ~= player) then
+	if not Rules.canPrepare(current, role, player.UserId, now) then
 		notify(player, if role == "A" then "A TÁBUA é do primeiro cozinheiro." else "A PANELA é do segundo cozinheiro.")
 		return
 	end
 	if role == "A" then
-		if current.preparedA then
-			return
-		end
 		current.preparedA = true
 	else
-		if current.preparedB then
-			return
-		end
 		current.preparedB = true
 	end
 	Analytics.event(player, "social_feast_prepared", 1, { role })
