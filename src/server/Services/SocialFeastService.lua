@@ -261,9 +261,23 @@ local function build()
 	updateDisplay(os.time())
 end
 
+-- Reentrada após queda/conexão ruim: restaura os minutos RESTANTES do buff.
+-- Nenhum bônus é congelado enquanto o jogador está offline.
+function SocialFeastService.onJoin(player: Player)
+	local profile = DataService.get(player)
+	if not profile then
+		return
+	end
+	local slice = ownedSlice(profile)
+	local remaining = (tonumber(slice.buffUntil) or 0) - os.time()
+	if remaining > 0 then
+		GiantService.grantCoopBuff(player, remaining, Rules.BuffMult)
+	end
+end
+
 function SocialFeastService.init()
 	DataService.registerSlice("communityFeast", function()
-		return { v = 1, day = 0, count = 0, total = 0 }
+		return { v = 1, day = 0, count = 0, total = 0, buffUntil = 0 }
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		if reservation and (reservation :: Reservation).player == player then
