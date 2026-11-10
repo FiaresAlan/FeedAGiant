@@ -11,6 +11,7 @@ Locale.Default = "pt-br"
 Locale.Exact = {
 	-- Banquete social e alimentação inteligente (09/11/2026)
 	["PREFERE"] = { en = "FAVORITE", es = "PREFIERE" },
+	["BANQUETE"] = { en = "FEAST", es = "BANQUETE" },
 	["Alimenta sem consumir comida rara"] = { en = "Feeds without using rare food", es = "Alimenta sin usar comida rara" },
 	["Comida especial: selecione em ITENS"] = {
 		en = "Special food: choose from ITEMS",
