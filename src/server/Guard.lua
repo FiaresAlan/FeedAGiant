@@ -30,6 +30,7 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	Egg = { burst = 3, perSecond = 1 }, -- ninho de ovos: comprar, colocar, alimentar, chocar
 	Travel = { burst = 2, perSecond = 0.5 }, -- viagem rápida (a espera real de 4 s fica no TravelService)
 	SocialFeast = { burst = 2, perSecond = 0.3 }, -- prompt da praça; impede flood por clientes alterados
+	Trail = { burst = 3, perSecond = 0.75 }, -- checkpoints e início de expedição, sempre checados no servidor
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.
