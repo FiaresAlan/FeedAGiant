@@ -8,6 +8,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Services = script.Parent.Services
 local DataService = require(Services.DataService)
 local MapService = require(Services.MapService)
+local PlazaDistrict = require(script.Parent.PlazaDistrict)
 local GiantService = require(Services.GiantService)
 local PlotService = require(Services.PlotService)
 local StealService = require(Services.StealService)
@@ -35,6 +36,7 @@ local EggNotificationService = require(Services.EggNotificationService)
 local MutationService = require(Services.MutationService)
 local AncestralService = require(Services.AncestralService)
 local SocialFeastService = require(Services.SocialFeastService)
+local IngredientTrailService = require(Services.IngredientTrailService)
 local WelcomeService = require(Services.WelcomeService)
 local TravelService = require(Services.TravelService)
 local WorldFx = require(script.Parent.WorldFx)
@@ -45,6 +47,7 @@ print("[FeedAGiant] Iniciando servidor...")
 
 LightingRecipes.apply("GoldenAfternoon") -- Fase 1: luz, céu e nuvens (um único dono: o servidor)
 MapService.init()
+PlazaDistrict.build() -- cenário da praça, independente do mapa assado ou gerado
 DataService.init()
 GiantService.init()
 PlotService.init()
@@ -70,7 +73,8 @@ EggService.init()
 EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até publicar)
 MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (flag)
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
-SocialFeastService.init() -- Banquete em Dupla; registra slice antes de DataService.start()
+SocialFeastService.init() -- Cozinha Colossal: banquete em duas pessoas, papéis ativos
+IngredientTrailService.init() -- exploração curta em três estações, com recompensas diárias
 WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
 TravelService.init() -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
 Speed.init() -- 09/11: dono único da velocidade (carga, ponte, Corrida Turbo)
