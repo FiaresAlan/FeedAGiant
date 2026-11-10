@@ -62,12 +62,13 @@ local function previewOwnGiant(spot: BasePart, cam: Camera)
 	if not original then
 		return
 	end
-	local ok, clone = pcall(function()
+	local ok, result = pcall(function()
 		return (original :: Model):Clone()
 	end)
-	if not ok or not clone then
+	if not ok or not result or not result:IsA("Model") then
 		return
 	end
+	local clone = result :: Model
 	clone.Name = "PhotoPreviewOnly"
 	clone:SetAttribute("OwnerUserId", nil)
 	local count = 0
@@ -118,8 +119,8 @@ local function show(spot: BasePart)
 		return
 	end
 	local char = player.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart")
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local hum = char and char:FindFirstChildOfClass("Humanoid") :: Humanoid?
 	if not root or not hum or hum.Health <= 0 then
 		return
 	end
