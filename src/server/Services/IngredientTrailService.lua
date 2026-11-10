@@ -18,7 +18,7 @@ local PlotService = require(script.Parent.PlotService)
 local IngredientTrailService = {}
 
 local REACH = 14
-local runs: { [Player]: { step: number, deadline: number } } = {}
+local runs: { [Player]: { step: number, deadline: number, startedAt: number } } = {}
 -- As instâncias só existem enquanto o mapa estiver ativo; não armazenar refs globais.
 
 local function on(): boolean
@@ -43,33 +43,47 @@ local function progress(profile: any): any
 	return value
 end
 
-local function allowed(profile: any, now: number): boolean
-	local saved = progress(profile)
-	return Rules.canClaim(saved, now)
-end
-
 local function finish(player: Player, profile: any, now: number)
-	local saved = progress(profile)
-	if not Rules.canClaim(saved, now) then
-		runs[player] = nil
+	local run = runs[player]
+	if not run then
 		return
 	end
-	(profile :: any).ingredientTrail = Rules.claim(saved, now)
+	local seconds = math.max(1, now - run.startedAt)
+	local saved = progress(profile)
+	local best, improved = Rules.best(saved.bestSeconds, seconds)
+	local medal = Rules.medal(seconds)
+	runs[player] = nil
+
+	-- Depois do limite diário ainda é possível jogar por recorde; não há farm.
+	if not Rules.canClaim(saved, now) then
+		saved.bestSeconds = best
+		DataService.markDirty(player)
+		notify(player, string.format("TRILHA %s! %d s%s · hoje sem novo prêmio.",
+			medal, seconds, if improved then " · NOVO RECORDE!" else ""))
+		Analytics.event(player, "ingredient_trail_practice", seconds, { medal })
+		return
+	end
+	local updated = Rules.claim(saved, now)
+	updated.bestSeconds = best
+	(profile :: any).ingredientTrail = updated
 	profile.coins += Rules.RewardCoins
 	DataService.markDirty(player)
-	runs[player] = nil
-	-- Com mochila cheia o prêmio em moedas continua garantido; não force itens
-	-- acima do teto e nunca cobre a pessoa para receber a recompensa.
+	-- Com mochila cheia, prêmios em moedas continuam entregues sem criar dívida
+	-- ou oferecer compra de espaço. A comida extra é sempre comum/incomum.
 	local foodId = FoodPreference.favorite(profile.species, now)
 	local gotFood = if PlotService.hasInventorySpace(profile)
 		then PlotService.giveFood(player, foodId)
 		else false
 	PlotService.pushState(player)
 	notify(player,
-		if gotFood then string.format("TRILHA CONCLUÍDA! +%d moedas e %s na mochila!", Rules.RewardCoins, foodId)
-		else string.format("TRILHA CONCLUÍDA! +%d moedas. Mochila cheia: alimento extra não concedido.", Rules.RewardCoins),
+		string.format("TRILHA %s! %d s%s · +%d moedas%s", medal, seconds,
+			if improved then " · NOVO RECORDE!" else "", Rules.RewardCoins,
+			if gotFood then " + " .. foodId else " (mochila cheia, sem comida extra)"),
 		Color3.fromRGB(255, 220, 114))
-	Analytics.event(player, "ingredient_trail_finished", 1, { if gotFood then "food" else "coins_only" })
+	Analytics.event(player, "ingredient_trail_finished", seconds, {
+		medal,
+		if gotFood then "food" else "coins_only",
+	})
 end
 
 local function interact(player: Player, step: number, part: BasePart)
@@ -81,18 +95,18 @@ local function interact(player: Player, step: number, part: BasePart)
 		return
 	end
 	local now = os.time()
-	if not allowed(profile, now) then
-		notify(player, "Você completou as duas Trilhas de hoje. Amanhã haverá mais ingredientes!")
-		return
-	end
 	if step == 0 then
 		local run = runs[player]
 		if run and now < run.deadline then
 			notify(player, string.format("Sua Trilha está ativa: procure a pista %d de 3!", run.step + 1))
 			return
 		end
-		runs[player] = { step = 0, deadline = now + Rules.DurationSeconds }
-		notify(player, "TRILHA INICIADA! Procure a PISTA 1 no anel da praça. São 3 pistas em 3 minutos!")
+		runs[player] = { step = 0, deadline = now + Rules.DurationSeconds, startedAt = now }
+		if Rules.canClaim(progress(profile), now) then
+			notify(player, "TRILHA INICIADA! Encontre as 3 pistas em até 3 minutos para ganhar moedas e comida!")
+		else
+			notify(player, "MODO RECORDE! Prêmios de hoje concluídos. Tente melhorar seu tempo nas 3 pistas!")
+		end
 		Analytics.event(player, "ingredient_trail_started", 1)
 		return
 	end
