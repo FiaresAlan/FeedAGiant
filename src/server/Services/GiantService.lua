@@ -513,7 +513,7 @@ local function refreshVisual(player: Player, pulse: boolean)
 		if info then
 			info.StudsOffset = Vector3.new(0, 4 * scale, 0)
 			info.Size = UDim2.fromOffset(280 + scale * 10, 120 + scale * 3)
-			info.MaxDistance = 155 -- apenas perto da base: não poluir a praça com oito placas flutuantes
+			info.MaxDistance = 95 -- nomes só perto da base: evita poluição visual na ilha
 		end
 	end
 	if lastStage[player] and lastStage[player] ~= stage.name and Config.stageForLevel(profile.level).minLevel > 1 then
