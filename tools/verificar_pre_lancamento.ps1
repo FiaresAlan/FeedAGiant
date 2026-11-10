@@ -25,7 +25,7 @@ function Run-Checked([string]$label, [scriptblock]$action) {
   Write-Host "-- $label"
   & $action
   if ($LASTEXITCODE -ne 0) { throw "Falhou: $label (exit code: $LASTEXITCODE)" }
-  $checks.Add("$label: PASS") | Out-Null
+  $checks.Add(("{0}: PASS" -f $label)) | Out-Null
 }
 
 try {
