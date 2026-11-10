@@ -119,7 +119,7 @@ function AssetDecorator.apply(kitchen: Model): number
 			model.PrimaryPart = nil
 			model.WorldPivot = CFrame.identity
 			local _, size = model:GetBoundingBox()
-			assert(size.Y >= 0.001)
+			assert(size.Y >= 0.001, "modelo sem altura")
 			model:ScaleTo(model:GetScale() * (spec.height / size.Y))
 			local box, scaled = model:GetBoundingBox()
 			local base = box.Position - Vector3.yAxis * (scaled.Y / 2)
