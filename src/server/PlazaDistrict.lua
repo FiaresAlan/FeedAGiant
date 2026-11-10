@@ -5,6 +5,7 @@
 -- Os modelos não possuem Scripts de terceiros e não exigem upload de assets.
 local Workspace = game:GetService("Workspace")
 local CollectionService = game:GetService("CollectionService")
+local ArtFactory = require(script.Parent.ArtFactory) -- modelos opcionais importados no Studio
 
 local PlazaDistrict = {}
 
@@ -90,12 +91,18 @@ local function sign(anchor: BasePart, title: string, color: Color3, range: numbe
 end
 
 local function banner(parent: Instance, cf: CFrame, color: Color3)
+	if ArtFactory.decorate(parent, "banner", cf, 12) then
+		return
+	end
 	make(parent, "Mastro", Vector3.new(0.6, 11, 0.6), cf * CFrame.new(0, 5.5, 0), WOOD_DARK)
 	make(parent, "Bandeirola", Vector3.new(0.2, 4, 3), cf * CFrame.new(0, 8.5, -1.4), color, Enum.Material.Fabric)
 	make(parent, "Ponta", Vector3.new(1.1, 1.1, 1.1), cf * CFrame.new(0, 11.3, 0), WARM, Enum.Material.Neon, Enum.PartType.Ball)
 end
 
 local function barrel(parent: Instance, cf: CFrame, scale: number)
+	if ArtFactory.decorate(parent, "barrel", cf, 5 * scale) then
+		return
+	end
 	local base = cf * CFrame.new(0, 2 * scale, 0)
 	make(parent, "Barril", Vector3.new(4 * scale, 3.4 * scale, 3.4 * scale),
 		base * CFrame.Angles(0, 0, math.rad(90)), WOOD, Enum.Material.Wood, Enum.PartType.Cylinder)
@@ -138,22 +145,38 @@ local function createKitchen(root: Instance)
 	-- Estação A: cortar. Estação B: mexer na panela. A atividade real fica no SocialFeastService.
 	local prepA = tableTop(kitchen, cf * CFrame.new(-10, 0, -2), "PrepA", WOOD)
 	local prepB = tableTop(kitchen, cf * CFrame.new(10, 0, -2), "PrepB", WOOD)
-	make(kitchen, "Tábua", Vector3.new(5, 0.3, 3), prepA.CFrame * CFrame.new(0, 0.52, 0), CREAM, Enum.Material.Wood)
-	make(kitchen, "Legume", Vector3.new(1.8, 1.8, 1.8), prepA.CFrame * CFrame.new(-1.2, 1.5, 0),
+	-- Se o Workbench FBX já foi importado, esconde só a tábua superior; o
+	-- ProximityPrompt do servidor continua preso no mesmo PrepA.
+	ArtFactory.replace(prepA, "workbench", 9)
+	local cutBoard = make(kitchen, "Tábua", Vector3.new(5, 0.3, 3),
+		prepA.CFrame * CFrame.new(0, 0.52, 0), CREAM, Enum.Material.Wood)
+	ArtFactory.replace(cutBoard, "board", 5.5)
+	local carrot = make(kitchen, "Legume", Vector3.new(1.8, 1.8, 1.8),
+		prepA.CFrame * CFrame.new(-1.2, 1.5, 0),
 		Color3.fromRGB(239, 99, 61), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-	make(kitchen, "Legume", Vector3.new(1.2, 1.2, 1.2), prepA.CFrame * CFrame.new(1.2, 1.1, 0),
+	ArtFactory.replace(carrot, "carrot", 2.8)
+	local green = make(kitchen, "Legume", Vector3.new(1.2, 1.2, 1.2),
+		prepA.CFrame * CFrame.new(1.2, 1.1, 0),
 		Color3.fromRGB(109, 178, 67), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-	make(kitchen, "Panela", Vector3.new(2.2, 4.1, 4.1),
+	ArtFactory.replace(green, "apple", 1.8)
+	local pot = make(kitchen, "Panela", Vector3.new(2.2, 4.1, 4.1),
 		prepB.CFrame * CFrame.new(0, 1.25, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		STONE, Enum.Material.Metal, Enum.PartType.Cylinder)
-	make(kitchen, "Sopa", Vector3.new(0.2, 3.6, 3.6),
+	local stew = make(kitchen, "Sopa", Vector3.new(0.2, 3.6, 3.6),
 		prepB.CFrame * CFrame.new(0, 2.4, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		Color3.fromRGB(245, 132, 54), Enum.Material.Neon, Enum.PartType.Cylinder)
-	make(kitchen, "ColherGigante", Vector3.new(0.5, 5, 0.5),
+	if ArtFactory.replace(pot, "pot", 6) then
+		stew.Transparency = 1 -- não atravessar o interior do pot-stew importado
+	end
+	local spoon = make(kitchen, "ColherGigante", Vector3.new(0.5, 5, 0.5),
 		prepB.CFrame * CFrame.new(0.5, 4.2, 0) * CFrame.Angles(math.rad(18), 0, 0), CREAM,
 		Enum.Material.Wood)
+	ArtFactory.replace(spoon, "spoon", 5.4)
 	barrel(kitchen, cf * CFrame.new(-14, 0, 7), 0.7)
 	barrel(kitchen, cf * CFrame.new(14, 0, 7), 0.7)
+	-- Props de feira opcionais: nunca são carregados por assetId em tempo de jogo.
+	ArtFactory.decorate(kitchen, "marketStall", cf * CFrame.new(-15, 0, -13), 15)
+	ArtFactory.decorate(kitchen, "burger", cf * CFrame.new(0, 2.9, 7), 4.2)
 	serve:SetAttribute("UseBySocialFeast", true)
 	tray:SetAttribute("UseBySocialFeast", false)
 	return kitchen
@@ -167,6 +190,13 @@ local function trailSpot(parent: Instance, name: string, cf: CFrame, color: Colo
 	make(parent, "Cristal", Vector3.new(2.8, 2.8, 2.8), cf * CFrame.new(0, 5.7, 0),
 		color, Enum.Material.Neon, Enum.PartType.Ball)
 	sign(pillar, label, CREAM, 85)
+	if name == "TrailStep1" then
+		ArtFactory.decorate(parent, "appleCrate", cf * CFrame.new(4.5, 0, 0), 4.5)
+	elseif name == "TrailStep2" then
+		ArtFactory.decorate(parent, "carrotCrate", cf * CFrame.new(4.5, 0, 0), 4.5)
+	elseif name == "TrailStep3" then
+		ArtFactory.decorate(parent, "bread", cf * CFrame.new(4.5, 0, 0), 3.3)
+	end
 	return pillar
 end
 
@@ -217,6 +247,8 @@ local function createLookout(root: Instance)
 	local labelPart = make(lookout, "PlacaMirante", Vector3.new(1, 5, 1),
 		cf * CFrame.new(0, 3, -9), WOOD, Enum.Material.Wood)
 	sign(labelPart, "MIRANTE DOS COLOSSOS", CREAM, 110)
+	ArtFactory.decorate(lookout, "bench", cf * CFrame.new(-7, 0, -4), 6.5)
+	ArtFactory.decorate(lookout, "cake", cf * CFrame.new(7, 0, -4), 3.2)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "PhotoPrompt"
 	prompt.ActionText = "ENQUADRAR FOTO"
