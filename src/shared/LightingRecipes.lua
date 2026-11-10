@@ -170,6 +170,14 @@ function LightingRecipes.apply(name: string)
 		end
 	end
 	assign(owned(Lighting, "Atmosphere", "RecipeAtmosphere"), recipe.atmosphere)
+	-- Trocar do skybox dourado para o céu azul padrão não deve herdar as seis
+	-- imagens anteriores quando a receita ToyboxDaylight for aplicada no Studio.
+	if recipe.skybox == nil then
+		local previous = Lighting:FindFirstChild("RecipeSky")
+		if previous and previous:GetAttribute("Skybox") ~= "padrão" then
+			previous:Destroy()
+		end
+	end
 	local sky = owned(Lighting, "Sky", "RecipeSky")
 	assign(sky, recipe.sky)
 	assign(owned(Lighting, "BloomEffect", "RecipeBloom"), recipe.bloom)
