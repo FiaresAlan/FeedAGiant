@@ -85,6 +85,10 @@ local function saveOriginal(part: Part)
 	end
 	part:SetAttribute(ORIGINAL_PREFIX .. "Material", part.Material.Name)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Variant", part.MaterialVariant)
+	-- Mudança de material NÃO deve mudar atrito/peso/elasticidade dos pisos.
+	-- CustomPhysicalProperties original é mantido; se era nil, recriamos os
+	-- valores físicos do material anterior somente enquanto o tema estiver ativo.
+	part:SetAttribute(ORIGINAL_PREFIX .. "HadCustomPhysics", part.CustomPhysicalProperties ~= nil)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Color", part.Color)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Top", part.TopSurface.Name)
 	part:SetAttribute(ORIGINAL_PREFIX .. "Reflectance", part.Reflectance)
@@ -118,13 +122,19 @@ local function restoreOriginal(part: Part)
 	if type(oldReflectance) == "number" then
 		part.Reflectance = oldReflectance
 	end
-	for _, key in { "Material", "Variant", "Color", "Top", "Reflectance" } do
+	if part:GetAttribute(ORIGINAL_PREFIX .. "HadCustomPhysics") == false then
+		part.CustomPhysicalProperties = nil
+	end
+	for _, key in { "Material", "Variant", "Color", "Top", "Reflectance", "HadCustomPhysics" } do
 		part:SetAttribute(ORIGINAL_PREFIX .. key, nil)
 	end
 end
 
 local function stylePart(part: Part, category: string)
 	saveOriginal(part)
+	if part.CustomPhysicalProperties == nil then
+		part.CustomPhysicalProperties = PhysicalProperties.new(part.Material)
+	end
 	part.Material = Enum.Material.Plastic
 	part.MaterialVariant = "" -- PBR anterior não pode encobrir os studs clássicos
 	part.TopSurface = Enum.SurfaceType.Studs
