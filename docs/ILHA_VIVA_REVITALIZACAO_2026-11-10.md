@@ -67,12 +67,18 @@ Candidatos verificados em páginas oficiais:
 
 | Uso | Origem verificável | Licença/custo informado | Cuidado antes de importar |
 |---|---|---|---|
+| **1ª escolha: kit de comidas (200 modelos)** | https://kenney.nl/assets/food-kit | **CC0, totalmente grátis**, >200 alimentos e objetos, FBX/OBJ/glTF | Melhor custo visual: importar só 8–12 comidas e otimizar para cozinha, promoções e close-ups; evitar 200 MeshParts simultâneos |
+| **2ª escolha: kit de feira medieval** | https://quaternius.com/packs/fantasypropsmegakit.html | **CC0, download grátis** de ~60–70% do kit de 211 modelos, FBX/OBJ/glTF | Estilo próximo do projeto; selecionar barraca, tábua, talheres, ferramentas e bancada, sem incluir scripts de terceiros |
+| Carrinho de feira | https://grab3d.com/models/props/market-cart/ | CC0, gratuito e sem login, **19.302 triângulos**, GLB/FBX | Apenas 1 exemplar perto da Cozinha; reduzir textura 2K e tris se possível, não replicar a cada base |
 | Tenda medieval opcional | https://create.roblox.com/store/asset/16263631766/Medieval-Market-Stalls | `Get Model` na Creator Store, cerca de 12.900 triângulos e 48 MeshParts | Testar em cópia do place; verificar todo `Script`, `ModuleScript`, `LocalScript` e dependências externas, e avaliar draw calls |
 | Barraca da feira | https://grab3d.com/models/buildings/farm-stand/ | CC0, $0, versão Light de ~16.784 triângulos, 1K | Uma malha para perto da cozinha, não dezenas de cópias; converter/importar FBX pelo Studio |
 | Pão detalhado | https://grab3d.com/models/food/bread-loaf/ | CC0, $0, ~9.906 triângulos | Usar só para objeto de close-up; reduzir textura 2K para 512/1K |
 | Props de madeira | https://grab3d.com/models/props/old-barrel/ | CC0, $0, ~19.856 triângulos | Muito pesado para encher o mapa; preferir os barris procedurais já criados |
 | Modelos pesquisáveis por API | https://3dassets.dev/ | maioria dos envios novos CC0; modelos em GLB | Conferir licença do item, origem, conversão e custo de triangulação por asset |
 | Materiais para acabamento | https://polyhaven.com/license | Todos os assets CC0, comercial | Texturas PBR geralmente pesadas; otimizar para mobile e manter estilo cartoon-pintado |
+
+
+**Prioridade quando o Studio estiver acessível:** substituir primeiro o visual da Cozinha com um subconjunto do **Kenney Food Kit** e do **Quaternius Fantasy Props**. Esses packs são gratuitos e CC0; o resultado deve manter o estilo cartoon pintado, não sair importando assets desconexos. Nenhum download foi realizado automaticamente nesta sessão porque a autenticação do navegador e o Studio MCP não ficaram disponíveis aqui. Para importar corretamente: baixar o pacote original, registrar a licença e SHA-256, importar só FBX/GLB necessário em place de teste, verificar número de triângulos/texturas, remover qualquer script desconhecido e comparar FPS/memória mobile antes da substituição.
 
 **Regra de segurança inegociável:** o antigo `Workspace.MainModule` malicioso já motivou remoção e auditoria do place. Não instalar free models com script, `require(assetId)`, `loadstring`, `LinkedSource`, `InsertService:LoadAsset` ou código obfuscado. Importar primeiro em place de quarentena, remover scripts, revisar o conteúdo e só então migrar geometria/meshes. A Creator Store não assegura ausência completa de backdoors. Fontes:
 - https://create.roblox.com/docs/production/creator-store
