@@ -169,4 +169,33 @@ function ArtFactory.decorate(parent: Instance, key: string, cf: CFrame, span: nu
 	return visual
 end
 
+-- Auditoria manual no Roblox Studio Command Bar:
+-- require(game.ServerScriptService.Server.ArtFactory).audit()
+-- Não modifica o place e não publica asset algum.
+function ArtFactory.audit(): { available: number, total: number, firstTierMissing: number, unsafe: number }
+	local result = { available = 0, total = #Manifest.Items, firstTierMissing = 0, unsafe = 0 }
+	for _, entry in Manifest.Items do
+		local source = imported(entry.key)
+		if not source then
+			if entry.tier == 1 then
+				result.firstTierMissing += 1
+				print(string.format("[ArtFactory] Falta Tier 1: %s (%s)", entry.template, entry.file))
+			end
+		else
+			local sanitized = safeVisualOnly(source, entry.key)
+			if sanitized then
+				result.available += 1
+				sanitized:Destroy()
+			else
+				result.unsafe += 1
+			end
+		end
+	end
+	print(string.format(
+		"[ArtFactory] %d/%d disponíveis; %d essenciais ausentes; %d rejeitados.",
+		result.available, result.total, result.firstTierMissing, result.unsafe
+	))
+	return result
+end
+
 return ArtFactory
