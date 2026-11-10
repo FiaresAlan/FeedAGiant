@@ -117,6 +117,7 @@ local function onPlayerAdded(player: Player)
 	OnboardingService.onJoin(player) -- v3: câmera de chegada e 1ª alimentação mais forte (flag)
 	EggService.onJoin(player) -- ovos: estado do ninho e marcos de nível (flag)
 	WelcomeService.onJoin(player) -- resumo de quem volta (flag)
+	SocialFeastService.onJoin(player) -- restaura o tempo RESTANTE do bônus cooperativo
 
 	-- Teleporta o jogador para sua base ao (re)nascer
 	player.CharacterAdded:Connect(function(char)
