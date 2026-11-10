@@ -33,8 +33,6 @@ local reservation: Reservation? = nil
 local cooldownUntil = 0
 local individualCooldown: { [number]: number } = {}
 local stand: BasePart? = nil
-local prepA: BasePart? = nil
-local prepB: BasePart? = nil
 local label: TextLabel? = nil
 local prompt: ProximityPrompt? = nil
 local sparks: ParticleEmitter? = nil
@@ -333,7 +331,7 @@ local function build()
 		warn("[SocialFeast] cozinha sem balcão ou estações")
 		return
 	end
-	stand, prepA, prepB = p, a, b
+	stand = p
 	local top = kitchen:FindFirstChild("BandejaDaEquipe")
 	if top and top:IsA("BasePart") then
 		local sparkle = Instance.new("ParticleEmitter")
