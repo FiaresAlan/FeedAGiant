@@ -18,6 +18,7 @@ local Analytics = require(script.Parent.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local GiantService = require(script.Parent.GiantService)
+local ArtFactory = require(script.Parent.Parent.ArtFactory)
 
 local SocialFeastService = {}
 
@@ -118,6 +119,49 @@ local function updateDisplay(now: number)
 end
 
 
+-- Exibe uma comida real na bandeja por alguns segundos após cozinhar.
+-- A surpresa é SOMENTE visual: não vira item de inventário, moeda ou drop.
+local function showDish(recipe: KitchenRecipes.Recipe)
+	local map = Workspace:FindFirstChild("Map")
+	local district = map and map:FindFirstChild("LivingPlazaDistrict")
+	local kitchen = district and district:FindFirstChild("ColossalKitchen")
+	local tray = kitchen and kitchen:FindFirstChild("BandejaDaEquipe")
+	if not kitchen or not tray or not tray:IsA("BasePart") then
+		return
+	end
+	local previous = kitchen:FindFirstChild("LastDish")
+	if previous then
+		previous:Destroy()
+	end
+	local dish = Instance.new("Model")
+	dish.Name = "LastDish"
+	local fallback = Instance.new("Part")
+	fallback.Name = "DishFallback"
+	fallback.Size = Vector3.new(3.8, 3.8, 3.8)
+	fallback.Shape = Enum.PartType.Ball
+	fallback.Color = recipe.color
+	fallback.Material = Enum.Material.Neon
+	fallback.Anchored = true
+	fallback.CanCollide = false
+	fallback.CanTouch = false
+	fallback.CanQuery = false
+	fallback.CastShadow = false
+	fallback.CFrame = tray.CFrame * CFrame.new(0, 2.5, 0)
+	fallback.Parent = dish
+	local visualKey = if recipe.id == "fruit_feast" then "apple"
+		elseif recipe.id == "king_sandwich" then "burger"
+		elseif recipe.id == "fire_festival" then "pizza"
+		elseif recipe.id == "world_banquet" then "bowl"
+		else "bread"
+	ArtFactory.replace(fallback, visualKey, 4.2)
+	dish.Parent = kitchen
+	task.delay(10, function()
+		if dish.Parent then
+			dish:Destroy()
+		end
+	end)
+end
+
 -- Só completa depois de dois participantes e duas tarefas ativas.
 -- Todos os dados são revalidados no servidor; se alguém for embora, nada é debitado.
 local function completeCooking(now: number)
@@ -183,6 +227,10 @@ local function completeCooking(now: number)
 	individualCooldown[secondPlayer.UserId] = now + Rules.CooldownSeconds
 	if sparks then
 		sparks:Emit(28)
+	end
+	local okDish, dishError = pcall(showDish, recipe)
+	if not okDish then
+		warn("[SocialFeast] Falha visual não afeta a recompensa: ", dishError)
 	end
 	for _, pl in { firstPlayer, secondPlayer } do
 		local discovered = if pl == firstPlayer then learnedByA else learnedByB
