@@ -50,7 +50,35 @@ return function()
 			expect(#inventory).to.equal(1)
 		end)
 	end)
-	describe("Alimentação segura", function()
+	describe("Preparo da Cozinha Colossal", function()
+		it("somente cozinheiro A pode cortar e B pode mexer", function()
+			local data = {
+				player = { UserId = 42 },
+				partner = { UserId = 81 },
+				untilTime = 500,
+				preparedA = false,
+				preparedB = false,
+			}
+			expect(Rules.canPrepare(data, "A", 42, 100)).to.equal(true)
+			expect(Rules.canPrepare(data, "B", 81, 100)).to.equal(true)
+			expect(Rules.canPrepare(data, "B", 42, 100)).to.equal(false)
+			expect(Rules.canPrepare(data, "A", 81, 100)).to.equal(false)
+		end)
+		it("não permite repetir estação, nem preparar após tempo acabar", function()
+			local data = {
+				player = { UserId = 1 },
+				partner = { UserId = 2 },
+				untilTime = 500,
+				preparedA = true,
+				preparedB = false,
+			}
+			expect(Rules.canPrepare(data, "A", 1, 250)).to.equal(false)
+			expect(Rules.canPrepare(data, "B", 2, 499)).to.equal(true)
+			expect(Rules.canPrepare(data, "B", 2, 500)).to.equal(false)
+		end)
+	end)
+
+		describe("Alimentação segura", function()
 		it("prefere comida comum da mochila e preserva a renda exposta", function()
 			local slot, index = FoodChoice.choose({ ["1"] = { id = "apple" } }, {
 				{ id = "pizza" },
