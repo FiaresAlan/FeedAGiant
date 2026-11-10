@@ -53,6 +53,7 @@ function SocialFeastRules.completed(slice: any, now: number): any
 		day = day,
 		count = (if slice.day == day then (tonumber(slice.count) or 0) else 0) + 1,
 		total = (tonumber(slice.total) or 0) + 1,
+		buffUntil = now + SocialFeastRules.BuffSeconds, -- relógio absoluto: continua correndo offline
 	}
 end
 
