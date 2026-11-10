@@ -173,6 +173,14 @@ local function createTrail(root: Instance)
 	local trail = Instance.new("Model")
 	trail.Name = "IngredientTrail"
 	trail.Parent = root
+	-- Marcas pequenas e descontínuas seguem o anel sem levantar barreiras no caminho.
+	-- Contrastam com o chão alaranjado dos prints e ligam os quatro postos visualmente.
+	for angle = 206, 334, 11 do
+		local mark = make(trail, "MigalhaDeRota", Vector3.new(2.6, 0.08, 4.5),
+			CFrame.new(polar(angle, L.TrailStart.radius, 2.92)) * CFrame.Angles(0, math.rad(angle), 0),
+			TEAL_LIGHT, Enum.Material.Neon)
+		mark.Transparency = 0.24
+	end
 	local start = trailSpot(trail, "TrailStart", CFrame.new(polar(L.TrailStart.angle, L.TrailStart.radius, 2.2)),
 		TEAL, "TRILHA DA COMIDA")
 	start:SetAttribute("TrailStage", 0)
