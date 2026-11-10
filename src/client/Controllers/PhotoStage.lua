@@ -17,6 +17,7 @@ local active = false
 local serial = 0
 local currentCamera: Camera? = nil
 local oldSubject: Instance? = nil
+local photoPreview: Model? = nil
 local panel: Frame? = nil
 local bound: { [Instance]: boolean } = {}
 
@@ -27,6 +28,10 @@ local function hide()
 	end
 	active = false
 	ContextActionService:UnbindAction(EXIT_ACTION)
+	if photoPreview then
+		photoPreview:Destroy()
+		photoPreview = nil
+	end
 	if panel then
 		panel.Visible = false
 	end
@@ -42,6 +47,70 @@ local function hide()
 		end
 	end
 	currentCamera, oldSubject = nil, nil
+end
+
+-- Fotografa o jogador JUNTO do gigante verdadeiro em miniatura.
+-- A cópia é local ao aparelho, sem alterar o gigante que produz renda na base.
+local function previewOwnGiant(spot: BasePart, cam: Camera)
+	local original: Model? = nil
+	for _, item in Workspace:GetChildren() do
+		if item:IsA("Model") and item:GetAttribute("OwnerUserId") == player.UserId then
+			original = item
+			break
+		end
+	end
+	if not original then
+		return
+	end
+	local ok, clone = pcall(function()
+		return (original :: Model):Clone()
+	end)
+	if not ok or not clone then
+		return
+	end
+	clone.Name = "PhotoPreviewOnly"
+	clone:SetAttribute("OwnerUserId", nil)
+	local count = 0
+	for _, d in clone:GetDescendants() do
+		if d:IsA("Script") or d:IsA("LocalScript") or d:IsA("ModuleScript")
+			or d:IsA("ProximityPrompt") or d:IsA("BillboardGui") or d:IsA("ParticleEmitter")
+			or d:IsA("Sound") or d:IsA("PointLight") or d:IsA("Highlight") then
+			d:Destroy()
+		elseif d:IsA("BasePart") then
+			count += 1
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+		end
+	end
+	-- Limite evita clonar corpos extras enormes em dispositivos móveis.
+	if count == 0 or count > 80 then
+		clone:Destroy()
+		return
+	end
+	local boundingOk, _, ext = pcall(function()
+		return clone:GetBoundingBox()
+	end)
+	if not boundingOk or not ext then
+		clone:Destroy()
+		return
+	end
+	local height = math.max(1, ext.Y)
+	local scaled = math.clamp(10 / height, 0.06, 2)
+	local done = pcall(function()
+		clone:ScaleTo(clone:GetScale() * scaled)
+		local box, size = clone:GetBoundingBox()
+		local bottom = box * CFrame.new(0, -size.Y / 2, 0)
+		local offset = clone:GetPivot():ToObjectSpace(bottom)
+		clone:PivotTo(spot.CFrame * CFrame.new(7, 0.6, -3) * offset:Inverse())
+	end)
+	if not done then
+		clone:Destroy()
+		return
+	end
+	clone.Parent = cam -- não entra no Workspace como gigante jogável nem replica a ninguém
+	photoPreview = clone
 end
 
 local function show(spot: BasePart)
@@ -68,6 +137,7 @@ local function show(spot: BasePart)
 	local this = serial
 	currentCamera = cam
 	oldSubject = cam.CameraSubject
+	previewOwnGiant(spot, cam)
 	cam.CameraType = Enum.CameraType.Scriptable
 	if panel then
 		panel.Visible = true
@@ -93,6 +163,13 @@ local function bind(spot: Instance)
 	end
 	local prompt = spot:FindFirstChild("PhotoPrompt")
 	if not prompt or not prompt:IsA("ProximityPrompt") then
+		-- Streaming/replicação pode entregar a tag antes do filho ProximityPrompt.
+		task.defer(function()
+			local loaded = spot:WaitForChild("PhotoPrompt", 5)
+			if loaded then
+				bind(spot)
+			end
+		end)
 		return
 	end
 	bound[spot] = true
