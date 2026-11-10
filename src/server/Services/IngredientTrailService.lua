@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Features = require(game.ReplicatedStorage.Shared.Features)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local FoodPreference = require(game.ReplicatedStorage.Shared.FoodPreference)
+local Rules = require(game.ReplicatedStorage.Shared.IngredientTrailRules)
 local Guard = require(script.Parent.Parent.Guard)
 local Analytics = require(script.Parent.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -16,13 +17,9 @@ local PlotService = require(script.Parent.PlotService)
 
 local IngredientTrailService = {}
 
-local DAY_SECONDS = 86400
-local RUN_SECONDS = 180
-local MAX_REWARDS_PER_DAY = 2
-local COINS = 200
 local REACH = 14
 local runs: { [Player]: { step: number, deadline: number } } = {}
-local stations: { [number]: BasePart } = {}
+-- As instâncias só existem enquanto o mapa estiver ativo; não armazenar refs globais.
 
 local function on(): boolean
 	return Features.on("IngredientTrail")
@@ -37,10 +34,6 @@ local function notify(player: Player, message: string, color: Color3?)
 	end
 end
 
-local function today(now: number): number
-	return math.floor(now / DAY_SECONDS)
-end
-
 local function progress(profile: any): any
 	local value = profile.ingredientTrail
 	if type(value) ~= "table" then
@@ -52,23 +45,17 @@ end
 
 local function allowed(profile: any, now: number): boolean
 	local saved = progress(profile)
-	return saved.day ~= today(now) or (tonumber(saved.rewards) or 0) < MAX_REWARDS_PER_DAY
+	return Rules.canClaim(saved, now)
 end
 
 local function finish(player: Player, profile: any, now: number)
 	local saved = progress(profile)
-	local day = today(now)
-	if saved.day ~= day then
-		saved.day = day
-		saved.rewards = 0
-	end
-	if saved.rewards >= MAX_REWARDS_PER_DAY then
+	if not Rules.canClaim(saved, now) then
 		runs[player] = nil
 		return
 	end
-	saved.rewards += 1
-	saved.lifetime = (tonumber(saved.lifetime) or 0) + 1
-	profile.coins += COINS
+	(profile :: any).ingredientTrail = Rules.claim(saved, now)
+	profile.coins += Rules.RewardCoins
 	DataService.markDirty(player)
 	runs[player] = nil
 	-- Com mochila cheia o prêmio em moedas continua garantido; não force itens
@@ -79,8 +66,8 @@ local function finish(player: Player, profile: any, now: number)
 		else false
 	PlotService.pushState(player)
 	notify(player,
-		if gotFood then string.format("TRILHA CONCLUÍDA! +%d moedas e %s na mochila!", COINS, foodId)
-		else string.format("TRILHA CONCLUÍDA! +%d moedas. Mochila cheia: alimento extra não concedido.", COINS),
+		if gotFood then string.format("TRILHA CONCLUÍDA! +%d moedas e %s na mochila!", Rules.RewardCoins, foodId)
+		else string.format("TRILHA CONCLUÍDA! +%d moedas. Mochila cheia: alimento extra não concedido.", Rules.RewardCoins),
 		Color3.fromRGB(255, 220, 114))
 	Analytics.event(player, "ingredient_trail_finished", 1, { if gotFood then "food" else "coins_only" })
 end
@@ -104,7 +91,7 @@ local function interact(player: Player, step: number, part: BasePart)
 			notify(player, string.format("Sua Trilha está ativa: procure a pista %d de 3!", run.step + 1))
 			return
 		end
-		runs[player] = { step = 0, deadline = now + RUN_SECONDS }
+		runs[player] = { step = 0, deadline = now + Rules.DurationSeconds }
 		notify(player, "TRILHA INICIADA! Procure a PISTA 1 no anel da praça. São 3 pistas em 3 minutos!")
 		Analytics.event(player, "ingredient_trail_started", 1)
 		return
@@ -115,12 +102,12 @@ local function interact(player: Player, step: number, part: BasePart)
 		notify(player, "O prazo da Trilha acabou. Reinicie na placa TRILHA DA COMIDA; nada foi perdido.")
 		return
 	end
-	if run.step + 1 ~= step then
+	if not Rules.canAdvance(run.step, step, run.deadline, now) then
 		notify(player, string.format("Essa não é a próxima pista! Encontre a PISTA %d.", run.step + 1))
 		return
 	end
 	run.step = step
-	if step >= 3 then
+	if step >= Rules.LastStage then
 		finish(player, profile, now)
 	else
 		notify(player, string.format("PISTA %d/3! Continue pelo anel até a PISTA %d. Restam %d s.", step, step + 1, run.deadline - now))
@@ -135,11 +122,10 @@ local function hook()
 		warn("[IngredientTrail] trilha não encontrada na praça; verifique PlazaDistrict.build")
 		return
 	end
-	for step = 0, 3 do
+	for step = 0, Rules.LastStage do
 		local name = if step == 0 then "TrailStart" else "TrailStep" .. tostring(step)
 		local part = trail:FindFirstChild(name)
 		if part and part:IsA("BasePart") then
-			stations[step] = part
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = "TrailPrompt"
 			prompt.ActionText = if step == 0 then "COMEÇAR TRILHA" else "COLETAR PISTA " .. tostring(step)
