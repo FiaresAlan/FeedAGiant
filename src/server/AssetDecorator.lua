@@ -12,6 +12,8 @@ export type AssetSpec = {
 	anchor: string,
 	bottom: Vector3,
 	height: number,
+	roll: number?,
+	overlay: boolean?,
 }
 
 -- Nomes exatos: lista de FBX do usuário e overview.html Kenney Food Kit.
@@ -22,7 +24,7 @@ AssetDecorator.Specs = {
 	{
 		pack = "FantasyProps",
 		name = "Barrel_Apples",
-		anchor = "Barril",
+		anchor = "BarrilComMaçãs",
 		bottom = Vector3.new(0, -1.4, 0),
 		height = 2.8,
 	},
@@ -34,13 +36,21 @@ AssetDecorator.Specs = {
 		height = 10,
 	},
 	{ pack = "KenneyFood", name = "cutting-board", anchor = "Tábua", bottom = Vector3.new(0, -0.15, 0), height = 0.3 },
-	{ pack = "KenneyFood", name = "carrot", anchor = "Cenoura", bottom = Vector3.new(0, -0.83, 0), height = 0.55 },
+	{
+		pack = "KenneyFood",
+		name = "carrot",
+		anchor = "Cenoura",
+		bottom = Vector3.new(0, -0.83, 0),
+		height = 0.55,
+		roll = math.pi / 2,
+	},
 	{
 		pack = "KenneyFood",
 		name = "pot-stew",
 		anchor = "BandejaDaEquipe",
 		bottom = Vector3.new(0, 0.2, 0),
 		height = 1.5,
+		overlay = true,
 	},
 }
 
@@ -118,6 +128,10 @@ function AssetDecorator.apply(kitchen: Model): number
 			-- no chão, no centro ou fora da malha e cilindros têm rotação local.
 			model.PrimaryPart = nil
 			model.WorldPivot = CFrame.identity
+			if spec.roll then
+				model:PivotTo(CFrame.Angles(0, 0, spec.roll))
+				model.WorldPivot = CFrame.identity
+			end
 			local _, size = model:GetBoundingBox()
 			assert(size.Y >= 0.001, "modelo sem altura")
 			model:ScaleTo(model:GetScale() * (spec.height / size.Y))
@@ -134,7 +148,14 @@ function AssetDecorator.apply(kitchen: Model): number
 		model.Parent = kitchen
 		-- Invisível, mas mantém o Part com ProximityPrompt, atributos e geometria
 		-- lógica para a cozinha continuar funcionando. Evita criar uma cópia funcional.
-		anchor.Transparency = 1
+		if not spec.overlay then
+			anchor.Transparency = 1
+			for _, part in anchor:GetChildren() do
+				if part:IsA("BasePart") then
+					part.Transparency = 1
+				end
+			end
+		end
 		placed += 1
 	end
 	return placed

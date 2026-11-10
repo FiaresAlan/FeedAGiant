@@ -104,11 +104,11 @@ local function banner(parent: Instance, cf: CFrame, color: Color3)
 	)
 end
 
-local function barrel(parent: Instance, cf: CFrame, scale: number)
+local function barrel(parent: Instance, name: string, cf: CFrame, scale: number)
 	local base = cf * CFrame.new(0, 2 * scale, 0)
-	make(
+	local body = make(
 		parent,
-		"Barril",
+		name,
 		Vector3.new(4 * scale, 3.4 * scale, 3.4 * scale),
 		base * CFrame.Angles(0, 0, math.rad(90)),
 		WOOD,
@@ -117,7 +117,7 @@ local function barrel(parent: Instance, cf: CFrame, scale: number)
 	)
 	for y = -1, 1, 2 do
 		make(
-			parent,
+			body,
 			"Aro",
 			Vector3.new(0.3 * scale, 3.6 * scale, 3.6 * scale),
 			base * CFrame.new(0, y * scale, 0) * CFrame.Angles(0, 0, math.rad(90)),
@@ -132,7 +132,7 @@ local function tableTop(parent: Instance, cf: CFrame, name: string, color: Color
 	local top = make(parent, name, Vector3.new(8, 0.7, 5), cf * CFrame.new(0, 3.2, 0), color, Enum.Material.WoodPlanks)
 	for _, dx in { -3.2, 3.2 } do
 		for _, dz in { -1.7, 1.7 } do
-			make(parent, "Pé", Vector3.new(0.7, 3, 0.7), cf * CFrame.new(dx, 1.6, dz), WOOD_DARK, Enum.Material.Wood)
+			make(top, "Pé", Vector3.new(0.7, 3, 0.7), cf * CFrame.new(dx, 1.6, dz), WOOD_DARK, Enum.Material.Wood)
 		end
 	end
 	return top
@@ -185,7 +185,7 @@ local function createKitchen(root: Instance)
 		Enum.Material.SmoothPlastic,
 		Enum.PartType.Ball
 	)
-	make(
+	local pot = make(
 		kitchen,
 		"Panela",
 		Vector3.new(2.2, 4.1, 4.1),
@@ -195,7 +195,7 @@ local function createKitchen(root: Instance)
 		Enum.PartType.Cylinder
 	)
 	make(
-		kitchen,
+		pot,
 		"Sopa",
 		Vector3.new(0.2, 3.6, 3.6),
 		prepB.CFrame * CFrame.new(0, 2.4, 0) * CFrame.Angles(0, 0, math.rad(90)),
@@ -211,8 +211,8 @@ local function createKitchen(root: Instance)
 		CREAM,
 		Enum.Material.Wood
 	)
-	barrel(kitchen, cf * CFrame.new(-14, 0, 7), 0.7)
-	barrel(kitchen, cf * CFrame.new(14, 0, 7), 0.7)
+	barrel(kitchen, "BarrilComMaçãs", cf * CFrame.new(-14, 0, 7), 0.7)
+	barrel(kitchen, "Barril", cf * CFrame.new(14, 0, 7), 0.7)
 	serve:SetAttribute("UseBySocialFeast", true)
 	tray:SetAttribute("UseBySocialFeast", false)
 	-- Os templates opcionais devem ser importados pelo dono em ServerStorage;
