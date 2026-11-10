@@ -6,7 +6,7 @@
 ## 1. Diagnóstico de produto: qual é o motivo para jogar junto?
 O loop central é alimentar seu gigante, crescer, colecionar e disputar comida. Já há Ancestral (todos alimentam seus gigantes para despertar um chefe compartilhado), bots e arena. Falta **colaboração consciente**: encontrar outro humano, decidir participar, coordenar uma ação e ver o resultado **dos dois**.
 
-A primeira atualização é um **Banquete em Dupla** no caldeirão da praça. Dois jogadores verdadeiros precisam se reunir e se inscrever em até 120 segundos, com comidas comuns ou incomuns. Recebem +150 moedas cada e +15% XP para alimentação durante 4 minutos. A participação é opcional, três sucessos por dia por perfil, um novo por pessoa a cada 3 minutos. O pedestal reabre para outra dupla após 10 segundos. Não há Robux nem novo item aleatório.
+A primeira atualização é um **Banquete em Dupla** no caldeirão da praça. Dois jogadores verdadeiros precisam se reunir e se inscrever em até 120 segundos, com comidas comuns ou incomuns. Recebem +150 moedas cada e +15% XP para alimentação durante 4 minutos. A participação é opcional, três sucessos por dia por perfil, um novo por pessoa a cada 3 minutos. O pedestal reabre para outra dupla após 10 segundos. O bônus usa horário absoluto e seu tempo restante é restaurado após reconexão, sem congelar a duração offline. Não há Robux nem novo item aleatório.
 
 **Segurança da inscrição:** a primeira comida é apenas identificada pelo UID e NÃO é retirada. Quando o segundo jogador chega, o servidor revalida o mesmo item, a localização, jogadores distintos, os dois perfis, os limites diários e a comida do segundo. Os dois itens só são removidos no sucesso. Se o tempo acabar, a pessoa sair ou o servidor cair antes de completar, **não perde sua comida**.
 
@@ -90,7 +90,7 @@ Relatos do Reddit são exemplos individuais/autoselecionados, não amostras repr
 
 ### Gate A — novo sistema em QA
 1. Verificar Luau, Selene, StyLua, Rojo e TestEZ; executar `tests/SocialFeast.spec.luau` e `tests/FoodPreference.spec.luau` além dos testes existentes.
-2. Testar a praça com **2 clientes** reais: primeiro oferece, segundo completa; somente a segunda confirmação consome os 2 alimentos (com UID).
+2. Testar a praça com **2 clientes** reais: primeiro oferece, segundo completa; somente a segunda confirmação consome os 2 alimentos (com UID). Verificar que o prazo restante do bônus sobrevive a uma reconexão real, mas continua correndo enquanto o jogador está offline.
 3. Testar timeout, desconexão do primeiro, troca do item prometido, inventário cheio e reinício abrupto em cópia; nenhuma comida perdida antes de completar.
 4. Confirmar limite de 3/dia por perfil e cooldown de 3 min por pessoa, sem bloquear outras duplas.
 5. Validar bonus de XP de 4 min (não altera compras/arena/XP sem comida), 20% do sabor favorito e proteção da alimentação rápida.
