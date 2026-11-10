@@ -136,6 +136,7 @@ local function hook()
 			prompt.MaxActivationDistance = REACH
 			prompt.RequiresLineOfSight = false
 			prompt.Parent = part
+			prompt.Enabled = on()
 			local current = step
 			prompt.Triggered:Connect(function(player: Player)
 				interact(player, current, part)
