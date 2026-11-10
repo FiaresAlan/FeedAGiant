@@ -161,7 +161,7 @@ end
 
 function IngredientTrailService.init()
 	DataService.registerSlice("ingredientTrail", function()
-		return { v = 1, day = 0, rewards = 0, lifetime = 0 }
+		return { v = 1, day = 0, rewards = 0, lifetime = 0, bestSeconds = 0 }
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runs[player] = nil
