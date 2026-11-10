@@ -7,6 +7,7 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
+local CaptureService = game:GetService("CaptureService")
 
 local player = Players.LocalPlayer
 local PhotoStage = {}
@@ -108,12 +109,34 @@ local function bind(spot: Instance)
 	end)
 end
 
+local function savePhoto()
+	if not active then
+		return
+	end
+	-- Capta somente quando o usuário toca no botão. Nada é enviado para fora do
+	-- dispositivo; a Roblox abre confirmação nativa antes de salvar na galeria.
+	local ok, err = pcall(function()
+		CaptureService:TakeScreenshotCaptureAsync(function(result, capture)
+			if result == Enum.ScreenshotCaptureResult.Success and capture then
+				CaptureService:PromptSaveCapturesToGallery({ capture }, function(_results)
+					-- Somente a interface nativa confirma o salvamento.
+				end)
+			else
+				warn("[PhotoStage] captura indisponível neste dispositivo:", result)
+			end
+		end, { UICaptureMode = Enum.UICaptureMode.None })
+	end)
+	if not ok then
+		warn("[PhotoStage] erro de captura (use a captura nativa do aparelho):", err)
+	end
+end
+
 function PhotoStage.init(gui: ScreenGui)
 	local frame = Instance.new("Frame")
 	frame.Name = "PhotoStageGuide"
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	frame.Position = UDim2.new(0.5, 0, 0, 76)
-	frame.Size = UDim2.fromOffset(340, 82)
+	frame.Size = UDim2.fromOffset(380, 100)
 	frame.BackgroundTransparency = 0.12
 	frame.BackgroundColor3 = Color3.fromRGB(30, 42, 52)
 	frame.Visible = false
@@ -125,18 +148,18 @@ function PhotoStage.init(gui: ScreenGui)
 	local title = Instance.new("TextLabel")
 	title.Name = "Guide"
 	title.BackgroundTransparency = 1
-	title.Size = UDim2.new(1, -12, 0, 42)
+	title.Size = UDim2.new(1, -12, 0, 48)
 	title.Position = UDim2.fromOffset(6, 2)
 	title.Font = Enum.Font.FredokaOne
-	title.Text = "MIRANTE DOS COLOSSOS\nUse a captura de tela do seu dispositivo"
+	title.Text = "MIRANTE DOS COLOSSOS\nEnquadre seu gigante e compartilhe"
 	title.TextColor3 = Color3.fromRGB(255, 225, 151)
 	title.TextScaled = true
 	title.ZIndex = 86
 	title.Parent = frame
 	local exit = Instance.new("TextButton")
 	exit.Name = "ExitPhoto"
-	exit.Size = UDim2.fromOffset(138, 27)
-	exit.Position = UDim2.new(0.5, -69, 1, -30)
+	exit.Size = UDim2.fromOffset(150, 34)
+	exit.Position = UDim2.new(0.5, 16, 1, -40)
 	exit.BackgroundColor3 = Color3.fromRGB(221, 97, 69)
 	exit.Text = "SAIR DA FOTO"
 	exit.Font = Enum.Font.FredokaOne
@@ -148,6 +171,21 @@ function PhotoStage.init(gui: ScreenGui)
 	exitRound.CornerRadius = UDim.new(0, 7)
 	exitRound.Parent = exit
 	exit.Activated:Connect(hide)
+	local save = Instance.new("TextButton")
+	save.Name = "SavePhoto"
+	save.Size = UDim2.fromOffset(150, 34)
+	save.Position = UDim2.new(0.5, -166, 1, -40)
+	save.BackgroundColor3 = Color3.fromRGB(58, 160, 144)
+	save.Text = "SALVAR FOTO"
+	save.Font = Enum.Font.FredokaOne
+	save.TextColor3 = Color3.new(1, 1, 1)
+	save.TextScaled = true
+	save.ZIndex = 87
+	save.Parent = frame
+	local roundSave = Instance.new("UICorner")
+	roundSave.CornerRadius = UDim.new(0, 7)
+	roundSave.Parent = save
+	save.Activated:Connect(savePhoto)
 	panel = frame
 	for _, spot in CollectionService:GetTagged("ColossusPhotoSpot") do
 		bind(spot)
