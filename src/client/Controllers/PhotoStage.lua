@@ -196,9 +196,14 @@ local function savePhoto()
 	local ok, err = pcall(function()
 		CaptureService:TakeScreenshotCaptureAsync(function(result, capture)
 			if result == Enum.ScreenshotCaptureResult.Success and capture then
-				CaptureService:PromptSaveCapturesToGallery({ capture }, function(_results)
-					-- Somente a interface nativa confirma o salvamento.
+				local saved, reason = pcall(function()
+					CaptureService:PromptSaveCapturesToGallery({ capture }, function(_results)
+						-- Somente a interface nativa confirma o salvamento.
+					end)
 				end)
+				if not saved then
+					warn("[PhotoStage] a galeria não está disponível; use a captura do aparelho:", reason)
+				end
 			else
 				warn("[PhotoStage] captura indisponível neste dispositivo:", result)
 			end
