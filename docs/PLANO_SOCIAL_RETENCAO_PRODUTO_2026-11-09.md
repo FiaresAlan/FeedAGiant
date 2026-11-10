@@ -106,6 +106,12 @@ Relatos do Reddit são exemplos individuais/autoselecionados, não amostras repr
 ### Gate C — produção
 Nenhum merge na `main`, publicação, anúncio ou Robux até que Play em dois clientes, mobile, dados e segurança passem. PR mantido em rascunho. Ao fazer rollout, poder desligar `Features.SocialFeast` sem perder perfil.
 
+## 6.1. Ajuste de conforto: fome menos agressiva
+Na build de beta desta branch, `Config.Giant.HungerDecayPerSec` foi reduzido de **0,5 para 0,25 por segundo**. A alimentação padrão repõe 12 pontos: isso representa aproximadamente **48 s** de desgaste basal por alimento, em vez de 24 s (antes de multiplicadores de espécie). O objetivo é que a fome provoque decisões, não uma obrigação a cada poucos segundos. É reversível e precisa ser avaliado em playtest de 15–30 minutos. A taxa não foi validada em dados reais.
+
+O Banquete em Dupla tem convite geral limitado a uma mensagem por minuto e é indisponível quando há só um humano no servidor; nesse caso, recomenda convidar outro jogador sem consumir comida. O pedestal fica livre para outras duplas 10 s após uma conclusão, enquanto cada participante mantém cooldown próprio de 3 min.
+
+
 ## 7. Alterações concretas nesta branch
 - `src/server/Services/SocialFeastService.lua` — pedestal, pairing real, validações, moedas, limite diário, anti-loss.
 - `src/shared/SocialFeastRules.lua` — regras puras e testes.
