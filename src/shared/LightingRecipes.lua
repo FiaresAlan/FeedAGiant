@@ -36,6 +36,35 @@ end
 local LightingRecipes = {}
 
 LightingRecipes.Recipes = {
+	-- Inspiração: screenshot de jogo Roblox com studs claros, sombras limpas e céu azul.
+	-- Sem PBR pago nem skybox de terceiros. A direção é centralizada/reversível.
+	ToyboxDaylight = {
+		lighting = {
+			Ambient = rgb(154, 169, 184),
+			OutdoorAmbient = rgb(183, 194, 207),
+			Brightness = 2.8,
+			ColorShift_Top = rgb(245, 245, 247),
+			ColorShift_Bottom = rgb(20, 35, 55),
+			EnvironmentDiffuseScale = 0.55,
+			EnvironmentSpecularScale = 0.25,
+			ClockTime = 13.7,
+			GeographicLatitude = 25,
+			GlobalShadows = true,
+		},
+		atmosphere = {
+			Density = 0.18,
+			Offset = 0.15,
+			Color = rgb(191, 225, 255),
+			Decay = rgb(121, 169, 219),
+			Glare = 0.05,
+			Haze = 0.45,
+		},
+		bloom = { Intensity = 0.2, Size = 22, Threshold = 1.6 },
+		grade = { Brightness = 0.02, Contrast = 0.16, Saturation = 0.13, TintColor = rgb(255, 255, 255) },
+		sunRays = { Intensity = 0.035, Spread = 0.65 },
+		sky = { SunAngularSize = 13, MoonAngularSize = 11, CelestialBodiesShown = true },
+		clouds = { Cover = 0.3, Density = 0.35, Color = rgb(255, 255, 255) },
+	} :: Recipe,
 	-- Fim de tarde (decisão do usuário, 07/11/2026). Base: vault "Stylized Lighting Recipes" §3.3
 	-- Golden hour (ClockTime 17,6; ambiente 90/70/70 e 130/100/90). Ajustes deste jogo (regra prática):
 	-- ClockTime 16,8 em vez de 17,6 e ambiente ~20% mais alto, para o estilo cartoon nunca ficar escuro e
@@ -141,6 +170,14 @@ function LightingRecipes.apply(name: string)
 		end
 	end
 	assign(owned(Lighting, "Atmosphere", "RecipeAtmosphere"), recipe.atmosphere)
+	-- Trocar do skybox dourado para o céu azul padrão não deve herdar as seis
+	-- imagens anteriores quando a receita ToyboxDaylight for aplicada no Studio.
+	if recipe.skybox == nil then
+		local previous = Lighting:FindFirstChild("RecipeSky")
+		if previous and previous:GetAttribute("Skybox") ~= "padrão" then
+			previous:Destroy()
+		end
+	end
 	local sky = owned(Lighting, "Sky", "RecipeSky")
 	assign(sky, recipe.sky)
 	assign(owned(Lighting, "BloomEffect", "RecipeBloom"), recipe.bloom)
