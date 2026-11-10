@@ -23,7 +23,7 @@ Config.Giant = {
 	BaseScale = 1,
 	ScalePerLevel = 0.35,
 	MaxLevel = 250,
-	HungerDecayPerSec = 0.5, -- 0..100
+	HungerDecayPerSec = 0.25, -- ajuste beta: repõe 12 pontos por alimento = ~48s de fome base, antes ~24s
 	HungerPerFeed = 12,
 	MoodMultipliers = { Hungry = 0.8, Fine = 1.0, Happy = 1.25 },
 }

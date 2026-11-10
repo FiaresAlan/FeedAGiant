@@ -14,6 +14,8 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local FoodChoice = require(game.ReplicatedStorage.Shared.FoodChoice)
+local FoodPreference = require(game.ReplicatedStorage.Shared.FoodPreference)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -681,7 +683,7 @@ local function buildFeedButton(gui: ScreenGui)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = feed.ZIndex + 1,
 	})
-	local sub = UI.label(feed, "Dá a comida mais rara do pátio", {
+	local sub = UI.label(feed, "Usa comida comum e preserva seus itens raros", {
 		Size = UDim2.fromOffset(310, 24),
 		Position = UDim2.fromOffset(86, 50),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -692,19 +694,14 @@ local function buildFeedButton(gui: ScreenGui)
 	})
 
 	feed.Activated:Connect(function()
-		local best: number? = nil
-		local bestOrder = 0
-		for key, food in State.current.plot do
-			local def = Config.FoodById[food.id]
-			if def and Config.Rarities[def.rarity].order > bestOrder then
-				bestOrder = Config.Rarities[def.rarity].order
-				best = tonumber(key)
-			end
-		end
-		if best then
-			Remotes.RequestFeed:FireServer(best)
-		elseif #State.current.inventory > 0 then
-			Remotes.RequestFeed:FireServer({ inv = 1 })
+		-- Alimentação rápida NUNCA escolhe automaticamente rara, mutada ou gigante.
+		-- O jogador ainda pode oferecer qualquer uma manualmente em ITENS.
+		local favorite = (State.current :: any).favoriteFoodId
+		local slot, index = FoodChoice.choose(State.current.plot, State.current.inventory, favorite)
+		if index then
+			Remotes.RequestFeed:FireServer({ inv = index })
+		elseif slot then
+			Remotes.RequestFeed:FireServer(slot)
 		end
 	end)
 
@@ -804,6 +801,37 @@ local function buildFeedButton(gui: ScreenGui)
 		end)
 	end)
 
+	-- Selo discreto do Banquete em Dupla. Só é visível perto do próprio gigante;
+	-- convida o jogador a voltar a alimentar, sem bloquear a câmera ou a interface.
+	local coopChip = UI.frame(holder, {
+		Name = "CoopFeastChip",
+		Size = UDim2.fromOffset(310, 35),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -52),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.25,
+		Visible = false,
+	})
+	UI.corner(coopChip, 12)
+	local coopText = UI.label(coopChip, "", {
+		Size = UDim2.new(1, -10, 1, 0),
+		Position = UDim2.fromOffset(5, 0),
+		TextScaled = false,
+		TextSize = 19,
+		TextColor3 = Color3.fromRGB(255, 220, 110),
+	})
+	task.spawn(function()
+		while coopChip.Parent do
+			local untilTime = player:GetAttribute("CoopFeastUntil")
+			local remaining = if type(untilTime) == "number" then math.max(0, untilTime - os.time()) else 0
+			coopChip.Visible = remaining > 0
+			if remaining > 0 then
+				coopText.Text = string.format("%s +15%% XP  %d:%02d", Locale.t("BANQUETE"), remaining // 60, remaining % 60)
+			end
+			task.wait(1)
+		end
+	end)
+
 	-- Pulso de atenção só quando há comida e o gigante não está feliz (via UIScale, não Size)
 	local press = Instance.new("UIScale")
 	press.Name = "Pulse"
@@ -814,9 +842,18 @@ local function buildFeedButton(gui: ScreenGui)
 		{ Scale = 1.04 }
 	)
 	State.onChanged(function(s)
-		local hasFood = next(s.plot) ~= nil or #s.inventory > 0
+		local favoriteId = (s :: any).favoriteFoodId
+		local plotSlot, inventoryIndex = FoodChoice.choose(s.plot, s.inventory, favoriteId)
+		local hasFood = plotSlot ~= nil or inventoryIndex ~= nil
+		local hasSpecial = next(s.plot) ~= nil or #s.inventory > 0
 		feed.BackgroundColor3 = if hasFood then UI.Colors.Green else Color3.fromRGB(90, 90, 100)
-		sub.Text = if hasFood then Locale.t("Dá a comida mais rara do pátio") else Locale.t("Compre comida na LOJA")
+		feed.Active = hasFood
+		local fav = if type(favoriteId) == "string" then Config.FoodById[favoriteId] else nil
+		sub.Text = if hasFood and fav
+			then string.format("%s: %s (+%d%% XP)", Locale.t("PREFERE"), Locale.t(fav.name), math.floor((FoodPreference.BonusMult - 1) * 100 + 0.5))
+			elseif hasFood then Locale.t("Alimenta sem consumir comida rara")
+			elseif hasSpecial then Locale.t("Comida especial: selecione em ITENS")
+			else Locale.t("Compre comida na LOJA")
 		if hasFood and s.hunger < 75 then
 			pulse:Play()
 		else

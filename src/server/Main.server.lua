@@ -34,6 +34,7 @@ local EggService = require(Services.EggService)
 local EggNotificationService = require(Services.EggNotificationService)
 local MutationService = require(Services.MutationService)
 local AncestralService = require(Services.AncestralService)
+local SocialFeastService = require(Services.SocialFeastService)
 local WelcomeService = require(Services.WelcomeService)
 local TravelService = require(Services.TravelService)
 local WorldFx = require(script.Parent.WorldFx)
@@ -69,6 +70,7 @@ EggService.init()
 EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até publicar)
 MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (flag)
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
+SocialFeastService.init() -- Banquete em Dupla; registra slice antes de DataService.start()
 WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
 TravelService.init() -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
 Speed.init() -- 09/11: dono único da velocidade (carga, ponte, Corrida Turbo)
@@ -115,6 +117,7 @@ local function onPlayerAdded(player: Player)
 	OnboardingService.onJoin(player) -- v3: câmera de chegada e 1ª alimentação mais forte (flag)
 	EggService.onJoin(player) -- ovos: estado do ninho e marcos de nível (flag)
 	WelcomeService.onJoin(player) -- resumo de quem volta (flag)
+	SocialFeastService.onJoin(player) -- restaura o tempo RESTANTE do bônus cooperativo
 
 	-- Teleporta o jogador para sua base ao (re)nascer
 	player.CharacterAdded:Connect(function(char)

@@ -19,6 +19,7 @@ export type PlayerState = {
 	dailyStreak: number,
 	lastDaily: number,
 	species: string?,
+	favoriteFoodId: string?, -- preferência diária da criatura, calculada no servidor
 	ownedSpecies: { [string]: boolean }?,
 	stage: string?,
 	arenaWins: number?,
