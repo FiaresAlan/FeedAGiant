@@ -258,6 +258,83 @@ local function buildArena(root: Instance, map: Instance): number
 	return count
 end
 
+-- A Ilha do Dragão também recebe studs, mantendo o centro do combate livre
+-- para leitura das marcas de arena e dos telegráficos do chefe.
+local function buildDragon(root: Instance, map: Instance): number
+	local dragon = map:FindFirstChild("DragonIsland")
+	local floor = dragon and dragon:FindFirstChild("FightFloor")
+	if not floor or not floor:IsA("Part") then
+		return 0
+	end
+	local center = floor.Position
+	local y = center.Y + floor.Size.X / 2 + 0.055
+	local count = 0
+	for x = -36, 36, 8 do
+		for z = -36, 36, 8 do
+			local distance = math.sqrt(x * x + z * z)
+			if distance > 25 and distance < 39 then
+				count += 1
+				tile(root, "DragonPlate", Vector3.new(7.6, 0.075, 7.6),
+					CFrame.new(center.X + x, y, center.Z + z),
+					if count % 3 == 0 then P.ArenaAlt else P.Arena)
+			end
+		end
+	end
+	return count
+end
+
+-- Cozinha, Mirante e totens da trilha são discos. Placas menores dão a mesma
+-- linguagem da praça sem retangularizar visualmente cada ilha circular.
+local function buildDistrict(root: Instance, map: Instance): number
+	local district = map:FindFirstChild("LivingPlazaDistrict")
+	if not district then
+		return 0
+	end
+	local count = 0
+	local regions = {
+		{ "ColossalKitchen", "PisoInterno", 13, 4.5, P.Cream },
+		{ "ColossusLookout", "Centro", 10, 4.5, P.Ivory },
+	}
+	for _, region in regions do
+		local model = district:FindFirstChild(region[1])
+		local discPart = model and model:FindFirstChild(region[2])
+		if discPart and discPart:IsA("Part") then
+			local r = region[3] :: number
+			local grid = region[4] :: number
+			local color = region[5] :: Color3
+			local y = discPart.Position.Y + discPart.Size.X / 2 + 0.065
+			for x = -r, r, grid do
+				for z = -r, r, grid do
+					if math.sqrt(x * x + z * z) + grid * 0.71 < r then
+						count += 1
+						tile(root, "DistrictPlate", Vector3.new(grid - 0.2, 0.08, grid - 0.2),
+							CFrame.new(discPart.Position.X + x, y, discPart.Position.Z + z),
+							color)
+					end
+				end
+			end
+		end
+	end
+	local trail = district:FindFirstChild("IngredientTrail")
+	if trail then
+		for _, part in trail:GetChildren() do
+			if part:IsA("Part") and part.Name == "Tampa" then
+				for x = -3, 3, 3 do
+					for z = -3, 3, 3 do
+						if x * x + z * z < 11 then
+							count += 1
+							tile(root, "TrailPlate", Vector3.new(2.8, 0.07, 2.8),
+								CFrame.new(part.Position.X + x, part.Position.Y + part.Size.X / 2 + 0.06, part.Position.Z + z),
+								P.Cream)
+						end
+					end
+				end
+			end
+		end
+	end
+	return count
+end
+
 function ToyBrickTheme.remove(map: Instance)
 	local overlay = map:FindFirstChild(OVERLAY_NAME)
 	if overlay then
@@ -289,12 +366,15 @@ function ToyBrickTheme.apply(map: Instance): { [string]: number }
 	local meadow = buildMeadow(overlay)
 	local plaza = buildPlaza(overlay)
 	local arena = buildArena(overlay, map)
+	local dragon = buildDragon(overlay, map)
+	local district = buildDistrict(overlay, map)
 	-- Orçamentos explícitos para regressão de FPS mobile.
-	if meadow > L.MeadowLimit or plaza > L.PlazaLimit or arena > L.ArenaLimit then
-		warn("[ToyBrickTheme] orçamento visual excedido:", meadow, plaza, arena)
+	if meadow > L.MeadowLimit or plaza > L.PlazaLimit or arena > L.ArenaLimit
+		or dragon > L.DragonLimit or district > L.DistrictLimit then
+		warn("[ToyBrickTheme] orçamento visual excedido:", meadow, plaza, arena, dragon, district)
 	end
 	map:SetAttribute("VisualTheme", "ToyBrick")
-	return { styled = styled, meadow = meadow, plaza = plaza, arena = arena }
+	return { styled = styled, meadow = meadow, plaza = plaza, arena = arena, dragon = dragon, district = district }
 end
 
 -- Aplicação no Studio, sempre numa cópia de teste:
