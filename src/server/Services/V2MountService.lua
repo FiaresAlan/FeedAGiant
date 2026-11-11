@@ -79,6 +79,11 @@ function Mount.isMounted(player: Player): boolean
 	return sessions[player] ~= nil
 end
 
+function Mount.isIceShieldActive(player: Player): boolean
+	local s = sessions[player]
+	return s ~= nil and s.species == "ice_starter" and os.clock() < s.boostEndsAt
+end
+
 function Mount.rootOf(player: Player): BasePart?
 	local session = sessions[player]
 	return if session then session.root else nil
