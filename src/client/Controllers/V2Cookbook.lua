@@ -171,6 +171,13 @@ local function drawRecipes()
 	end
 end
 
+function Cookbook.open()
+	if panel then
+		panel.Visible = true
+		Remotes.V2CookRequest:FireServer("snapshot")
+	end
+end
+
 function Cookbook.init(gui: ScreenGui)
 	if not Features.on("RebuildV2") then
 		return
