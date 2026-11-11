@@ -16,6 +16,7 @@ local xpFill: Frame?
 local levelLabel: TextLabel?
 local pageLabel: TextLabel?
 local page = 1
+local starterButton: TextButton?
 local PAGE_SIZE = 35
 
 local COLOR = {
@@ -114,6 +115,7 @@ local function refreshStats()
 	local s = State.current
 	local species = if s.species then Config.SpeciesById[s.species] else nil
 	title.Text = if species then species.name else "Meu gigante"
+	if starterButton then starterButton.Visible = s.species == "human" end
 	levelLabel.Text = ("NIVEL %d  •  FOME %d%%  •  %d MOEDAS"):format(
 		math.floor(s.level), math.floor(s.hunger), math.floor(s.coins))
 	xpFill.Size = UDim2.new(math.clamp(s.xp / math.max(1, s.xpNeeded), 0, 1), 0, 1, 0)
@@ -154,6 +156,17 @@ function Hub.init(gui: ScreenGui)
 	xpFill.BackgroundColor3 = COLOR.mint
 	xpFill.Parent = bar
 	rounded(xpFill, 6)
+
+	starterButton = button(gui, "ESCOLHER GOLEM DE PEDRA · PRIMEIRA ESCOLHA", COLOR.mint)
+	starterButton.Name = "V2ChooseStone"
+	starterButton.TextColor3 = COLOR.dark
+	starterButton.TextSize = 11
+	starterButton.Size = UDim2.fromOffset(292, 45)
+	starterButton.Position = UDim2.fromOffset(14, 124)
+	starterButton.MouseButton1Click:Connect(function()
+		-- Concessao validada pelo OnboardingService/GiantService; nao criar dado no cliente.
+		Remotes.RequestStarter:FireServer("stone_starter")
+	end)
 
 	local actions = Instance.new("Frame")
 	actions.Name = "V2PrimaryActions"
