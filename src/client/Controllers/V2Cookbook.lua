@@ -2,6 +2,7 @@
 -- V2: Livro e duas panelas, painel sem overlay. O servidor sempre decide posses, tempos e resultados.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local Features = require(ReplicatedStorage.Shared.Features)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -305,6 +306,14 @@ function Cookbook.init(gui: ScreenGui)
 		while gui.Parent ~= nil do
 			task.wait(1)
 			if panel and panel.Visible then draw() end
+		end
+	end)
+	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
+		if prompt.Name == "V2OpenCookbook" and panel then
+			chosenPot = if prompt.ObjectText == "PANELA B" then 2 else 1
+			panel.Visible = true
+			draw()
+			Remotes.V2CookRequest:FireServer("snapshot")
 		end
 	end)
 	Remotes.V2CookRequest:FireServer("snapshot")
