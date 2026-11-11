@@ -76,6 +76,14 @@ local EVENTS = {
 	"TravelDone", -- server -> client: {id} (escurece a tela) | {turbo = true} (turbo da ponte)
 	"RequestBossJoin", -- client -> server: botão JOGAR do convite do Dragão (leva para a ilha)
 	"Callout", -- server -> all: {title, sub, color} anúncio GRANDE no meio da tela que vai para o canto
+	-- FeedAGiant V2: requests validados exclusivamente no servidor; sem grants economicos via cliente.
+	"V2CookRequest", -- client -> server: action = snapshot|start|claim, slot:number?, recipeId:string?
+	"V2CookState", -- server -> client: snapshot {slots, recipes, now}
+	"V2LaneRequest", -- client -> server: action = pickup|intercept|deposit, cargoUid:string?
+	"V2LaneState", -- server -> client: snapshots e estados de carga
+	"V2MountRequest", -- client -> server: action = mount|unmount|boost
+	"V2MountInput", -- client -> server: direcao/sprint do gigante montado, rate limited
+	"V2MountState", -- server -> client: estado confirmado de montaria e stamina
 }
 
 local FUNCTIONS = {
