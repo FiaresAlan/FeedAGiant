@@ -30,6 +30,9 @@ local secondBtn: TextButton?
 local status: TextLabel?
 local list: ScrollingFrame?
 local chosenLabel: TextLabel?
+local shortLayout = false
+local showRecipeTab = false
+local updateView: (() -> ())? = nil
 
 local function decorate(gui: GuiObject, r: number, strokeColor: Color3?)
 	local round = Instance.new("UICorner")
@@ -165,6 +168,8 @@ local function drawRecipes()
 		r.MouseButton1Click:Connect(function()
 			if rec.discovered then
 				chosenRecipe = rec.id
+				showRecipeTab = false
+				if updateView then updateView() end
 				draw()
 			end
 		end)
@@ -287,8 +292,40 @@ function Cookbook.init(gui: ScreenGui)
 	layout.Padding = UDim.new(0, 6)
 	layout.Parent = list
 
+	-- Em celulares horizontais, a receita fica em uma aba separada. Nao gerar altura negativa.
+	local viewSwitch = button(panel, "RECEITAS", UDim2.fromOffset(88, 36), CARD)
+	viewSwitch.Position = UDim2.new(1, -147, 0, 10)
+	viewSwitch.ZIndex = 31
+	local cookWidgets: { GuiObject } = { pots, status, firstBtn, secondBtn, combine, start, claim, chosenLabel }
+	local function adjustLayout()
+		local cam = workspace.CurrentCamera
+		shortLayout = cam ~= nil and cam.ViewportSize.Y < 570
+		local recipesView = shortLayout and showRecipeTab
+		viewSwitch.Visible = shortLayout
+		viewSwitch.Text = if showRecipeTab then "PANELAS" else "RECEITAS"
+		head.Size = UDim2.new(1, if shortLayout then -166 else -75, 0, 34)
+		head.TextSize = if shortLayout then 15 else 21
+		for _, control in cookWidgets do
+			control.Visible = not recipesView and (control ~= chosenLabel or not shortLayout)
+		end
+		list.Visible = if shortLayout then recipesView else true
+		list.Position = if shortLayout then UDim2.fromOffset(12, 52) else UDim2.fromOffset(12, 326)
+		list.Size = if shortLayout then UDim2.new(1, -24, 1, -64)
+			else UDim2.new(1, -24, 1, -338)
+	end
+	updateView = adjustLayout
+	viewSwitch.MouseButton1Click:Connect(function()
+		showRecipeTab = not showRecipeTab
+		adjustLayout()
+	end)
+	local cam = workspace.CurrentCamera
+	if cam then cam:GetPropertyChangedSignal("ViewportSize"):Connect(adjustLayout) end
+	adjustLayout()
+
 	bookButton.MouseButton1Click:Connect(function()
 		if panel then panel.Visible = not panel.Visible end
+		showRecipeTab = false
+		if updateView then updateView() end
 		Remotes.V2CookRequest:FireServer("snapshot")
 	end)
 	UserInputService.InputBegan:Connect(function(input: InputObject, consumed: boolean)
@@ -319,6 +356,8 @@ function Cookbook.init(gui: ScreenGui)
 		if prompt.Name == "V2OpenCookbook" and panel then
 			chosenPot = if prompt.ObjectText == "PANELA B" then 2 else 1
 			panel.Visible = true
+			showRecipeTab = false
+			if updateView then updateView() end
 			draw()
 			Remotes.V2CookRequest:FireServer("snapshot")
 		end
