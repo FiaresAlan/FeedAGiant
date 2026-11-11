@@ -12,6 +12,7 @@ local Remotes = require(Shared.Remotes)
 local RunRules = require(Shared.RebuildV2.RunRules)
 local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
+local Hooks = require(script.Parent.Parent.Hooks)
 local MapService = require(script.Parent.MapService)
 
 local Mount = {}
@@ -226,6 +227,7 @@ function Mount.mount(player: Player)
 		nextPushAt = 0,
 	}
 	sessions[player] = session
+	Hooks.fire("v2_mounted", player)
 	push(player, session)
 end
 
