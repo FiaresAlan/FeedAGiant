@@ -211,6 +211,22 @@ local function claim(player: Player, index: number, expectedJobId: any)
 	Analytics.event(player, "v2_cook_claimed", 1, { recipe.id, tostring(index) })
 end
 
+-- Pergaminhos conquistados na pista: descoberta permanente; repeticao vira 1 Mel (sem moeda nova).
+function V2CookingService.unlockRecipe(player: Player, recipeId: any): boolean
+	if type(recipeId) ~= "string" or not Catalog.ById[recipeId] then return false end
+	local _profile, data = cookData(player)
+	if not data then return false end
+	if data.discoveredRecipeIds[recipeId] then
+		-- Perfil nao perde recompensa por obter um pergaminho ja conhecido.
+		return PlotService.giveFood(player, "honey")
+	end
+	data.discoveredRecipeIds[recipeId] = true
+	DataService.markDirty(player)
+	V2CookingService.pushState(player)
+	Analytics.event(player, "v2_recipe_unlocked", 1, { recipeId, "scroll" })
+	return true
+end
+
 function V2CookingService.onJoin(player: Player)
 	V2CookingService.pushState(player)
 end
