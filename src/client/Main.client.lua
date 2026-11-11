@@ -2,6 +2,7 @@
 -- Main.client.lua — ponto de entrada do cliente. Cria o ScreenGui e inicializa controladores.
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
+local Features = require(game.ReplicatedStorage.Shared.Features)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -34,6 +35,7 @@ local CameraLock = require(Controllers.CameraLock)
 local V2Cookbook = require(Controllers.V2Cookbook)
 local V2Mount = require(Controllers.V2Mount)
 local V2Lane = require(Controllers.V2Lane)
+local V2Hub = require(Controllers.V2Hub)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -54,68 +56,76 @@ gui.Parent = playerGui
 State.init()
 Music.init()
 Notifications.init(gui)
-HUD.init(gui)
-V2Cookbook.init(gui) -- feature gate RebuildV2, sem overlay escuro
-V2Mount.init(gui)
-V2Lane.init(gui)
-Shop.init(gui)
-Inventory.init(gui)
-Collection.init(gui)
-Hatch.init(gui)
-Combat.init(gui)
-Drops.init(gui)
-Effects.init(gui)
-GiantAnim.init()
-FeedFx.init()
-Tutorial.init()
-Arena.init(gui)
-GiantBattle.init(gui)
-Diary.init(gui)
-Meat.init(gui)
-Admin.init(gui)
-V3.init(gui)
-Eggs.init(gui)
-Travel.init(gui) -- 09/11: menu dos blips de viagem rápida
-Dragon.init(gui) -- 09/11: animação do Dragão + convite com o botão JOGAR
-CameraLock.init(gui) -- 09/11: travar a mira (tecla C / botão)
-Arena.OnOpenGiantBattle = GiantBattle.open
--- ARENA única (09/11, item 7): a lista da batalha de gigantes vira a 2ª aba da janela da arena.
-GiantBattle.embed(Arena.giantContainer())
-GiantBattle.OpenHost = function()
-	Arena.open("giant")
-end
-GiantBattle.OnLaunch = Arena.close
-Arena.OnShowGiantTab = GiantBattle.refresh
--- Música: trilha mais baixa durante as lutas; fanfarra de vitória só no fim (item 3, regra 9)
-Arena.OnFight = function(started: boolean, won: boolean?)
-	Music.setFighting(started)
-	if not started and won then
+if Features.on("RebuildV2") then
+	-- Ciclo novo: apenas interface de alimentacao, montaria, pista e cozinha.
+	-- Todo controlador legado permanece no repositorio, mas nao polui a HUD V2.
+	V2Cookbook.init(gui)
+	V2Mount.init(gui)
+	V2Lane.init(gui)
+	V2Hub.init(gui)
+	print("[FeedAGiant V2] Interface de reconstrução ativa.")
+else
+	-- Modo de compatibilidade intocado: jogos antigos e dados permanecem disponiveis.
+	HUD.init(gui)
+	Shop.init(gui)
+	Inventory.init(gui)
+	Collection.init(gui)
+	Hatch.init(gui)
+	Combat.init(gui)
+	Drops.init(gui)
+	Effects.init(gui)
+	GiantAnim.init()
+	FeedFx.init()
+	Tutorial.init()
+	Arena.init(gui)
+	GiantBattle.init(gui)
+	Diary.init(gui)
+	Meat.init(gui)
+	Admin.init(gui)
+	V3.init(gui)
+	Eggs.init(gui)
+	Travel.init(gui) -- 09/11: menu dos blips de viagem rápida
+	Dragon.init(gui) -- 09/11: animação do Dragão + convite com o botão JOGAR
+	CameraLock.init(gui) -- 09/11: travar a mira (tecla C / botão)
+	Arena.OnOpenGiantBattle = GiantBattle.open
+	-- ARENA única (09/11, item 7): a lista da batalha de gigantes vira a 2ª aba da janela da arena.
+	GiantBattle.embed(Arena.giantContainer())
+	GiantBattle.OpenHost = function()
+		Arena.open("giant")
+	end
+	GiantBattle.OnLaunch = Arena.close
+	Arena.OnShowGiantTab = GiantBattle.refresh
+	-- Música: trilha mais baixa durante as lutas; fanfarra de vitória só no fim (item 3, regra 9)
+	Arena.OnFight = function(started: boolean, won: boolean?)
+		Music.setFighting(started)
+		if not started and won then
+			Music.fanfare("music_arena_victory", 1)
+		end
+	end
+	GiantBattle.OnFight = function(started: boolean)
+		Music.setFighting(started)
+		HUD.setBattleMode(started)
+	end
+	GiantBattle.OnVictory = function()
 		Music.fanfare("music_arena_victory", 1)
 	end
-end
-GiantBattle.OnFight = function(started: boolean)
-	Music.setFighting(started)
-	HUD.setBattleMode(started)
-end
-GiantBattle.OnVictory = function()
-	Music.fanfare("music_arena_victory", 1)
-end
-Arena.playSound = Combat.sound
-Arena.shake = Combat.shake
-Effects.playSound = Combat.sound
-Effects.toast = Notifications.toast
+	Arena.playSound = Combat.sound
+	Arena.shake = Combat.shake
+	Effects.playSound = Combat.sound
+	Effects.toast = Notifications.toast
 
-HUD.OnOpenShop = Shop.open
-HUD.OnOpenRobux = Shop.openRobux
-HUD.OnOpenInventory = Inventory.open
-HUD.OnOpenCodes = Shop.openCodes
-HUD.OnOpenArena = Arena.open
-HUD.OnOpenCollection = Collection.open
-HUD.OnOpenDiary = Diary.open
-V3.OnOpenDiary = Diary.open -- botão DIÁRIO do "Bem-vindo de volta"
-Diary.OnClaimable = HUD.setDiaryClaimable
-Collection.OnNewDiscovery = function(_n: number)
-	HUD.markNewDiscovery()
-end
+	HUD.OnOpenShop = Shop.open
+	HUD.OnOpenRobux = Shop.openRobux
+	HUD.OnOpenInventory = Inventory.open
+	HUD.OnOpenCodes = Shop.openCodes
+	HUD.OnOpenArena = Arena.open
+	HUD.OnOpenCollection = Collection.open
+	HUD.OnOpenDiary = Diary.open
+	V3.OnOpenDiary = Diary.open -- botão DIÁRIO do "Bem-vindo de volta"
+	Diary.OnClaimable = HUD.setDiaryClaimable
+	Collection.OnNewDiscovery = function(_n: number)
+		HUD.markNewDiscovery()
+	end
 
+end
 print("[FeedAGiant] Cliente pronto.")
