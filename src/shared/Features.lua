@@ -9,6 +9,8 @@
 -- pedia) porque uma pasta "Config" ao lado do módulo Config.lua criaria dois filhos com o mesmo
 -- nome no ReplicatedStorage e quebraria todo `require(Shared.Config)`.
 local Features = {
+	-- Reconstrucao FeedAGiant V2: OFF ate integracao e QA em Studio. Nenhum save apagado.
+	RebuildV2 = false,
 	-- Lunchbox: contador de "Épico garantido" (pity). Só caixas abertas com moedas ou Robux contam.
 	LunchboxPity = true,
 	-- Recompensa diária: proteção de sequência ("backup") ganha ao completar os 7 dias.
