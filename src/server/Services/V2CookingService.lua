@@ -14,6 +14,7 @@ local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
 local Analytics = require(script.Parent.Parent.Analytics)
+local Hooks = require(script.Parent.Parent.Hooks)
 
 local V2CookingService = {}
 
@@ -174,6 +175,7 @@ local function begin(player: Player, index: number, recipe: any)
 	DataService.markDirty(player)
 	PlotService.pushState(player)
 	V2CookingService.pushState(player)
+	Hooks.fire("v2_cooked", player, recipe.id)
 	Analytics.event(player, "v2_cook_started", 1, { recipe.id, tostring(index) })
 end
 
