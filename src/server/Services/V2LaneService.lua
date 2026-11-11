@@ -241,7 +241,7 @@ function Lane.dropFor(player: Player)
 	cargo.pickableAt = os.clock() + 1
 	cargo.expiresAt = os.clock() + 28
 	local pos = MountService.rootOf(player)
-	local point = if pos then pos.Position + pos.CFrame.LookVector * 4 else cargo.position
+	local point = if pos then pos.Position + pos.CFrame.LookVector * 4 else (if cargo.model and cargo.model.PrimaryPart then cargo.model.PrimaryPart.Position else cargo.position)
 	visualAt(cargo, Vector3.new(point.X, math.max(11, point.Y), point.Z))
 	broadcast()
 end
