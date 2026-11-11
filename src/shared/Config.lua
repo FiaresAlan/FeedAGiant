@@ -671,6 +671,9 @@ Config.FoodById.giantmeat = {
 	color = Color3.fromRGB(190, 70, 60),
 }
 
+-- Itens do loop V2: catalogo separado evita alterar odds de lunchboxes e drops existentes.
+require(script.Parent.RebuildV2.RecipeCatalog).registerFoodDefs(Config.FoodById)
+
 export type LunchboxDef = { id: string, name: string, price: number, color: Color3, weights: { [string]: number } }
 
 Config.Lunchboxes = {
