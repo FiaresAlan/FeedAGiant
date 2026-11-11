@@ -10,6 +10,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local Guard = require(script.Parent.Parent.Guard)
 local Analytics = require(script.Parent.Parent.Analytics)
+local Hooks = require(script.Parent.Parent.Hooks)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local MapService = require(script.Parent.MapService)
@@ -228,6 +229,7 @@ function Lane.pickup(player: Player, uid: any)
 	cargo.holder = player
 	cargo.carriedAt = os.clock()
 	carried[player] = cargo
+	Hooks.fire("v2_picked", player, cargo.kind)
 	Analytics.event(player, "v2_cargo_picked", 1, { cargo.kind, cargo.weight })
 	broadcast()
 end
@@ -276,6 +278,7 @@ local function deposit(player: Player)
 	if station then station.uid = nil; station.nextAt = os.clock() + station.respawn end
 	cargoByUid[cargo.uid] = nil
 	notify(player, "Entrega concluida! Volte para alimentar seu gigante.")
+	Hooks.fire("v2_delivered", player, cargo.kind)
 	Analytics.event(player, "v2_cargo_delivered", 1, { cargo.kind, cargo.weight })
 	broadcast()
 end
