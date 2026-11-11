@@ -274,6 +274,7 @@ local function deposit(player: Player)
 	if cargo.model then cargo.model:Destroy() end
 	local station = stationStates[cargo.stationIndex]
 	if station then station.uid = nil; station.nextAt = os.clock() + station.respawn end
+	cargoByUid[cargo.uid] = nil
 	notify(player, "Entrega concluida! Volte para alimentar seu gigante.")
 	Analytics.event(player, "v2_cargo_delivered", 1, { cargo.kind, cargo.weight })
 	broadcast()
