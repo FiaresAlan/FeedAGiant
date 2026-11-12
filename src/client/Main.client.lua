@@ -36,6 +36,7 @@ local V2Cookbook = require(Controllers.V2Cookbook)
 local V2Mount = require(Controllers.V2Mount)
 local V2Lane = require(Controllers.V2Lane)
 local V2Hub = require(Controllers.V2Hub)
+local V3Journey = require(Controllers.V3Journey)
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
@@ -63,7 +64,8 @@ if Features.on("RebuildV2") then
 	V2Mount.init(gui)
 	V2Lane.init(gui)
 	V2Hub.init(gui)
-	print("[FeedAGiant V2] Interface de reconstrução ativa.")
+	V3Journey.init(gui)
+	print("[FeedAGiant V3] Interface do ciclo principal ativa.")
 else
 	-- Modo de compatibilidade intocado: jogos antigos e dados permanecem disponiveis.
 	HUD.init(gui)
