@@ -125,12 +125,55 @@ local function buildPot(parent: Instance, localCF: CFrame, name: string): Model
 	return m
 end
 
+-- Acabamento de ilha/base em blocos pintados, sem tocar no ID do plot,
+-- na area navegavel de estoque, nos ovos, nem nos slots das comidas.
+local function buildPremiumBase(extras: Folder, base: MapService.BaseInfo)
+	local center = base.origin * CFrame.new(0, 0, -16)
+	-- Contorno modular arredondado: pecas de brinquedo baixas, sem colisao.
+	for n = 1, 16 do
+		local theta = ((n - 1) / 16) * math.pi * 2
+		local localPos = Vector3.new(math.cos(theta) * 16.5, 2.25, -16 + math.sin(theta) * 16.5)
+		local segment = part(extras, "DaisRim" .. n, Vector3.new(4.2, 0.6, 3.1),
+			base.origin * CFrame.new(localPos) * CFrame.Angles(0, -theta, 0),
+			if n % 4 == 0 then C.gold else C.border, Enum.Material.SmoothPlastic, false)
+		segment.TopSurface = Enum.SurfaceType.Studs
+	end
+	for _, x in { -11, 11 } do
+		local torch = part(extras, "GolemStandLight", Vector3.new(1.6, 3, 1.6),
+			center * CFrame.new(x, 3.1, 9), C.wood, Enum.Material.SmoothPlastic, false)
+		local glow = part(extras, "GolemStandBeacon", Vector3.new(1.2, 0.7, 1.2),
+			torch.CFrame * CFrame.new(0, 1.7, 0), C.gold, Enum.Material.Neon, false)
+		local lamp = Instance.new("PointLight")
+		lamp.Brightness = 0.5
+		lamp.Range = 11
+		lamp.Parent = glow
+	end
+	local bookStand = part(extras, "RecipeBookStand", Vector3.new(7, 2.4, 5),
+		base.origin * CFrame.new(0, 2.7, 9), C.wood, Enum.Material.Wood, false)
+	local book = part(extras, "RecipeBook", Vector3.new(4.1, 0.55, 3),
+		bookStand.CFrame * CFrame.new(0, 1.5, 0), C.cream, Enum.Material.SmoothPlastic, false)
+	book:SetAttribute("V3Interactive", "cookbook")
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "V2OpenCookbook"
+	prompt.ObjectText = "LIVRO DE RECEITAS"
+	prompt.ActionText = "Consultar"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 15
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = book
+	sign(extras, book, "LIVRO DE RECEITAS", Vector3.new(0, 2, 0))
+	local eggStand = part(extras, "EggCollectionPlinth", Vector3.new(6, 1.1, 6),
+		base.origin * CFrame.new(23, 2.65, 15), C.rock, Enum.Material.SmoothPlastic, false)
+	sign(extras, eggStand, "COLECAO DE OVOS", Vector3.new(0, 3, 0))
+end
+
 local function buildBaseProps(base: MapService.BaseInfo)
 	local existing = base.model:FindFirstChild("V2BaseExtras")
 	if existing then existing:Destroy() end
 	local extras = Instance.new("Folder")
 	extras.Name = "V2BaseExtras"
 	extras.Parent = base.model
+	buildPremiumBase(extras, base)
 	local left = base.origin * CFrame.new(-24, 0, -9)
 	local right = base.origin * CFrame.new(24, 0, -9)
 	buildPot(extras, left, "PANELA A")
