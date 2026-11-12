@@ -16,6 +16,7 @@ local sprintHeld = false
 local stamina = 100
 local label: TextLabel?
 local lastCameraSubject: Instance?
+local savedView: { subject: Instance?, minZoom: number, maxZoom: number, fieldOfView: number }? = nil
 local controls: any = nil
 
 local function setCamera(model: Model?)
@@ -24,19 +25,32 @@ local function setCamera(model: Model?)
 	if model then
 		local hum = model:FindFirstChildOfClass("Humanoid")
 		if not hum then return end
+		if not savedView then
+			savedView = {
+				subject = cam.CameraSubject,
+				minZoom = localPlayer.CameraMinZoomDistance,
+				maxZoom = localPlayer.CameraMaxZoomDistance,
+				fieldOfView = cam.FieldOfView,
+			}
+		end
 		lastCameraSubject = cam.CameraSubject
 		cam.CameraType = Enum.CameraType.Custom
 		cam.CameraSubject = hum
+		localPlayer.CameraMaxZoomDistance = math.max(42, localPlayer.CameraMinZoomDistance)
 		localPlayer.CameraMinZoomDistance = 18
-		localPlayer.CameraMaxZoomDistance = 42
 		cam.FieldOfView = 74
 	else
 		local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+		local previous = savedView
+		savedView = nil
 		cam.CameraType = Enum.CameraType.Custom
-		cam.CameraSubject = hum or lastCameraSubject
-		localPlayer.CameraMinZoomDistance = 0.5
-		localPlayer.CameraMaxZoomDistance = 25
-		cam.FieldOfView = 70
+		cam.CameraSubject = hum or (if previous then previous.subject else nil) or lastCameraSubject
+		local minZoom = if previous then previous.minZoom else 0.5
+		local maxZoom = if previous then previous.maxZoom else 25
+		localPlayer.CameraMaxZoomDistance = math.max(maxZoom, localPlayer.CameraMinZoomDistance)
+		localPlayer.CameraMinZoomDistance = minZoom
+		localPlayer.CameraMaxZoomDistance = maxZoom
+		cam.FieldOfView = if previous then previous.fieldOfView else 70
 	end
 end
 
