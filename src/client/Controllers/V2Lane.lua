@@ -12,6 +12,7 @@ local player = Players.LocalPlayer
 local LaneUI = {}
 local state: { any } = {}
 local deliveryCount = 0
+local homePosition: Vector3? = nil
 local status: TextLabel?
 local mounted = false
 
@@ -34,7 +35,7 @@ end
 local function closestCargo(): any
 	local root = ownGiantRoot()
 	if not root then return nil end
-	local best, bestDistance = nil, 25
+	local best, bestDistance = nil, 18.5
 	for _, cargo in state do
 		if (cargo.state == "world" or cargo.state == "dropped") and typeof(cargo.position) == "Vector3" then
 			local d = (root.Position - cargo.position).Magnitude
@@ -47,7 +48,7 @@ end
 local function closestRival(): Player?
 	local root = ownGiantRoot()
 	if not root then return nil end
-	local nearest, distance = nil, 17
+	local nearest, distance = nil, 15.5
 	for _, other in Players:GetPlayers() do
 		if other ~= player then
 			local model = workspace:FindFirstChild("V2Mounted_" .. tostring(other.UserId))
@@ -90,7 +91,11 @@ local function refresh()
 	if mine then
 		local def = Config.FoodById[mine.itemId]
 		local name = if mine.kind == "recipe_scroll" then "PERGAMINHO" else (if def then def.name else mine.itemId)
-		status.Text = ("CARGA: %s  •  VOLTE A BASE PARA ENTREGAR\nE / X · ENTREGAR   |   R / B · INTERROMPER RIVAL"):format(name)
+		local weight = if mine.weight == "heavy" then "PESADA" elseif mine.weight == "medium" then "MEDIA" else "LEVE"
+		local distanceHome = if homePosition then (Vector3.new(root.Position.X, 0, root.Position.Z)
+			- Vector3.new(homePosition.X, 0, homePosition.Z)).Magnitude else nil
+		local route = if distanceHome then ("BASE A %d STUDS"):format(math.floor(distanceHome)) else "VOLTE A SUA BASE"
+		status.Text = ("CARGA %s: %s  •  %s\nE / X · ENTREGAR NA ZONA   |   R / B · DISPUTAR"):format(weight, name, route)
 	else
 		local nearest = closestCargo()
 		local def = nearest and Config.FoodById[nearest.itemId]
@@ -105,7 +110,7 @@ function LaneUI.init(gui: ScreenGui)
 	status = Instance.new("TextLabel")
 	status.Name = "V2LaneHUD"
 	status.AnchorPoint = Vector2.new(0.5, 1)
-	status.Position = UDim2.new(0.5, 0, 1, -14)
+	status.Position = UDim2.new(0.5, 0, 1, -80)
 	status.Size = UDim2.new(0.78, 0, 0, 58)
 	status.TextColor3 = Color3.fromRGB(255, 246, 220)
 	status.BackgroundColor3 = Color3.fromRGB(27, 47, 56)
@@ -136,6 +141,7 @@ function LaneUI.init(gui: ScreenGui)
 		if type(payload) ~= "table" then return end
 		if type(payload.cargo) == "table" then state = payload.cargo end
 		if type(payload.deliveries) == "number" then deliveryCount = payload.deliveries end
+		if typeof(payload.homePosition) == "Vector3" then homePosition = payload.homePosition end
 		refresh()
 	end)
 	Remotes.V2MountState.OnClientEvent:Connect(function(payload)
