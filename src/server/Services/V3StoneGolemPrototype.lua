@@ -63,7 +63,7 @@ function Factory.create(): Model
 	m.PrimaryPart = root
 
 	local torso = part(m, "Torso", Vector3.new(7.3, 5.6, 4.8), origin, Vector3.new(0, 1.4, 0), STONE)
-	local pelvis = weldDetail(m, torso, "BeltPlate", Vector3.new(5.8, 1.2, 5), Vector3.new(0, -2.5, 0), STONE_DARK)
+	weldDetail(m, torso, "BeltPlate", Vector3.new(5.8, 1.2, 5), Vector3.new(0, -2.5, 0), STONE_DARK)
 	weldDetail(m, torso, "ChestPlate", Vector3.new(6.1, 2.0, 0.55), Vector3.new(0, 1.0, -2.6), STONE_LIGHT)
 	weldDetail(m, torso, "CoreSocket", Vector3.new(2.4, 2.3, 0.9), Vector3.new(0, 0.6, -2.95), OUTLINE)
 	local crystal = weldDetail(m, torso, "CoreCrystal", Vector3.new(1.55, 1.55, 0.35), Vector3.new(0, 0.6, -3.55), CRYSTAL, Enum.Material.Neon)
