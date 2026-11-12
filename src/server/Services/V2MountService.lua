@@ -69,6 +69,8 @@ local function push(player: Player, session: Session?)
 			model = session.model,
 			stamina = session.stamina,
 			boostReadyAt = session.boostReadyAt,
+			boostRemaining = math.max(0, session.boostReadyAt - os.clock()),
+			boostActive = os.clock() < session.boostEndsAt,
 			species = session.species,
 		})
 	else
@@ -293,6 +295,12 @@ local function boost(player: Player)
 	Mount.playAction(player, "Ability")
 	s.boostEndsAt = now + rules.seconds
 	s.boostReadyAt = now + rules.cooldown
+	s.model:SetAttribute("V3BoostActive", true)
+	task.delay(rules.seconds, function()
+		if sessions[player] == s and s.model.Parent and os.clock() >= s.boostEndsAt then
+			s.model:SetAttribute("V3BoostActive", false)
+		end
+	end)
 	Hooks.fire("v2_boost_used", player, s.species, if Mount.CargoWeightOf then Mount.CargoWeightOf(player) else "light")
 	if s.species == "fire_starter" then s.stamina = math.max(0, s.stamina - 20) end
 	if Mount.OnBoost then
