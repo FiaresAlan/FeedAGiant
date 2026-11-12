@@ -258,7 +258,8 @@ function Lane.dropFor(player: Player, reason: string?)
 	local cargo = carried[player]
 	if not cargo then return end
 	if not CargoRules.drop(cargo, player) then
-		carried[player] = nil
+		-- Transacao em andamento: preservar mapa de posse para a conclusao ou rollback.
+		if cargo.state ~= "depositing" then carried[player] = nil end
 		return
 	end
 	carried[player] = nil
@@ -291,16 +292,28 @@ local function deposit(player: Player)
 		return PlotService.giveFood(player, cargo.itemId)
 	end)
 	if not ok then
-		-- O adaptador pode ter creditado o item ANTES do erro.
-		-- Nao liberar retry automaticamente, pois isso pode duplicar a recompensa.
-		warn("[V2Lane] Entrega em quarentena:", cargo.uid, tostring(success))
+		-- Um adaptador pode ter creditado antes de gerar erro. Nao tentar novamente:
+		-- apos quarentena, a estacao gera uma NOVA carga com UID diferente.
+		warn("[V2Lane] Credito incerto em quarentena:", cargo.uid, tostring(success))
+		if CargoRules.quarantineDeposit(cargo, player) then
+			carried[player] = nil
+			if cargo.model then cargo.model:Destroy() end
+			local station = stationStates[cargo.stationIndex]
+			if station and station.uid == cargo.uid then
+				station.uid = nil
+				station.nextAt = os.clock() + station.respawn
+			end
+			cargoByUid[cargo.uid] = nil
+		end
 		Hooks.fire("v2_error_recovered", player, "cargo", "credit_uncertain")
-		notify(player, "Falha ao concluir esta entrega. A carga foi bloqueada para evitar duplicacao.")
+		notify(player, "Esta entrega teve uma falha e foi encerrada para proteger seu inventario.")
+		broadcast()
 		return
 	end
 	if success ~= true then
 		CargoRules.rollbackDeposit(cargo, player)
 		notify(player, "Nao foi possivel entregar. Confira sua mochila.")
+		if not MountService.isMounted(player) then Lane.dropFor(player, "delivery_cancelled") end
 		return
 	end
 	if not CargoRules.commitDeposit(cargo, player) then
