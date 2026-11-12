@@ -27,14 +27,15 @@ end
 
 local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 for _, name in { "V2MountInput", "V2MountRequest", "V2MountState", "V2LaneRequest",
-	"V2LaneState", "V2CookRequest", "V2CookState" } do
+	"V2LaneState", "V2CookRequest", "V2CookState", "V3GuideState", "V3GuideRequest" } do
 	check("Remote " .. name, remotes ~= nil and remotes:FindFirstChild(name) ~= nil)
 end
 
 local services = ServerScriptService:FindFirstChild("Server")
 services = services and services:FindFirstChild("Services")
 for _, name in { "V2MountService", "V2AnimationService", "V2LaneService", "V2CookingService",
-	"V3StoneGolemPrototype", "V3ProceduralAnimation" } do
+	"V3StoneGolemPrototype", "V3ProceduralAnimation", "V3FeedPresentation",
+	"V3JourneyService", "V2MetricsService" } do
 	check("ModuleScript " .. name, services ~= nil and services:FindFirstChild(name) ~= nil)
 end
 
