@@ -92,14 +92,16 @@ local function visibleSlot(slot: CookSlot, now: number)
 	local ready = isReady(slot, now)
 	local remaining = CookRules.remainingSeconds(slot, now)
 	local invalidTime = slot.state == "cooking" and remaining == nil
+	local invalidState = slot.state ~= "cooking" and slot.state ~= "empty" and slot.state ~= "ready"
 	local recipe = if type(slot.recipeId) == "string" then Catalog.ById[slot.recipeId] else nil
 	return {
-		state = if invalidTime then "invalid" elseif ready then "ready" else slot.state,
+		state = if invalidTime or invalidState then "invalid" elseif ready then "ready" else slot.state,
 		recipeId = if recipe then recipe.id else nil,
 		recipeName = if recipe then recipe.name else nil,
 		jobId = slot.jobId,
 		-- Nunca enviar strings/NaN/infinitos para calculos aritmeticos do cliente.
-		endsAtUtc = if invalidTime then nil else slot.endsAtUtc,
+		endsAtUtc = if type(slot.endsAtUtc) == "number" and slot.endsAtUtc == slot.endsAtUtc
+			and math.abs(slot.endsAtUtc) ~= math.huge then slot.endsAtUtc else nil,
 		remaining = if remaining then remaining else 0,
 	}
 end
