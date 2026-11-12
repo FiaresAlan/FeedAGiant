@@ -56,6 +56,16 @@ function Rules.rollbackDeposit(cargo: any, holder: any): boolean
 	return true
 end
 
+-- Falha de credito ambiguo: encerrar a carga sem tornar o premio resgatavel outra vez.
+function Rules.quarantineDeposit(cargo: any, holder: any): boolean
+	if cargo == nil or cargo.state ~= "depositing" or cargo.holder ~= holder then
+		return false
+	end
+	cargo.state = "quarantined"
+	cargo.holder = nil
+	return true
+end
+
 function Rules.commitDeposit(cargo: any, holder: any): boolean
 	if cargo == nil or cargo.state ~= "depositing" or cargo.holder ~= holder then
 		return false
