@@ -14,6 +14,7 @@ local mounted = false
 local currentModel: Model? = nil
 local sprintHeld = false
 local stamina = 100
+local boostRemaining = 0
 local label: TextLabel?
 local lastCameraSubject: Instance?
 local savedView: { subject: Instance?, minZoom: number, maxZoom: number, fieldOfView: number }? = nil
@@ -104,8 +105,8 @@ function Controller.init(gui: ScreenGui)
 	local status = Instance.new("TextLabel")
 	status.Name = "V2MountStatus"
 	status.AnchorPoint = Vector2.new(0.5, 0)
-	status.Position = UDim2.new(0.5, 0, 0, 8)
-	status.Size = UDim2.fromOffset(295, 33)
+	status.Position = UDim2.new(0.5, 0, 0, 114)
+	status.Size = UDim2.fromOffset(316, 36)
 	status.BackgroundColor3 = Color3.fromRGB(29, 45, 53)
 	status.BackgroundTransparency = 0.1
 	status.TextColor3 = Color3.fromRGB(255, 242, 206)
@@ -153,6 +154,7 @@ function Controller.init(gui: ScreenGui)
 		currentModel = if mounted and typeof(payload.model) == "Instance" and payload.model:IsA("Model")
 			then payload.model else nil
 		stamina = if type(payload.stamina) == "number" then payload.stamina else stamina
+		boostRemaining = if type(payload.boostRemaining) == "number" then payload.boostRemaining else 0
 		if mounted and currentModel and (not wasMounted or workspace.CurrentCamera and workspace.CurrentCamera.CameraSubject ~= currentModel:FindFirstChildOfClass("Humanoid")) then
 			setCamera(currentModel)
 		elseif not mounted and wasMounted then
@@ -160,10 +162,12 @@ function Controller.init(gui: ScreenGui)
 			sprintHeld = false
 		end
 		if label then
-			label.Text = if mounted then string.format("GIGANTE MONTADO  ·  FOLEGO %d%%", math.floor(stamina))
-				else "F / Y · MONTAR"
+			label.Text = if mounted then string.format("MONTADO  |  FOLEGO %d%%  |  Q EM %ds",
+				math.floor(stamina), math.ceil(boostRemaining)) else "F / Y · MONTAR"
 		end
 		ContextActionService:SetTitle("V2Mount", if mounted then "DESCER" else "MONTAR")
+		ContextActionService:SetTitle("V2Boost",
+			if mounted and boostRemaining > 0 then ("PODER %ds"):format(math.ceil(boostRemaining)) else "PODER")
 	end)
 	task.spawn(function()
 		while gui.Parent do
