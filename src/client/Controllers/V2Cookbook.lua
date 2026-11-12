@@ -132,6 +132,7 @@ local function draw()
 			local slot = snapshot.slots[i] or { state = "empty" }
 			local name = if i == 1 then "A" else "B"
 			local line = if slot.state == "empty" then "Vazia"
+				elseif slot.state == "invalid" then "VERIFICAR"
 				elseif slot.state == "ready" or (slot.endsAtUtc or math.huge) <= now then "PRONTO!"
 				else clock(math.max(0, (slot.endsAtUtc or now) - now))
 			widget.Text = "PANELA " .. name .. "\n" .. line
@@ -144,6 +145,7 @@ local function draw()
 	if status then
 		local slot = snapshot.slots[chosenPot] or { state = "empty" }
 		status.Text = if slot.state == "empty" then "Panela livre. Escolha uma receita ou experimente ingredientes."
+			elseif slot.state == "invalid" then "Tempo invalido. Job preservado; verifique o suporte."
 			elseif slot.state == "ready" or (slot.endsAtUtc or math.huge) <= now then "Prato pronto! Toque em COLETAR."
 			else (slot.recipeName or "Cozinhando") .. " · " .. clock(math.max(0, (slot.endsAtUtc or now) - now))
 	end
