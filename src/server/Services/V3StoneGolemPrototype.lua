@@ -49,9 +49,22 @@ local function motor(model: Model, name: string, p0: BasePart, p1: BasePart, ori
 	return m
 end
 
-function Factory.create(): Model
+function Factory.create(species: string?): Model
+	-- Mesmo esqueleto articulado e mesma hitbox na pista para os tres elementos.
+	-- Prototipos de QA, nao artes aprovadas para publicacao.
+	local element = if species == "fire_starter" then "fire"
+		elseif species == "ice_starter" then "ice" else "stone"
+	local STONE = if element == "fire" then Color3.fromRGB(137, 79, 69)
+		elseif element == "ice" then Color3.fromRGB(110, 160, 184) else STONE
+	local STONE_LIGHT = if element == "fire" then Color3.fromRGB(205, 121, 83)
+		elseif element == "ice" then Color3.fromRGB(181, 222, 231) else STONE_LIGHT
+	local STONE_DARK = if element == "fire" then Color3.fromRGB(75, 53, 63)
+		elseif element == "ice" then Color3.fromRGB(62, 103, 139) else STONE_DARK
+	local CRYSTAL = if element == "fire" then Color3.fromRGB(255, 130, 44)
+		elseif element == "ice" then Color3.fromRGB(91, 240, 255) else CRYSTAL
 	local m = Instance.new("Model")
-	m.Name = "StoneGolem"
+	m.Name = if element == "fire" then "FireGiant" elseif element == "ice" then "IceGiant" else "StoneGolem"
+	m:SetAttribute("V3Element", element)
 	m:SetAttribute("V3ProceduralRig", true)
 	m:SetAttribute("V3StudioOnly", true)
 	local origin = CFrame.new(0, 9.5, 0)
@@ -81,6 +94,22 @@ function Factory.create(): Model
 	local jaw = part(m, "Jaw", Vector3.new(3.15, 0.72, 1.5), origin, Vector3.new(0, 3.95, -1.55), STONE_DARK)
 	weldDetail(m, jaw, "JawInset", Vector3.new(2.6, 0.23, 0.23), Vector3.new(0, 0.23, -0.8), OUTLINE)
 
+	if element == "fire" then
+		for _, x in { -1.55, 1.55 } do
+			local horn = weldDetail(m, head, "FlameHorn", Vector3.new(1.0, 2.25, 1.15),
+				Vector3.new(x, 2.3, 0.2), CRYSTAL, Enum.Material.Neon)
+			horn.Shape = Enum.PartType.Block
+		end
+		weldDetail(m, torso, "EmberBackplate", Vector3.new(3.0, 3.3, 0.9),
+			Vector3.new(0, 0.5, 2.9), STONE_DARK)
+	elseif element == "ice" then
+		for _, x in { -2.4, 2.4 } do
+			weldDetail(m, torso, "IceShoulderSpire", Vector3.new(1.45, 3.2, 1.5),
+				Vector3.new(x, 4.45, 1.2), CRYSTAL, Enum.Material.Glass)
+		end
+		weldDetail(m, head, "FrostCrest", Vector3.new(2.25, 1.65, 1.4),
+			Vector3.new(0, 2.1, 0.5), CRYSTAL, Enum.Material.Glass)
+	end
 	motor(m, "RootJoint", root, torso, origin, Vector3.new(0, 0.3, 0))
 	motor(m, "Neck", torso, head, origin, Vector3.new(0, 4.05, -0.2))
 	motor(m, "JawHinge", head, jaw, origin, Vector3.new(0, 4.2, -1.2))
