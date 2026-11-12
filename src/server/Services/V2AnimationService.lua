@@ -62,6 +62,10 @@ function AnimationService.bind(model: Model, humanoid: Humanoid)
 
 	function controller:setLocomotion(name: string, speed: number)
 		local track = self.tracks[name]
+		if not track and name == "CarryWalk" then
+			name = "Walk"
+			track = self.tracks.Walk
+		end
 		if not track then
 			name = "Idle"
 			track = self.tracks.Idle
