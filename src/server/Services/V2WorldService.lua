@@ -198,8 +198,9 @@ function World.updatePot(player: Player, index: number, slot: any, now: number)
 	local ready = CookRules.isReady(slot, now)
 	local remaining = CookRules.remainingSeconds(slot, now)
 	local invalidTime = slot.state == "cooking" and remaining == nil
-	local state = if invalidTime then "invalid" elseif ready then "ready" elseif slot.state == "cooking"
-		then "cooking" else "empty"
+	local invalidState = slot.state ~= "cooking" and slot.state ~= "empty" and slot.state ~= "ready"
+	local state = if invalidTime or invalidState then "invalid" elseif ready then "ready"
+		elseif slot.state == "cooking" then "cooking" else "empty"
 	if oldState ~= state then
 		soup:SetAttribute("PotState", state)
 		soup.Color = if state == "ready" then C.gold elseif state == "cooking"
