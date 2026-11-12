@@ -16,6 +16,7 @@ local Hooks = require(script.Parent.Parent.Hooks)
 local MapService = require(script.Parent.MapService)
 local AnimationService = require(script.Parent.V2AnimationService)
 local StudioGolem = require(script.Parent.V3StoneGolemPrototype)
+local FeedPresentation = require(script.Parent.V3FeedPresentation)
 
 local Mount = {}
 type Session = {
@@ -312,8 +313,12 @@ end
 function Mount.init()
 	-- O GiantService/PlotService preserva a verdade economica: reproduzir
 	-- mastigacao apenas depois do evento de alimentacao concluida.
-	Hooks.on("fed", function(player: Player)
+	Hooks.on("fed", function(player: Player, details: any)
 		Mount.playAction(player, "Eat")
+		local session = sessions[player]
+		if session and type(details) == "table" then
+			FeedPresentation.play(session.model, details.foodId)
+		end
 	end)
 	Remotes.V2MountRequest.OnServerEvent:Connect(function(player: Player, action: any)
 		if not Features.on("RebuildV2") or type(action) ~= "string" or not Guard.allow(player, "V2Mount") then return end
