@@ -152,14 +152,15 @@ local function sourceRig(species: string): Model?
 	local source = if folder and file then folder:FindFirstChild(file) else nil
 	-- Somente em Studio e com a flag QA ligada: rig proprio para prototipar
 	-- movimento/articulacao enquanto o asset final ainda nao foi importado.
-	if not source and file == "StoneGolem" and RunService:IsStudio() and Features.on("RebuildV2") then
+	if not source and (file == "StoneGolem" or file == "FireGiant" or file == "IceGiant")
+		and RunService:IsStudio() and Features.on("RebuildV2") then
 		if not folder then
 			local created = Instance.new("Folder")
 			created.Name = "V2RigTemplates"
 			created.Parent = ServerStorage
 			folder = created
 		end
-		source = StudioGolem.create()
+		source = StudioGolem.create(species)
 		source.Parent = folder
 		warn("[V3GolemPrototype] Rig de QA criado: nao publicar como versao final.")
 	end
