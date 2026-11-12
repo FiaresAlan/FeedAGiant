@@ -15,6 +15,7 @@ local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local GameRules = require(game.ReplicatedStorage.Shared.GameRules)
 local Analytics = require(script.Parent.Parent.Analytics)
 local Features = require(game.ReplicatedStorage.Shared.Features)
+local InventoryRules = require(game.ReplicatedStorage.Shared.RebuildV2.InventoryRules)
 local Hooks = require(script.Parent.Parent.Hooks)
 local GameLogic = require(script.Parent.Parent.GameLogic)
 
@@ -556,7 +557,14 @@ function PlotService.init()
 			Remotes.Notify:FireClient(player, Locale.msg("feed_far", nil, Color3.fromRGB(255, 170, 60)))
 			return
 		end
-		if type(arg) == "table" and Guard.isIndex(arg.inv, Config.MaxInventoryHard) then
+		if Features.on("RebuildV2") and type(arg) == "table" and type(arg.uid) == "string" then
+			-- O clique identifica a instancia, nao a posicao temporaria na lista.
+			-- Um UID stale ou forjado simplesmente nao encontra item no inventario deste jogador.
+			local profile = DataService.get(player)
+			local index = profile and InventoryRules.findUid(profile.inventory, arg.uid)
+			if index then PlotService.feedFromInventory(player, index) end
+		elseif type(arg) == "table" and Guard.isIndex(arg.inv, Config.MaxInventoryHard) then
+			-- Compatibilidade com clientes/inventarios V1 sem UID.
 			PlotService.feedFromInventory(player, arg.inv)
 		elseif Guard.isIndex(arg, MAX_SLOT_INDEX) then
 			PlotService.feed(player, arg)
