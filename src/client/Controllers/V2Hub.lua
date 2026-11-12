@@ -107,7 +107,9 @@ local function redrawInventory()
 		feed.Position = UDim2.new(1, -114, 0, 7)
 		feed.MouseButton1Click:Connect(function()
 			-- O servidor valida indice do inventario e distancia ate o proprio gigante.
-			Remotes.RequestFeed:FireServer({ inv = i })
+			local payload = if type(item.uid) == "string" and item.uid ~= ""
+				then { uid = item.uid } else { inv = i }
+			Remotes.RequestFeed:FireServer(payload)
 		end)
 	end
 end
