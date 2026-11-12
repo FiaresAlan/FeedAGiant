@@ -153,6 +153,11 @@ function Controller.init(gui: ScreenGui)
 		mounted = payload.mounted == true
 		currentModel = if mounted and typeof(payload.model) == "Instance" and payload.model:IsA("Model")
 			then payload.model else nil
+		if mounted and not currentModel then
+			-- Remote pode chegar antes do modelo em StreamingEnabled.
+			local replica = workspace:FindFirstChild("V2Mounted_" .. tostring(localPlayer.UserId))
+			if replica and replica:IsA("Model") then currentModel = replica end
+		end
 		stamina = if type(payload.stamina) == "number" then payload.stamina else stamina
 		boostRemaining = if type(payload.boostRemaining) == "number" then payload.boostRemaining else 0
 		if mounted and currentModel and (not wasMounted or workspace.CurrentCamera and workspace.CurrentCamera.CameraSubject ~= currentModel:FindFirstChildOfClass("Humanoid")) then
