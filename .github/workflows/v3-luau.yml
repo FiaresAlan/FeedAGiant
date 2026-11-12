@@ -1,0 +1,53 @@
+name: FeedAGiant V3 - Luau syntax and Rojo manifests
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/**'
+      - '*.project.json'
+      - '.github/workflows/v3-luau.yml'
+  push:
+    branches:
+      - 'feat/feedagiant-v3-integracao-segura-2026-11-11'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse-luau:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install StyLua 2.6.0 for Luau syntax parsing
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 2.6.0
+          args: false
+      - name: Parse every Luau source without rewriting files
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            # Formatting stdout is discarded; a nonzero result is a parser failure.
+            stylua --syntax luau --stdin-filepath "$file" - < "$file" > /dev/null
+            count=$((count + 1))
+          done < <(find src tests tools -type f \( -name '*.lua' -o -name '*.luau' \) -print0)
+          echo "Parsed $count Luau files"
+          test "$count" -gt 20
+      - name: Validate both Rojo project manifests
+        run: |
+          python3 - <<'PY'
+          import json
+          for path in ('default.project.json', 'test.project.json'):
+              with open(path, encoding='utf-8') as f:
+                  tree = json.load(f)['tree']
+              assert 'ServerScriptService' in tree
+              assert 'ReplicatedStorage' in tree
+              assert 'StarterPlayer' in tree
+              print(path, 'valid')
+          PY
