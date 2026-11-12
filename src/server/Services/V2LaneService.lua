@@ -270,7 +270,7 @@ local function deposit(player: Player)
 		return
 	end
 	-- CRITICO: o credito e a transicao do cargo ocorrem sem yield.
-	MountService.playAction(player, "Drop")
+	MountService.playAction(player, "Celebrate")
 	cargo.state = "deposited"
 	cargo.holder = nil
 	carried[player] = nil
