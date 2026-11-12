@@ -28,6 +28,8 @@ type Session = {
 	charRoot: BasePart,
 	weld: WeldConstraint,
 	animations: any,
+	animationDisabled: boolean,
+	nextAnimAt: number,
 	oldWalkSpeed: number,
 	oldJumpPower: number,
 	oldJumpHeight: number,
@@ -90,11 +92,15 @@ end
 -- Efeitos de animacao sao apenas visuais. A economia e as acoes permanecem no servidor.
 function Mount.playAction(player: Player, action: string)
 	local s = sessions[player]
-	if s and s.animations then
+	if s and s.animations and not s.animationDisabled then
 		local ok, err = pcall(function()
 			s.animations:playAction(action)
 		end)
-		if not ok then warn("[V2Mount] Falha em acao visual:", action, err) end
+		if not ok then
+			s.animationDisabled = true
+			warn("[V2Mount] Animacoes desativadas nesta montaria apos falha:", action, err)
+			Hooks.fire("v2_error_recovered", player, "animation", "action")
+		end
 	end
 end
 
@@ -263,6 +269,8 @@ function Mount.mount(player: Player)
 		charRoot = characterRoot,
 		weld = weld,
 		animations = animations,
+		animationDisabled = false,
+		nextAnimAt = 0,
 		oldWalkSpeed = oldWalk,
 		oldJumpPower = oldJump,
 		oldJumpHeight = oldHeight,
@@ -355,12 +363,20 @@ function Mount.init()
 			local weight = if Mount.CargoWeightOf then Mount.CargoWeightOf(player) else "light"
 			s.humanoid.WalkSpeed = RunRules.speed(profile.level, weight, sprint, s.species, now < s.boostEndsAt)
 			s.humanoid:Move(if moving then s.move else Vector3.zero, false)
-			-- Preferir ciclos animados; nao escalar o mesh para simular movimento.
-			local gait = if not moving then "Idle" elseif weight ~= "light" then "CarryWalk" elseif sprint then "Run" else "Walk"
-			local ok, err = pcall(function()
-				s.animations:setLocomotion(gait, s.root.AssemblyLinearVelocity.Magnitude)
-			end)
-			if not ok then warn("[V2Mount] Erro na animacao de marcha:", err) end
+			-- Estado locomotor no maximo 15x/s, mesmo com Heartbeat a 60 fps.
+			-- Uma falha de controlador desativa apenas o visual, nunca o movimento.
+			if not s.animationDisabled and now >= s.nextAnimAt then
+				s.nextAnimAt = now + 1 / 15
+				local gait = if not moving then "Idle" elseif weight ~= "light" then "CarryWalk" elseif sprint then "Run" else "Walk"
+				local ok, err = pcall(function()
+					s.animations:setLocomotion(gait, s.root.AssemblyLinearVelocity.Magnitude)
+				end)
+				if not ok then
+					s.animationDisabled = true
+					warn("[V2Mount] Animacao visual interrompida:", err)
+					Hooks.fire("v2_error_recovered", player, "animation", "locomotion")
+				end
+			end
 			if now >= s.nextPushAt then
 				s.nextPushAt = now + 0.5
 				push(player, s)
