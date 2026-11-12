@@ -211,7 +211,8 @@ local function raceData(player: Player): any
 	local data = (profile :: any).v2Race
 	if type(data) ~= "table" then
 		data = newRaceData()
-		(profile :: any).v2Race = data
+		local profileData = profile :: any
+		profileData.v2Race = data
 		DataService.markDirty(player)
 	end
 	return data
