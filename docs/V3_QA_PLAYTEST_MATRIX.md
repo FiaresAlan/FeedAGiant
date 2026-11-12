@@ -1,20 +1,20 @@
 # FeedAGiant V3 — matriz de QA executável no Roblox Studio
 
-**Escopo:** QA da branch \`feat/feedagiant-v3-integracao-segura-2026-11-11\`, PR #5 (draft), não da \`main\`.
+**Escopo:** QA da branch `feat/feedagiant-v3-integracao-segura-2026-11-11`, PR #5 (draft), não da `main`.
 
 **Evidência até esta data:** somente inspeção de código e commits no GitHub. As caixas abaixo começam desmarcadas intencionalmente. Nenhum teste de física, dispositivo, persistência, câmera, áudio ou publicação foi executado nesta sessão de desenvolvimento.
 
 ## Preparação obrigatória
 
-- [ ] Fazer cópia local do place atual e anotar caminho + SHA-256 do \`.rbxlx/\`.rbxl\`; proteger objetos no ServerStorage, anim IDs e fontes de asset.
-- [ ] Comparar \`git status\`, branches e commits locais com a base remota, incluindo alterações feitas por outros agentes.
-- [ ] Abrir cópia de QA, sincronizar a branch pelo Rojo. No projeto com testes, usar \`test.project.json\` (mapeia \`tests/\` em \`ServerScriptService/FwjelaaTests\`).
+- [ ] Fazer cópia local do place atual e anotar caminho + SHA-256 do `.rbxlx/`.rbxl`; proteger objetos no ServerStorage, anim IDs e fontes de asset.
+- [ ] Comparar `git status`, branches e commits locais com a base remota, incluindo alterações feitas por outros agentes.
+- [ ] Abrir cópia de QA, sincronizar a branch pelo Rojo. No projeto com testes, usar `test.project.json` (mapeia `tests/` em `ServerScriptService/FwjelaaTests`).
 - [ ] Habilitar **somente no Studio**, antes de iniciar Play, no Command Bar:
   ~~~luau
   game:GetService("ReplicatedStorage"):SetAttribute("Feature_RebuildV2", true)
   ~~~
-- [ ] Executar \`tools/V3StudioAudit.luau\` no Command Bar em modo servidor; copiar Output. É apenas leitura.
-- [ ] Rodar \`require(game.ServerScriptService.FwjelaaTests.Runner)()\` no ambiente QA com mapeamento de testes. Registrar total, falhas, log e versão do Studio; **a existência das specs não é aprovação**.
+- [ ] Executar `tools/V3StudioAudit.luau` no Command Bar em modo servidor; copiar Output. É apenas leitura.
+- [ ] Rodar `require(game.ServerScriptService.FwjelaaTests.Runner)()` no ambiente QA com mapeamento de testes. Registrar total, falhas, log e versão do Studio; **a existência das specs não é aprovação**.
 
 ## QA P0 — primeira rodada
 
@@ -23,8 +23,8 @@
 | QA-01 | Servidor 1 player, escolhe Pedra; monta F, anda, sprint Shift, usa Q, desmonta | Avatar retoma controle e câmera | NÃO RODADO |
 | QA-02 | 20 ciclos montar/desmontar, 10 reset/morte, desconexão e troca de personagem | Zero rigs duplicados, sem root preso | NÃO RODADO |
 | QA-03 | Dois clientes: rival vê rider, criaturas/mãos e posição da carga | Replicação e câmera sem clipping importante | NÃO RODADO |
-| QA-04 | Solo: pegar \`apple\`, voltar à base, entregar, alimentar | Inventário +1 no depósito, -1 no feed, XP único | NÃO RODADO |
-| QA-05 | Dois clientes tentam mesma carga no mesmo instante | Um só \`cargoUid\` recebe holder | NÃO RODADO |
+| QA-04 | Solo: pegar `apple`, voltar à base, entregar, alimentar | Inventário +1 no depósito, -1 no feed, XP único | NÃO RODADO |
+| QA-05 | Dois clientes tentam mesma carga no mesmo instante | Um só `cargoUid` recebe holder | NÃO RODADO |
 | QA-06 | Repetir depósito via remoto 100 vezes no mesmo estado | Item creditado no máximo uma vez | NÃO RODADO |
 | QA-07 | Primeiras duas entregas do novato, depois interceptação legítima | Proteção antes da 3ª, cooldown e drop sem perder item salvo | NÃO RODADO |
 | QA-08 | Interromper carregador, morrer, resetar, desconectar em carry/drop | Cargo retorna/despawns sem duplicar | NÃO RODADO |
@@ -51,7 +51,7 @@ r = require(r)
 for _ = 1, 100 do r.V2LaneRequest:FireServer("deposit") end
 ~~~
 
-Para claim, executar **apenas quando a panela A tiver um prato READY**. O teste consulta o ID do job recebido do servidor, sem inventar \`jobId\`:
+Para claim, executar **apenas quando a panela A tiver um prato READY**. O teste consulta o ID do job recebido do servidor, sem inventar `jobId`:
 
 ~~~luau
 local r = require(game.ReplicatedStorage.Shared.Remotes)
@@ -84,7 +84,7 @@ O logger local prova que hooks foram chamados; **não** comprova que o Analytics
 - [ ] Licenças de cada rig/clip/mesh/audio por ID original, autor, permissão e data
 - [ ] Acesso de Robux e recibos antigos auditados com contas fictícias
 - [ ] Benchmarks FPS/memória e diferenças PC/touch/gamepad
-- [ ] Rollback \`RebuildV2 = false\` testado; perfil antigo permanece íntegro
+- [ ] Rollback `RebuildV2 = false` testado; perfil antigo permanece íntegro
 - [ ] Checklist P0 sem falhas críticas e aprovação expressa do proprietário para publicar cópia QA
 - [ ] Aprovação expressa separada antes de qualquer ads/Robux
 
