@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Features = require(Shared.Features)
+local CargoRules = require(Shared.RebuildV2.CargoRules)
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local Guard = require(script.Parent.Parent.Guard)
@@ -224,9 +225,21 @@ function Lane.pickup(player: Player, uid: any)
 	if not pos or not cargo or (cargo.state ~= "world" and cargo.state ~= "dropped") then return end
 	local at = if cargo.model and cargo.model.PrimaryPart then cargo.model.PrimaryPart.Position else cargo.position
 	if (pos.Position - at).Magnitude > 19 or os.clock() < cargo.pickableAt then return end
-	if not attachVisual(cargo, player) then return end
-	cargo.state = "carried"
-	cargo.holder = player
+	-- Reserva autoritativa antes de tocar no modelo fisico.
+	local previousState = CargoRules.reserve(cargo, player)
+	if not previousState then return end
+	local ok, attached = pcall(attachVisual, cargo, player)
+	if not ok or not attached then
+		CargoRules.rollbackReservation(cargo, player, previousState)
+		if not ok then warn("[V2Lane] Falha ao anexar carga:", attached) end
+		return
+	end
+	if not CargoRules.commitPickup(cargo, player) then
+		-- Protecao defensiva caso outra rotina tenha cancelado a reserva.
+		visualAt(cargo, cargo.position)
+		CargoRules.rollbackReservation(cargo, player, previousState)
+		return
+	end
 	cargo.carriedAt = os.clock()
 	carried[player] = cargo
 	MountService.playAction(player, "Pickup")
@@ -238,9 +251,11 @@ end
 function Lane.dropFor(player: Player)
 	local cargo = carried[player]
 	if not cargo then return end
+	if not CargoRules.drop(cargo, player) then
+		carried[player] = nil
+		return
+	end
 	carried[player] = nil
-	cargo.holder = nil
-	cargo.state = "dropped"
 	MountService.playAction(player, "Drop")
 	cargo.pickableAt = os.clock() + 1
 	cargo.expiresAt = os.clock() + 28
@@ -253,7 +268,7 @@ end
 local function deposit(player: Player)
 	local cargo = carried[player]
 	local root = MountService.rootOf(player)
-	if not cargo or not root or cargo.state ~= "carried" or cargo.holder ~= player
+	if not root or not CargoRules.canDeposit(cargo, player)
 		or not nearOwnDelivery(player, root.Position) then return end
 	local profile = DataService.get(player)
 	local race = raceData(player)
@@ -269,10 +284,9 @@ local function deposit(player: Player)
 		notify(player, "Nao foi possivel entregar. Confira sua mochila.")
 		return
 	end
-	-- CRITICO: o credito e a transicao do cargo ocorrem sem yield.
+	-- O credito e a transicao ocorrem sem yield. Retry do mesmo cargo nao credita novamente.
+	assert(CargoRules.deposit(cargo, player), "cargo mudou durante entrega sem yield")
 	MountService.playAction(player, "Celebrate")
-	cargo.state = "deposited"
-	cargo.holder = nil
 	carried[player] = nil
 	race.deliveries = math.max(0, tonumber(race.deliveries) or 0) + 1
 	DataService.markDirty(player)
@@ -283,6 +297,8 @@ local function deposit(player: Player)
 	notify(player, "Entrega concluida! Volte para alimentar seu gigante.")
 	Hooks.fire("v2_delivered", player, cargo.kind)
 	Analytics.event(player, "v2_cargo_delivered", 1, { cargo.kind, cargo.weight })
+	-- O broadcast global omite contadores privados; atualizar o HUD do dono tambem.
+	Remotes.V2LaneState:FireClient(player, { kind = "stats", deliveries = race.deliveries })
 	broadcast()
 end
 
@@ -371,7 +387,10 @@ function Lane.init()
 	end
 	Remotes.V2LaneRequest.OnServerEvent:Connect(function(player: Player, action: any, arg: any)
 		if not Features.on("RebuildV2") or type(action) ~= "string" then return end
-		if action == "snapshot" then Lane.pushSnapshot(player); return end
+		if action == "snapshot" then
+			if Guard.allow(player, "V2Lane") then Lane.pushSnapshot(player) end
+			return
+		end
 		if action == "pickup" then Lane.pickup(player, arg); return end
 		if not Guard.allow(player, "V2Lane") then return end
 		if action == "deposit" then deposit(player)
