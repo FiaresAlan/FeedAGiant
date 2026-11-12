@@ -14,8 +14,10 @@ local mounted = false
 local currentModel: Model? = nil
 local sprintHeld = false
 local stamina = 100
+local boostRemaining = 0
 local label: TextLabel?
 local lastCameraSubject: Instance?
+local savedView: { subject: Instance?, minZoom: number, maxZoom: number, fieldOfView: number }? = nil
 local controls: any = nil
 
 local function setCamera(model: Model?)
@@ -24,19 +26,32 @@ local function setCamera(model: Model?)
 	if model then
 		local hum = model:FindFirstChildOfClass("Humanoid")
 		if not hum then return end
+		if not savedView then
+			savedView = {
+				subject = cam.CameraSubject,
+				minZoom = localPlayer.CameraMinZoomDistance,
+				maxZoom = localPlayer.CameraMaxZoomDistance,
+				fieldOfView = cam.FieldOfView,
+			}
+		end
 		lastCameraSubject = cam.CameraSubject
 		cam.CameraType = Enum.CameraType.Custom
 		cam.CameraSubject = hum
+		localPlayer.CameraMaxZoomDistance = math.max(42, localPlayer.CameraMinZoomDistance)
 		localPlayer.CameraMinZoomDistance = 18
-		localPlayer.CameraMaxZoomDistance = 42
 		cam.FieldOfView = 74
 	else
 		local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+		local previous = savedView
+		savedView = nil
 		cam.CameraType = Enum.CameraType.Custom
-		cam.CameraSubject = hum or lastCameraSubject
-		localPlayer.CameraMinZoomDistance = 0.5
-		localPlayer.CameraMaxZoomDistance = 25
-		cam.FieldOfView = 70
+		cam.CameraSubject = hum or (if previous then previous.subject else nil) or lastCameraSubject
+		local minZoom = if previous then previous.minZoom else 0.5
+		local maxZoom = if previous then previous.maxZoom else 25
+		localPlayer.CameraMaxZoomDistance = math.max(maxZoom, localPlayer.CameraMinZoomDistance)
+		localPlayer.CameraMinZoomDistance = minZoom
+		localPlayer.CameraMaxZoomDistance = maxZoom
+		cam.FieldOfView = if previous then previous.fieldOfView else 70
 	end
 end
 
@@ -90,8 +105,8 @@ function Controller.init(gui: ScreenGui)
 	local status = Instance.new("TextLabel")
 	status.Name = "V2MountStatus"
 	status.AnchorPoint = Vector2.new(0.5, 0)
-	status.Position = UDim2.new(0.5, 0, 0, 8)
-	status.Size = UDim2.fromOffset(295, 33)
+	status.Position = UDim2.new(0.5, 0, 0, 114)
+	status.Size = UDim2.fromOffset(316, 36)
 	status.BackgroundColor3 = Color3.fromRGB(29, 45, 53)
 	status.BackgroundTransparency = 0.1
 	status.TextColor3 = Color3.fromRGB(255, 242, 206)
@@ -138,7 +153,13 @@ function Controller.init(gui: ScreenGui)
 		mounted = payload.mounted == true
 		currentModel = if mounted and typeof(payload.model) == "Instance" and payload.model:IsA("Model")
 			then payload.model else nil
+		if mounted and not currentModel then
+			-- Remote pode chegar antes do modelo em StreamingEnabled.
+			local replica = workspace:FindFirstChild("V2Mounted_" .. tostring(localPlayer.UserId))
+			if replica and replica:IsA("Model") then currentModel = replica end
+		end
 		stamina = if type(payload.stamina) == "number" then payload.stamina else stamina
+		boostRemaining = if type(payload.boostRemaining) == "number" then payload.boostRemaining else 0
 		if mounted and currentModel and (not wasMounted or workspace.CurrentCamera and workspace.CurrentCamera.CameraSubject ~= currentModel:FindFirstChildOfClass("Humanoid")) then
 			setCamera(currentModel)
 		elseif not mounted and wasMounted then
@@ -146,10 +167,12 @@ function Controller.init(gui: ScreenGui)
 			sprintHeld = false
 		end
 		if label then
-			label.Text = if mounted then string.format("GIGANTE MONTADO  ·  FOLEGO %d%%", math.floor(stamina))
-				else "F / Y · MONTAR"
+			label.Text = if mounted then string.format("MONTADO  |  FOLEGO %d%%  |  Q EM %ds",
+				math.floor(stamina), math.ceil(boostRemaining)) else "F / Y · MONTAR"
 		end
 		ContextActionService:SetTitle("V2Mount", if mounted then "DESCER" else "MONTAR")
+		ContextActionService:SetTitle("V2Boost",
+			if mounted and boostRemaining > 0 then ("PODER %ds"):format(math.ceil(boostRemaining)) else "PODER")
 	end)
 	task.spawn(function()
 		while gui.Parent do

@@ -84,6 +84,8 @@ local EVENTS = {
 	"V2MountRequest", -- client -> server: action = mount|unmount|boost
 	"V2MountInput", -- client -> server: direcao/sprint do gigante montado, rate limited
 	"V2MountState", -- server -> client: estado confirmado de montaria e stamina
+	"V3GuideState", -- server -> client: objetivo da jornada V3
+	"V3GuideRequest", -- client -> server: apenas snapshot, com rate limit
 }
 
 local FUNCTIONS = {

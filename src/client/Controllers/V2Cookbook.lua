@@ -22,7 +22,6 @@ local firstId: string? = nil
 local secondId: string? = nil
 local chosenRecipe: string? = nil
 local panel: Frame?
-local bookButton: TextButton?
 local potA: TextButton?
 local potB: TextButton?
 local firstBtn: TextButton?
@@ -126,12 +125,14 @@ local function draw()
 	if not panel or not panel.Parent then
 		return
 	end
-	local now = os.time()
+	-- UTC aproximado sincronizado pelo servidor Roblox; nao depender do relogio do celular.
+	local now = math.floor(workspace:GetServerTimeNow())
 	for i, widget in { potA, potB } do
 		if widget then
 			local slot = snapshot.slots[i] or { state = "empty" }
 			local name = if i == 1 then "A" else "B"
 			local line = if slot.state == "empty" then "Vazia"
+				elseif slot.state == "invalid" then "VERIFICAR"
 				elseif slot.state == "ready" or (slot.endsAtUtc or math.huge) <= now then "PRONTO!"
 				else clock(math.max(0, (slot.endsAtUtc or now) - now))
 			widget.Text = "PANELA " .. name .. "\n" .. line
@@ -144,6 +145,7 @@ local function draw()
 	if status then
 		local slot = snapshot.slots[chosenPot] or { state = "empty" }
 		status.Text = if slot.state == "empty" then "Panela livre. Escolha uma receita ou experimente ingredientes."
+			elseif slot.state == "invalid" then "Tempo invalido. Job preservado; verifique o suporte."
 			elseif slot.state == "ready" or (slot.endsAtUtc or math.huge) <= now then "Prato pronto! Toque em COLETAR."
 			else (slot.recipeName or "Cozinhando") .. " · " .. clock(math.max(0, (slot.endsAtUtc or now) - now))
 	end
@@ -187,12 +189,8 @@ function Cookbook.init(gui: ScreenGui)
 	if not Features.on("RebuildV2") then
 		return
 	end
-	bookButton = button(gui, "LIVRO\n& PANELAS", UDim2.fromOffset(106, 54), GOLD)
-	bookButton.Name = "V2OpenCookbook"
-	bookButton.TextColor3 = Color3.fromRGB(37, 40, 45)
-	bookButton.AnchorPoint = Vector2.new(1, 0)
-	bookButton.Position = UDim2.new(1, -14, 0, 90)
-	bookButton.ZIndex = 11
+	-- Acesso principal pelo botao RECEITAS da V2Hub, tecla B e prompts das panelas.
+	-- Evita segundo botao redundante no canto que se sobrepoe a HUD em mobile.
 
 	panel = Instance.new("Frame")
 	panel.Name = "V2CookbookPanel"
@@ -322,12 +320,6 @@ function Cookbook.init(gui: ScreenGui)
 	if cam then cam:GetPropertyChangedSignal("ViewportSize"):Connect(adjustLayout) end
 	adjustLayout()
 
-	bookButton.MouseButton1Click:Connect(function()
-		if panel then panel.Visible = not panel.Visible end
-		showRecipeTab = false
-		if updateView then updateView() end
-		Remotes.V2CookRequest:FireServer("snapshot")
-	end)
 	UserInputService.InputBegan:Connect(function(input: InputObject, consumed: boolean)
 		if not consumed and input.KeyCode == Enum.KeyCode.B and panel then
 			panel.Visible = not panel.Visible

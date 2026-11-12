@@ -6,6 +6,9 @@ local LOOPED = { Idle = true, Walk = true, Run = true, CarryWalk = true }
 local ACTIONS = { Pickup = true, Drop = true, Eat = true, Celebrate = true, Ability = true }
 
 function AnimationService.bind(model: Model, humanoid: Humanoid)
+	if model:GetAttribute("V3ProceduralRig") == true then
+		return require(script.Parent.V3ProceduralAnimation).bind(model)
+	end
 	local animator = humanoid:FindFirstChildOfClass("Animator")
 	if not animator then animator = Instance.new("Animator", humanoid) end
 	local folder = model:FindFirstChild("Animations")
@@ -62,6 +65,10 @@ function AnimationService.bind(model: Model, humanoid: Humanoid)
 
 	function controller:setLocomotion(name: string, speed: number)
 		local track = self.tracks[name]
+		if not track and name == "CarryWalk" then
+			name = "Walk"
+			track = self.tracks.Walk
+		end
 		if not track then
 			name = "Idle"
 			track = self.tracks.Idle

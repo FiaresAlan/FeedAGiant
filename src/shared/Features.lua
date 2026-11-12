@@ -48,7 +48,7 @@ local Features = {
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local function on(name: string): boolean
+local function rawOn(name: string): boolean
 	if RunService:IsStudio() then
 		local override = ReplicatedStorage:GetAttribute("Feature_" .. name)
 		if type(override) == "boolean" then
@@ -56,6 +56,17 @@ local function on(name: string): boolean
 		end
 	end
 	return (Features :: any)[name] == true
+end
+
+local function on(name: string): boolean
+	-- V3 preserva ovos comprados, mas nao autoriza roubo deles, eventos
+	-- ancestrais e mutacoes competitivas que distraem o loop principal.
+	-- O legado continua intacto quando RebuildV2 estiver desligada.
+	if name ~= "RebuildV2" and rawOn("RebuildV2")
+		and (name == "EggSteal" or name == "Ancestral" or name == "Mutations") then
+		return false
+	end
+	return rawOn(name)
 end
 
 return {

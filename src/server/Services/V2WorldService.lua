@@ -4,6 +4,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Features = require(ReplicatedStorage.Shared.Features)
 local MapService = require(script.Parent.MapService)
+local AudioAssets = require(ReplicatedStorage.Shared.AudioAssets)
+local CookRules = require(ReplicatedStorage.Shared.RebuildV2.CookRules)
 
 local World = {}
 World.SpawnPoints = {}
@@ -75,6 +77,43 @@ local function buildPot(parent: Instance, localCF: CFrame, name: string): Model
 	local surface = pillar(m, "Soup", 6.2, 0.15, localCF * CFrame.new(0, 10.25, 0), Color3.fromRGB(229, 149, 75))
 	surface.CanCollide = false
 	surface.Material = Enum.Material.SmoothPlastic
+	surface:SetAttribute("PotState", "empty")
+	local bubbles = Instance.new("ParticleEmitter")
+	bubbles.Name = "CookBubbles"
+	bubbles.Rate = 0
+	bubbles.Lifetime = NumberRange.new(0.6, 1.1)
+	bubbles.Speed = NumberRange.new(0.4, 1.2)
+	bubbles.Size = NumberSequence.new(0.3, 0)
+	bubbles.Color = ColorSequence.new(C.cream)
+	bubbles.LightInfluence = 0
+	bubbles.Parent = surface
+	local light = Instance.new("PointLight")
+	light.Name = "ReadyGlow"
+	light.Brightness = 0
+	light.Range = 13
+	light.Color = C.gold
+	light.Parent = surface
+	local bell = Instance.new("Sound")
+	bell.Name = "ReadyBell"
+	bell.SoundId = AudioAssets["sfx_bell"] or ""
+	bell.Volume = 0.22
+	bell.RollOffMaxDistance = 35
+	bell.Parent = surface
+	local indicator = Instance.new("BillboardGui")
+	indicator.Name = "PotIndicator"
+	indicator.Size = UDim2.fromOffset(150, 42)
+	indicator.StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0)
+	indicator.MaxDistance = 55
+	indicator.Parent = surface
+	local info = Instance.new("TextLabel")
+	info.Name = "Text"
+	info.Size = UDim2.fromScale(1, 1)
+	info.BackgroundColor3 = C.border
+	info.BackgroundTransparency = 0.20
+	info.TextColor3 = C.cream
+	info.TextScaled = true
+	info.Text = "VAZIA"
+	info.Parent = indicator
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "V2OpenCookbook"
 	prompt.ActionText = "Abrir Livro"
@@ -87,12 +126,55 @@ local function buildPot(parent: Instance, localCF: CFrame, name: string): Model
 	return m
 end
 
+-- Acabamento de ilha/base em blocos pintados, sem tocar no ID do plot,
+-- na area navegavel de estoque, nos ovos, nem nos slots das comidas.
+local function buildPremiumBase(extras: Folder, base: MapService.BaseInfo)
+	local center = base.origin * CFrame.new(0, 0, -16)
+	-- Contorno modular arredondado: pecas de brinquedo baixas, sem colisao.
+	for n = 1, 16 do
+		local theta = ((n - 1) / 16) * math.pi * 2
+		local localPos = Vector3.new(math.cos(theta) * 16.5, 2.25, -16 + math.sin(theta) * 16.5)
+		local segment = part(extras, "DaisRim" .. n, Vector3.new(4.2, 0.6, 3.1),
+			base.origin * CFrame.new(localPos) * CFrame.Angles(0, -theta, 0),
+			if n % 4 == 0 then C.gold else C.border, Enum.Material.SmoothPlastic, false)
+		segment.TopSurface = Enum.SurfaceType.Studs
+	end
+	for _, x in { -11, 11 } do
+		local torch = part(extras, "GolemStandLight", Vector3.new(1.6, 3, 1.6),
+			center * CFrame.new(x, 3.1, 9), C.wood, Enum.Material.SmoothPlastic, false)
+		local glow = part(extras, "GolemStandBeacon", Vector3.new(1.2, 0.7, 1.2),
+			torch.CFrame * CFrame.new(0, 1.7, 0), C.gold, Enum.Material.Neon, false)
+		local lamp = Instance.new("PointLight")
+		lamp.Brightness = 0.5
+		lamp.Range = 11
+		lamp.Parent = glow
+	end
+	local bookStand = part(extras, "RecipeBookStand", Vector3.new(7, 2.4, 5),
+		base.origin * CFrame.new(0, 2.7, 9), C.wood, Enum.Material.Wood, false)
+	local book = part(extras, "RecipeBook", Vector3.new(4.1, 0.55, 3),
+		bookStand.CFrame * CFrame.new(0, 1.5, 0), C.cream, Enum.Material.SmoothPlastic, false)
+	book:SetAttribute("V3Interactive", "cookbook")
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "V2OpenCookbook"
+	prompt.ObjectText = "LIVRO DE RECEITAS"
+	prompt.ActionText = "Consultar"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 15
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = book
+	sign(extras, book, "LIVRO DE RECEITAS", Vector3.new(0, 2, 0))
+	local eggStand = part(extras, "EggCollectionPlinth", Vector3.new(6, 1.1, 6),
+		base.origin * CFrame.new(23, 2.65, 15), C.rock, Enum.Material.SmoothPlastic, false)
+	sign(extras, eggStand, "COLECAO DE OVOS", Vector3.new(0, 3, 0))
+end
+
 local function buildBaseProps(base: MapService.BaseInfo)
 	local existing = base.model:FindFirstChild("V2BaseExtras")
 	if existing then existing:Destroy() end
 	local extras = Instance.new("Folder")
 	extras.Name = "V2BaseExtras"
 	extras.Parent = base.model
+	buildPremiumBase(extras, base)
 	local left = base.origin * CFrame.new(-24, 0, -9)
 	local right = base.origin * CFrame.new(24, 0, -9)
 	buildPot(extras, left, "PANELA A")
@@ -102,6 +184,50 @@ local function buildBaseProps(base: MapService.BaseInfo)
 	zone:SetAttribute("BaseIndex", base.index)
 	sign(extras, zone, "ENTREGA SEGURA", Vector3.new(0, 5, 0))
 	World.DeliveryZones[base.index] = zone
+end
+
+-- Visual da panela atualizado apenas por estado autorizado no servidor.
+function World.updatePot(player: Player, index: number, slot: any, now: number)
+	local base = MapService.getBaseOf(player)
+	if not base then return end
+	local extras = base.model:FindFirstChild("V2BaseExtras")
+	local pot = extras and extras:FindFirstChild(if index == 1 then "PANELA A" else "PANELA B")
+	local soup = pot and pot:FindFirstChild("Soup")
+	if not soup or not soup:IsA("BasePart") then return end
+	local oldState = soup:GetAttribute("PotState")
+	local ready = CookRules.isReady(slot, now)
+	local remaining = CookRules.remainingSeconds(slot, now)
+	local invalidTime = slot.state == "cooking" and remaining == nil
+	local invalidState = slot.state ~= "cooking" and slot.state ~= "empty" and slot.state ~= "ready"
+	local state = if invalidTime or invalidState then "invalid" elseif ready then "ready"
+		elseif slot.state == "cooking" then "cooking" else "empty"
+	if oldState ~= state then
+		soup:SetAttribute("PotState", state)
+		soup.Color = if state == "ready" then C.gold elseif state == "cooking"
+			then Color3.fromRGB(236, 146, 75) else C.rock
+		local bubbles = soup:FindFirstChild("CookBubbles")
+		if bubbles and bubbles:IsA("ParticleEmitter") then
+			bubbles.Rate = if state == "cooking" then 2 else 0
+		end
+		local light = soup:FindFirstChild("ReadyGlow")
+		if light and light:IsA("PointLight") then
+			light.Brightness = if state == "ready" then 0.8 else 0
+		end
+		if state == "ready" and oldState == "cooking" then
+			local bell = soup:FindFirstChild("ReadyBell")
+			if bell and bell:IsA("Sound") then bell:Play() end
+		end
+	end
+	local info = soup:FindFirstChild("PotIndicator")
+	info = info and info:FindFirstChild("Text")
+	if info and info:IsA("TextLabel") then
+		if state == "cooking" then
+			info.Text = ("COZINHANDO %ds"):format(remaining or 0)
+		else
+			info.Text = if state == "ready" then "PRONTO!"
+				elseif state == "invalid" then "VERIFICAR JOB" else "VAZIA"
+		end
+	end
 end
 
 function World.init()

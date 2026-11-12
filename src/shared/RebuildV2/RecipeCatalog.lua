@@ -50,6 +50,12 @@ function Catalog.fromIngredients(a: string, b: string)
 	return if id then Catalog.ById[id] else nil
 end
 
+-- Comecar pelo ID so e permitido quando a receita ja foi descoberta.
+-- Combinacao de dois ingredientes segue livre e descobre a receita pela primeira vez.
+function Catalog.canStartById(recipeId: string, discovered: { [string]: boolean }): boolean
+	return Catalog.ById[recipeId] ~= nil and discovered[recipeId] == true
+end
+
 function Catalog.registerFoodDefs(foodById: { [string]: any })
 	for id, props in Catalog.Items do
 		assert(foodById[id] == nil, "ID de comida V2 em conflito: " .. id)

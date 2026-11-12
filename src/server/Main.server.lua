@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Features = require(game.ReplicatedStorage.Shared.Features)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 
 local Services = script.Parent.Services
@@ -41,6 +42,7 @@ local V2WorldService = require(Services.V2WorldService)
 local V2MountService = require(Services.V2MountService)
 local V2LaneService = require(Services.V2LaneService)
 local V2MetricsService = require(Services.V2MetricsService)
+local V3JourneyService = require(Services.V3JourneyService)
 local WorldFx = require(script.Parent.WorldFx)
 local Speed = require(script.Parent.Speed)
 local LightingRecipes = require(game.ReplicatedStorage.Shared.LightingRecipes)
@@ -55,24 +57,25 @@ V2CookingService.init() -- registra v2Cook antes de DataService.start(); flag OF
 V2MountService.init()
 V2LaneService.init() -- registra v2Race antes de DataService.start()
 V2MetricsService.init()
+V3JourneyService.init() -- registra v3Journey antes do inicio de PlayerData
 GiantService.init()
 PlotService.init()
-StealService.init()
+if not Features.on("RebuildV2") then StealService.init() end
 ShopService.init()
 MonetizationService.init()
 LeaderboardService.init()
-EventService.init()
-CombatService.init()
-DropService.init()
-ArenaService.init()
-BossService.init()
-ShieldService.init()
-GiantBattleService.init()
+if not Features.on("RebuildV2") then EventService.init() end
+if not Features.on("RebuildV2") then CombatService.init() end
+if not Features.on("RebuildV2") then DropService.init() end
+if not Features.on("RebuildV2") then ArenaService.init() end
+if not Features.on("RebuildV2") then BossService.init() end
+if not Features.on("RebuildV2") then ShieldService.init() end
+if not Features.on("RebuildV2") then GiantBattleService.init() end
 RosterService.init()
 ProgressService.init()
-MeatService.init()
+if not Features.on("RebuildV2") then MeatService.init() end
 AdminService.init()
-BotService.init()
+if not Features.on("RebuildV2") then BotService.init() end
 ObjectiveHintService.init()
 OnboardingService.init()
 EggService.init()
@@ -80,7 +83,7 @@ EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até
 MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (flag)
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
 WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
-TravelService.init() -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
+if not Features.on("RebuildV2") then TravelService.init() end -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
 Speed.init() -- 09/11: dono único da velocidade (carga, ponte, Corrida Turbo)
 TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
@@ -115,7 +118,10 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	GiantService.onPassesChanged(player)
-	GiantService.applyDecay(player, profile)
+	-- V3 nao pune ausencia nem retira niveis; nao alterar o save legado.
+	if not Features.on("RebuildV2") then
+		GiantService.applyDecay(player, profile)
+	end
 	GiantService.spawnFor(player)
 	RosterService.onJoin(player) -- renda offline da exposição (até 8 h) + estátuas da vitrine
 	ProgressService.onJoin(player) -- tarefas do dia, recordes e recompensas pendentes do Dragão
@@ -125,6 +131,7 @@ local function onPlayerAdded(player: Player)
 	V2CookingService.onJoin(player)
 	V2LaneService.pushSnapshot(player)
 	V2MetricsService.onJoin(player)
+	V3JourneyService.onJoin(player)
 	OnboardingService.onJoin(player) -- v3: câmera de chegada e 1ª alimentação mais forte (flag)
 	EggService.onJoin(player) -- ovos: estado do ninho e marcos de nível (flag)
 	WelcomeService.onJoin(player) -- resumo de quem volta (flag)
@@ -141,10 +148,17 @@ local function onPlayerAdded(player: Player)
 		player.Character:PivotTo(base.origin * CFrame.new(0, 6, 20))
 	end
 
-	-- Kit inicial: 2 comidas comuns para o loop começar imediatamente
+	-- V3: uma dupla de maca para duas alimentacoes e o par Pao+Queijo
+	-- para a primeira receita, sem criar moeda/ovo ou alterar o kit legado.
 	if profile.totalBoxes == 0 and #profile.inventory == 0 and next(profile.plot) == nil then
 		PlotService.giveFood(player, "apple")
-		PlotService.giveFood(player, "bread")
+		if Features.on("RebuildV2") then
+			PlotService.giveFood(player, "apple")
+			PlotService.giveFood(player, "bread")
+			PlotService.giveFood(player, "cheese")
+		else
+			PlotService.giveFood(player, "bread")
+		end
 		Remotes.Notify:FireClient(player, {
 			text = "Bem-vindo! Seu Gigante está com fome!",
 			color = Color3.fromRGB(255, 220, 80),

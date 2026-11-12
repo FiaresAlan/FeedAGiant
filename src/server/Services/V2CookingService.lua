@@ -8,11 +8,13 @@ local Shared = ReplicatedStorage.Shared
 local Features = require(Shared.Features)
 local Config = require(Shared.Config)
 local Catalog = require(Shared.RebuildV2.RecipeCatalog)
+local CookRules = require(Shared.RebuildV2.CookRules)
 local Remotes = require(Shared.Remotes)
 local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
+local WorldService = require(script.Parent.V2WorldService)
 local Analytics = require(script.Parent.Parent.Analytics)
 local Hooks = require(script.Parent.Parent.Hooks)
 
@@ -48,7 +50,8 @@ local function cookData(player: Player): (any, CookData?)
 	-- Todas as alterações/migrações em memória são aditivas; não apagar um job antigo.
 	if type(data) ~= "table" then
 		data = freshData()
-		(profile :: any).v2Cook = data
+		local profileData = profile :: any
+		profileData.v2Cook = data
 		DataService.markDirty(player)
 	end
 	if type(data.slots) ~= "table" then
@@ -82,22 +85,24 @@ local function nearOwnBase(player: Player): boolean
 end
 
 local function isReady(slot: CookSlot, now: number): boolean
-	return slot.state == "cooking"
-		and type(slot.endsAtUtc) == "number"
-		and slot.endsAtUtc <= now
-		or slot.state == "ready"
+	return CookRules.isReady(slot, now)
 end
 
 local function visibleSlot(slot: CookSlot, now: number)
 	local ready = isReady(slot, now)
+	local remaining = CookRules.remainingSeconds(slot, now)
+	local invalidTime = slot.state == "cooking" and remaining == nil
+	local invalidState = slot.state ~= "cooking" and slot.state ~= "empty" and slot.state ~= "ready"
 	local recipe = if type(slot.recipeId) == "string" then Catalog.ById[slot.recipeId] else nil
 	return {
-		state = if ready then "ready" else slot.state,
+		state = if invalidTime or invalidState then "invalid" elseif ready then "ready" else slot.state,
 		recipeId = if recipe then recipe.id else nil,
 		recipeName = if recipe then recipe.name else nil,
 		jobId = slot.jobId,
-		endsAtUtc = slot.endsAtUtc,
-		remaining = if slot.state == "cooking" and not ready then math.max(0, (slot.endsAtUtc or now) - now) else 0,
+		-- Nunca enviar strings/NaN/infinitos para calculos aritmeticos do cliente.
+		endsAtUtc = if type(slot.endsAtUtc) == "number" and slot.endsAtUtc == slot.endsAtUtc
+			and math.abs(slot.endsAtUtc) ~= math.huge then slot.endsAtUtc else nil,
+		remaining = if remaining then remaining else 0,
 	}
 end
 
@@ -110,6 +115,9 @@ function V2CookingService.pushState(player: Player)
 		return
 	end
 	local now = os.time()
+	for i = 1, 2 do
+		WorldService.updatePot(player, i, data.slots[i], now)
+	end
 	Remotes.V2CookState:FireClient(player, {
 		now = now,
 		slots = { visibleSlot(data.slots[1], now), visibleSlot(data.slots[2], now) },
@@ -121,7 +129,7 @@ local function notify(player: Player, msg: string)
 	Remotes.Notify:FireClient(player, { text = msg, color = Color3.fromRGB(247, 194, 95) })
 end
 
-local function begin(player: Player, index: number, recipe: any)
+local function begin(player: Player, index: number, recipe: any, mustBeDiscovered: boolean)
 	if not nearOwnBase(player) then
 		notify(player, "Volte para a sua base para cozinhar.")
 		return
@@ -130,49 +138,43 @@ local function begin(player: Player, index: number, recipe: any)
 	if not profile or not data or not recipe then
 		return
 	end
+	if mustBeDiscovered and not Catalog.canStartById(recipe.id, data.discoveredRecipeIds) then
+		notify(player, "Descubra esta receita combinando os ingredientes primeiro.")
+		return
+	end
 	local slot = data.slots[index]
 	if slot.state ~= "empty" then
 		notify(player, "Esta panela ja esta ocupada.")
 		return
 	end
-	local indices = {}
-	local used = {}
-	for _, ingredientId in recipe.ingredients do
-		local found: number? = nil
-		for i, item in profile.inventory do
-			if item.id == ingredientId and not used[i] then
-				found = i
-				break
-			end
-		end
-		if not found then
-			notify(player, "Faltam ingredientes desta receita na mochila.")
-			return
-		end
-		used[found] = true
-		table.insert(indices, found)
+	local indices = CookRules.selectIndices(profile.inventory, recipe.ingredients)
+	if not indices then
+		notify(player, "Faltam ingredientes desta receita na mochila.")
+		return
 	end
 	if not Config.FoodById[recipe.resultId] then
 		warn("[V2Cooking] resultado sem catalogo:", recipe.resultId)
 		return
 	end
-	-- Regiao critica sem yield: consume exatamente os ingredientes validados e cria o job.
-	table.sort(indices, function(a, b)
-		return a > b
-	end)
+	-- Preparar o UID antes de consumir itens; a mutacao seguinte nao faz yield.
+	local jobId = DataService.newUid()
+	local now = os.time()
 	for _, i in indices do
 		table.remove(profile.inventory, i)
 	end
-	local now = os.time()
 	data.slots[index] = {
 		state = "cooking",
-		jobId = DataService.newUid(),
+		jobId = jobId,
 		recipeId = recipe.id,
 		startedAtUtc = now,
 		endsAtUtc = now + recipe.seconds,
 	}
+	local newlyDiscovered = data.discoveredRecipeIds[recipe.id] ~= true
 	data.discoveredRecipeIds[recipe.id] = true
 	DataService.markDirty(player)
+	if newlyDiscovered then
+		Hooks.fire("v2_recipe_discovered", player, recipe.id, "combine")
+	end
 	PlotService.pushState(player)
 	V2CookingService.pushState(player)
 	Hooks.fire("v2_cooked", player, recipe.id)
@@ -189,7 +191,7 @@ local function claim(player: Player, index: number, expectedJobId: any)
 		return
 	end
 	local slot = data.slots[index]
-	if type(expectedJobId) ~= "string" or slot.jobId ~= expectedJobId or not isReady(slot, os.time()) then
+	if not CookRules.canClaim(slot, expectedJobId, os.time()) then
 		V2CookingService.pushState(player)
 		return
 	end
@@ -198,7 +200,7 @@ local function claim(player: Player, index: number, expectedJobId: any)
 		warn("[V2Cooking] job desconhecido preservado para recuperacao:", slot.jobId)
 		return
 	end
-	if #profile.inventory >= Config.MaxInventory then
+	if not CookRules.hasSpace(#profile.inventory, Config.MaxInventory) then
 		notify(player, "Mochila cheia. O prato continua pronto na panela.")
 		return
 	end
@@ -211,19 +213,22 @@ local function claim(player: Player, index: number, expectedJobId: any)
 	V2CookingService.pushState(player)
 	notify(player, "Prato pronto! Ja esta na sua mochila.")
 	Analytics.event(player, "v2_cook_claimed", 1, { recipe.id, tostring(index) })
+	Hooks.fire("v2_cook_claimed", player, recipe.id)
 end
 
--- Pergaminhos conquistados na pista: descoberta permanente; repeticao vira 1 Mel (sem moeda nova).
+-- Pergaminhos conquistados na pista: descoberta permanente; repeticao nao gera premio infinito.
 function V2CookingService.unlockRecipe(player: Player, recipeId: any): boolean
 	if type(recipeId) ~= "string" or not Catalog.ById[recipeId] then return false end
 	local _profile, data = cookData(player)
 	if not data then return false end
 	if data.discoveredRecipeIds[recipeId] then
-		-- Perfil nao perde recompensa por obter um pergaminho ja conhecido.
-		return PlotService.giveFood(player, "honey")
+		-- Repeticoes nao multiplicam recompensas; o pergaminho pode ser entregue.
+		-- Nenhum inventario, moeda ou XP e alterado por desbloqueio repetido.
+		return true
 	end
 	data.discoveredRecipeIds[recipeId] = true
 	DataService.markDirty(player)
+	Hooks.fire("v2_recipe_discovered", player, recipeId, "scroll")
 	V2CookingService.pushState(player)
 	Analytics.event(player, "v2_recipe_unlocked", 1, { recipeId, "scroll" })
 	return true
@@ -250,19 +255,33 @@ function V2CookingService.init()
 		if action == "claim" then
 			claim(player, index, arg)
 		elseif action == "start" and type(arg) == "string" and #arg <= 48 then
-			begin(player, index, Catalog.ById[arg])
+			begin(player, index, Catalog.ById[arg], true)
 		elseif action == "combine" and type(arg) == "string" and type(other) == "string"
 			and #arg <= 48 and #other <= 48 then
 			local recipe = Catalog.fromIngredients(arg, other)
 			if recipe then
-				begin(player, index, recipe)
+				begin(player, index, recipe, false)
 			else
 				notify(player, "Essa combinacao ainda nao produz uma receita.")
 			end
 		end
 	end)
-	Players.PlayerRemoving:Connect(function(_player)
-		-- Jobs offline persistem por UTC no profile; nada a agendar nem descartar.
+	-- Atualiza apenas a aparencia das panelas visiveis, sem consumir premio
+	-- nem executar task offline. A persistencia e calculada por endsAtUtc.
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			if not Features.on("RebuildV2") then continue end
+			local now = os.time()
+			for _, player in Players:GetPlayers() do
+				local _, data = cookData(player)
+				if data then
+					for i = 1, 2 do
+						WorldService.updatePot(player, i, data.slots[i], now)
+					end
+				end
+			end
+		end
 	end)
 end
 

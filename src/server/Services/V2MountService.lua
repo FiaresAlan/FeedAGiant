@@ -14,6 +14,9 @@ local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
 local Hooks = require(script.Parent.Parent.Hooks)
 local MapService = require(script.Parent.MapService)
+local AnimationService = require(script.Parent.V2AnimationService)
+local StudioGolem = require(script.Parent.V3StoneGolemPrototype)
+local FeedPresentation = require(script.Parent.V3FeedPresentation)
 
 local Mount = {}
 type Session = {
@@ -24,6 +27,9 @@ type Session = {
 	charHumanoid: Humanoid,
 	charRoot: BasePart,
 	weld: WeldConstraint,
+	animations: any,
+	animationDisabled: boolean,
+	nextAnimAt: number,
 	oldWalkSpeed: number,
 	oldJumpPower: number,
 	oldJumpHeight: number,
@@ -39,6 +45,7 @@ type Session = {
 	boostEndsAt: number,
 	boostReadyAt: number,
 	nextPushAt: number,
+	mountedAt: number,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -65,6 +72,8 @@ local function push(player: Player, session: Session?)
 			model = session.model,
 			stamina = session.stamina,
 			boostReadyAt = session.boostReadyAt,
+			boostRemaining = math.max(0, session.boostReadyAt - os.clock()),
+			boostActive = os.clock() < session.boostEndsAt,
 			species = session.species,
 		})
 	else
@@ -78,6 +87,21 @@ end
 
 function Mount.isMounted(player: Player): boolean
 	return sessions[player] ~= nil
+end
+
+-- Efeitos de animacao sao apenas visuais. A economia e as acoes permanecem no servidor.
+function Mount.playAction(player: Player, action: string)
+	local s = sessions[player]
+	if s and s.animations and not s.animationDisabled then
+		local ok, err = pcall(function()
+			s.animations:playAction(action)
+		end)
+		if not ok then
+			s.animationDisabled = true
+			warn("[V2Mount] Animacoes desativadas nesta montaria apos falha:", action, err)
+			Hooks.fire("v2_error_recovered", player, "animation", "action")
+		end
+	end
 end
 
 function Mount.isIceShieldActive(player: Player): boolean
@@ -102,9 +126,16 @@ function Mount.unmount(player: Player)
 	local session = sessions[player]
 	if not session then return end
 	sessions[player] = nil -- idempotente mesmo que reset e disconnect acontecam juntos
+	Hooks.fire("v2_unmounted", player, session.species, math.max(0, os.clock() - session.mountedAt))
 	if Mount.OnUnmount then
 		local ok, err = pcall(Mount.OnUnmount, player)
 		if not ok then warn("[V2Mount] OnUnmount:", err) end
+	end
+	if session.animations then
+		local ok, err = pcall(function()
+			session.animations:destroy()
+		end)
+		if not ok then warn("[V2Mount] Erro ao limpar animacoes:", err) end
 	end
 	if session.weld.Parent then session.weld:Destroy() end
 	local hum = session.charHumanoid
@@ -130,6 +161,20 @@ local function sourceRig(species: string): Model?
 	local folder = ServerStorage:FindFirstChild("V2RigTemplates")
 	local file = TEMPLATE_NAMES[species]
 	local source = if folder and file then folder:FindFirstChild(file) else nil
+	-- Somente em Studio e com a flag QA ligada: rig proprio para prototipar
+	-- movimento/articulacao enquanto o asset final ainda nao foi importado.
+	if not source and (file == "StoneGolem" or file == "FireGiant" or file == "IceGiant")
+		and RunService:IsStudio() and Features.on("RebuildV2") then
+		if not folder then
+			local created = Instance.new("Folder")
+			created.Name = "V2RigTemplates"
+			created.Parent = ServerStorage
+			folder = created
+		end
+		source = StudioGolem.create(species)
+		source.Parent = folder
+		warn("[V3GolemPrototype] Rig de QA criado: nao publicar como versao final.")
+	end
 	return if source and source:IsA("Model") then source else nil
 end
 
@@ -180,8 +225,18 @@ function Mount.mount(player: Player)
 		end
 	end
 	creature.Parent = workspace
-	creature:PivotTo(base.origin * CFrame.new(12, 6, -18))
+	local spawnY = if creature:GetAttribute("V3ProceduralRig") == true then 11 else 6
+	creature:PivotTo(base.origin * CFrame.new(12, spawnY, -18))
 	pcall(function() creatureRoot:SetNetworkOwner(nil) end) -- fisica autoritativa para evitar teleport exploits
+	-- Inicializar animacao ANTES de prender e imobilizar o avatar real.
+	-- Falha de rig/clipe nao pode deixar o humano em PlatformStand ou preso por weld.
+	local okAnimation, animations = pcall(AnimationService.bind, creature, creatureHum)
+	if not okAnimation then
+		warn("[V2Mount] Rig sem controlador de animacao valido:", animations)
+		creature:Destroy()
+		notify(player, "Nao foi possivel preparar a animacao deste gigante.")
+		return
+	end
 	local collisions: { [BasePart]: boolean } = {}
 	for _, inst in char:GetDescendants() do
 		if inst:IsA("BasePart") then
@@ -202,6 +257,9 @@ function Mount.mount(player: Player)
 	weld.Part0 = characterRoot
 	weld.Part1 = anchor.Parent
 	weld.Parent = characterRoot
+	-- Refazer a posse fisica apos soldar o avatar: a assembly mudou.
+	-- Se a engine rejeitar o ownership manual, o teste multi-cliente deve apontar o erro.
+	pcall(function() creatureRoot:SetNetworkOwner(nil) end)
 	local session: Session = {
 		model = creature,
 		humanoid = creatureHum,
@@ -210,6 +268,9 @@ function Mount.mount(player: Player)
 		charHumanoid = human,
 		charRoot = characterRoot,
 		weld = weld,
+		animations = animations,
+		animationDisabled = false,
+		nextAnimAt = 0,
 		oldWalkSpeed = oldWalk,
 		oldJumpPower = oldJump,
 		oldJumpHeight = oldHeight,
@@ -225,6 +286,7 @@ function Mount.mount(player: Player)
 		boostEndsAt = 0,
 		boostReadyAt = 0,
 		nextPushAt = 0,
+		mountedAt = os.clock(),
 	}
 	sessions[player] = session
 	Hooks.fire("v2_mounted", player)
@@ -239,8 +301,16 @@ local function boost(player: Player)
 	local rules = RunRules.BOOSTS[s.species]
 	if not rules then return end
 	if s.species == "fire_starter" and s.stamina < 20 then return end
+	Mount.playAction(player, "Ability")
 	s.boostEndsAt = now + rules.seconds
 	s.boostReadyAt = now + rules.cooldown
+	s.model:SetAttribute("V3BoostActive", true)
+	task.delay(rules.seconds, function()
+		if sessions[player] == s and s.model.Parent and os.clock() >= s.boostEndsAt then
+			s.model:SetAttribute("V3BoostActive", false)
+		end
+	end)
+	Hooks.fire("v2_boost_used", player, s.species, if Mount.CargoWeightOf then Mount.CargoWeightOf(player) else "light")
 	if s.species == "fire_starter" then s.stamina = math.max(0, s.stamina - 20) end
 	if Mount.OnBoost then
 		Mount.OnBoost(player, s.species)
@@ -249,6 +319,15 @@ local function boost(player: Player)
 end
 
 function Mount.init()
+	-- O GiantService/PlotService preserva a verdade economica: reproduzir
+	-- mastigacao apenas depois do evento de alimentacao concluida.
+	Hooks.on("fed", function(player: Player, details: any)
+		Mount.playAction(player, "Eat")
+		local session = sessions[player]
+		if session and type(details) == "table" then
+			FeedPresentation.play(session.model, details.foodId)
+		end
+	end)
 	Remotes.V2MountRequest.OnServerEvent:Connect(function(player: Player, action: any)
 		if not Features.on("RebuildV2") or type(action) ~= "string" or not Guard.allow(player, "V2Mount") then return end
 		if action == "mount" then Mount.mount(player)
@@ -284,6 +363,20 @@ function Mount.init()
 			local weight = if Mount.CargoWeightOf then Mount.CargoWeightOf(player) else "light"
 			s.humanoid.WalkSpeed = RunRules.speed(profile.level, weight, sprint, s.species, now < s.boostEndsAt)
 			s.humanoid:Move(if moving then s.move else Vector3.zero, false)
+			-- Estado locomotor no maximo 15x/s, mesmo com Heartbeat a 60 fps.
+			-- Uma falha de controlador desativa apenas o visual, nunca o movimento.
+			if not s.animationDisabled and now >= s.nextAnimAt then
+				s.nextAnimAt = now + 1 / 15
+				local gait = if not moving then "Idle" elseif weight ~= "light" then "CarryWalk" elseif sprint then "Run" else "Walk"
+				local ok, err = pcall(function()
+					s.animations:setLocomotion(gait, s.root.AssemblyLinearVelocity.Magnitude)
+				end)
+				if not ok then
+					s.animationDisabled = true
+					warn("[V2Mount] Animacao visual interrompida:", err)
+					Hooks.fire("v2_error_recovered", player, "animation", "locomotion")
+				end
+			end
 			if now >= s.nextPushAt then
 				s.nextPushAt = now + 0.5
 				push(player, s)

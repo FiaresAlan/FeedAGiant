@@ -1,0 +1,120 @@
+name: FeedAGiant V3 - Luau syntax and Rojo manifests
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/**'
+      - '*.project.json'
+      - '.github/workflows/v3-luau.yml'
+  push:
+    branches:
+      - 'feat/feedagiant-v3-integracao-segura-2026-11-11'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse-luau:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install StyLua 2.6.0 for Luau syntax parsing
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 2.6.0
+          args: false
+      - name: Parse every Luau source without rewriting files
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          failed=0
+          while IFS= read -r -d '' file; do
+            count=$((count + 1))
+            # Parse through stdin; never reformat repository files.
+            if ! output=$(stylua --syntax luau --stdin-filepath "$file" - < "$file" 2>&1 > /dev/null); then
+              echo "::error file=$file::Luau parser failed"
+              echo "$output" | head -n 12
+              failed=$((failed + 1))
+            fi
+          done < <(find src tests tools -type f \( -name '*.lua' -o -name '*.luau' \) -print0)
+          echo "Parsed $count Luau files; errors $failed"
+          test "$count" -gt 20
+          test "$failed" -eq 0
+      - name: Validate both Rojo project manifests
+        run: |
+          python3 - <<'PY'
+          import json
+          for path in ('default.project.json', 'test.project.json'):
+              with open(path, encoding='utf-8') as f:
+                  tree = json.load(f)['tree']
+              assert 'ServerScriptService' in tree
+              assert 'ReplicatedStorage' in tree
+              assert 'StarterPlayer' in tree
+              print(path, 'valid')
+          PY
+
+  behavior-luau:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Lune 0.11.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            'https://github.com/lune-org/lune/releases/download/v0.11.1/lune-0.11.1-linux-x86_64.zip' -o lune.zip
+          mkdir -p .ci/lune
+          unzip -q lune.zip -d .ci/lune
+          chmod +x .ci/lune/lune
+          .ci/lune/lune --version
+      - name: Execute deterministic cargo, cooking and onboarding tests
+        shell: bash
+        run: .ci/lune/lune run tools/v3_ci_rules.luau
+
+  rojo-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rojo 7.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            'https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/rojo-7.7.1-linux-x86_64.zip' -o rojo.zip
+          mkdir -p .ci/rojo
+          unzip -q rojo.zip -d .ci/rojo
+          chmod +x .ci/rojo/rojo
+          .ci/rojo/rojo --version
+      - name: Build gameplay and test places without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          .ci/rojo/rojo build default.project.json --output .ci/FeedAGiant-V3-QA.rbxlx
+          .ci/rojo/rojo build test.project.json --output .ci/FeedAGiant-V3-Tests.rbxlx
+          python3 - <<'PY'
+          from pathlib import Path
+          for filename in ('.ci/FeedAGiant-V3-QA.rbxlx', '.ci/FeedAGiant-V3-Tests.rbxlx'):
+              p = Path(filename)
+              assert p.is_file() and p.stat().st_size > 4096, filename
+              print(f'{filename}: {p.stat().st_size:,} bytes; compile OK')
+          content = Path('.ci/FeedAGiant-V3-Tests.rbxlx').read_text(errors='replace')
+          for module in ('V3StoneGolemPrototype', 'V3JourneyService', 'V3FeedPresentation',
+                         'V3CargoRules.spec', 'V3CookRules.spec', 'V3StageRules.spec'):
+              assert module in content, f'Rojo test place missing {module}'
+          PY
+      - name: Attach compiled QA places to this GitHub run
+        uses: actions/upload-artifact@v4
+        with:
+          name: FeedAGiant-V3-compiled-QA-places
+          path: |
+            .ci/FeedAGiant-V3-QA.rbxlx
+            .ci/FeedAGiant-V3-Tests.rbxlx
+          if-no-files-found: error
+          retention-days: 7
