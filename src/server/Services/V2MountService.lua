@@ -228,6 +228,9 @@ function Mount.mount(player: Player)
 	weld.Part0 = characterRoot
 	weld.Part1 = anchor.Parent
 	weld.Parent = characterRoot
+	-- Refazer a posse fisica apos soldar o avatar: a assembly mudou.
+	-- Se a engine rejeitar o ownership manual, o teste multi-cliente deve apontar o erro.
+	pcall(function() creatureRoot:SetNetworkOwner(nil) end)
 	local session: Session = {
 		model = creature,
 		humanoid = creatureHum,
