@@ -4,6 +4,8 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Features = require(game.ReplicatedStorage.Shared.Features)
+local V3Stages = require(game.ReplicatedStorage.Shared.RebuildV2.StageRules)
 local Locale = require(game.ReplicatedStorage.Shared.Locale)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -199,6 +201,11 @@ local lastStage: { [Player]: string } = {}
 GiantService.OnReturnBonus = nil :: ((Player, number) -> ())?
 
 function GiantService.scaleForLevel(level: number): number
+	if Features.on("RebuildV2") then
+		-- Em V3 o crescimento nao aumenta a cada mordida; apenas nos tres estagios.
+		local _, _, scale = V3Stages.stage(level)
+		return scale
+	end
 	return Config.Giant.BaseScale + level * Config.Giant.ScalePerLevel
 end
 
@@ -472,20 +479,34 @@ local function refreshVisual(player: Player, pulse: boolean)
 		return
 	end
 	local scale = GiantService.scaleForLevel(profile.level)
-	-- BUG achado na auditoria de 08/11/2026 (noite): antes, TODA alimentação fazia ScaleTo(1) e
-	-- crescia de novo do tamanho 1 até o tamanho certo (o gigante "piscava" pequeno a cada comida e o
-	-- servidor replicava a escala do modelo inteiro por 0,6 s). Agora o pulso só acontece quando a
-	-- escala muda de verdade, partindo da escala anterior.
 	local prevScale = model:GetScale()
-	model:ScaleTo(1)
 	local stage = Config.stageForLevel(profile.level)
-	applyStage(model, stage, profile)
-	ensureCreatureMesh(player, model, profile.species, stage.minLevel == 1)
-	if pulse and math.abs(prevScale - scale) > 1e-3 then
-		model:ScaleTo(prevScale)
-		Util.tweenScale(model, scale, 0.6)
+	if Features.on("RebuildV2") then
+		stage = V3Stages.style(profile.level, stage)
+	end
+	if not Features.on("RebuildV2") or math.abs(prevScale - scale) > 1e-3 then
+		-- Recalcular expressao na escala canonica somente quando muda o marco visual.
+		model:ScaleTo(1)
+		applyStage(model, stage, profile)
+		ensureCreatureMesh(player, model, profile.species, stage.minLevel == 1)
+		if pulse and math.abs(prevScale - scale) > 1e-3 then
+			model:ScaleTo(prevScale)
+			Util.tweenScale(model, scale, 0.6)
+		else
+			model:ScaleTo(scale)
+		end
 	else
-		model:ScaleTo(scale)
+		-- Nenhum piscar, pulso ou aumento de malha a cada mordida na V3.
+		-- Atualiza mood/aura, preservando a escala ja montada.
+		local torso = model.PrimaryPart
+		if torso then
+			local aura = torso:FindFirstChild("Aura") :: ParticleEmitter?
+			local light = torso:FindFirstChild("AuraLight") :: PointLight?
+			if aura and light and profile.hunger < 30 then
+				aura.Rate = 0
+				light.Brightness = 0
+			end
+		end
 	end
 	-- Para a animação no cliente (GiantAnim): personalidade da espécie e humor (birra de fome).
 	model:SetAttribute("Species", profile.species)
