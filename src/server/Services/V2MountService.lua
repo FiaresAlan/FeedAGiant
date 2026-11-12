@@ -15,6 +15,7 @@ local DataService = require(script.Parent.DataService)
 local Hooks = require(script.Parent.Parent.Hooks)
 local MapService = require(script.Parent.MapService)
 local AnimationService = require(script.Parent.V2AnimationService)
+local StudioGolem = require(script.Parent.V3StoneGolemPrototype)
 
 local Mount = {}
 type Session = {
@@ -141,6 +142,19 @@ local function sourceRig(species: string): Model?
 	local folder = ServerStorage:FindFirstChild("V2RigTemplates")
 	local file = TEMPLATE_NAMES[species]
 	local source = if folder and file then folder:FindFirstChild(file) else nil
+	-- Somente em Studio e com a flag QA ligada: rig proprio para prototipar
+	-- movimento/articulacao enquanto o asset final ainda nao foi importado.
+	if not source and file == "StoneGolem" and RunService:IsStudio() and Features.on("RebuildV2") then
+		if not folder then
+			local created = Instance.new("Folder")
+			created.Name = "V2RigTemplates"
+			created.Parent = ServerStorage
+			folder = created
+		end
+		source = StudioGolem.create()
+		source.Parent = folder
+		warn("[V3GolemPrototype] Rig de QA criado: nao publicar como versao final.")
+	end
 	return if source and source:IsA("Model") then source else nil
 end
 
@@ -191,7 +205,8 @@ function Mount.mount(player: Player)
 		end
 	end
 	creature.Parent = workspace
-	creature:PivotTo(base.origin * CFrame.new(12, 6, -18))
+	local spawnY = if creature:GetAttribute("V3ProceduralRig") == true then 11 else 6
+	creature:PivotTo(base.origin * CFrame.new(12, spawnY, -18))
 	pcall(function() creatureRoot:SetNetworkOwner(nil) end) -- fisica autoritativa para evitar teleport exploits
 	local collisions: { [BasePart]: boolean } = {}
 	for _, inst in char:GetDescendants() do
