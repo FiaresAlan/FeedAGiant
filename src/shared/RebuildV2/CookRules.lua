@@ -44,11 +44,7 @@ end
 
 function Rules.isReady(slot: any, nowUtc: number): boolean
 	if type(slot) ~= "table" then return false end
-	if slot.state == "ready" then return true end
-	return slot.state == "cooking"
-		and type(slot.endsAtUtc) == "number"
-		and slot.endsAtUtc == slot.endsAtUtc
-		and slot.endsAtUtc <= nowUtc
+	return slot.state == "ready" or (slot.state == "cooking" and Rules.remainingSeconds(slot, nowUtc) == 0)
 end
 
 function Rules.canClaim(slot: any, jobId: any, nowUtc: number): boolean
