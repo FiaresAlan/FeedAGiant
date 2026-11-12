@@ -243,12 +243,12 @@ function Lane.pickup(player: Player, uid: any)
 	cargo.carriedAt = os.clock()
 	carried[player] = cargo
 	MountService.playAction(player, "Pickup")
-	Hooks.fire("v2_picked", player, cargo.kind)
+	Hooks.fire("v2_picked", player, cargo.kind, cargo.weight)
 	Analytics.event(player, "v2_cargo_picked", 1, { cargo.kind, cargo.weight })
 	broadcast()
 end
 
-function Lane.dropFor(player: Player)
+function Lane.dropFor(player: Player, reason: string?)
 	local cargo = carried[player]
 	if not cargo then return end
 	if not CargoRules.drop(cargo, player) then
@@ -257,6 +257,7 @@ function Lane.dropFor(player: Player)
 	end
 	carried[player] = nil
 	MountService.playAction(player, "Drop")
+	Hooks.fire("v2_dropped", player, cargo.weight, reason or "unmount")
 	cargo.pickableAt = os.clock() + 1
 	cargo.expiresAt = os.clock() + 28
 	local pos = MountService.rootOf(player)
@@ -295,7 +296,7 @@ local function deposit(player: Player)
 	if station then station.uid = nil; station.nextAt = os.clock() + station.respawn end
 	cargoByUid[cargo.uid] = nil
 	notify(player, "Entrega concluida! Volte para alimentar seu gigante.")
-	Hooks.fire("v2_delivered", player, cargo.kind)
+	Hooks.fire("v2_delivered", player, cargo.kind, cargo.weight, math.max(0, os.clock() - (cargo.carriedAt or os.clock())))
 	Analytics.event(player, "v2_cargo_delivered", 1, { cargo.kind, cargo.weight })
 	-- O broadcast global omite contadores privados; atualizar o HUD do dono tambem.
 	Remotes.V2LaneState:FireClient(player, { kind = "stats", deliveries = race.deliveries })
@@ -323,7 +324,8 @@ local function intercept(attacker: Player, targetUserId: any)
 	local now = os.clock()
 	if now < (pairCooldowns[key] or 0) then return end
 	pairCooldowns[key] = now + 12
-	Lane.dropFor(target)
+	Lane.dropFor(target, "intercept")
+	Hooks.fire("v2_intercepted", attacker, target, cargo.weight)
 	local race = raceData(attacker)
 	if race then race.interceptions = math.max(0, tonumber(race.interceptions) or 0) + 1; DataService.markDirty(attacker) end
 	Analytics.event(attacker, "v2_intercept_success", 1, { cargo.weight })
