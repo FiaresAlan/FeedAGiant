@@ -7,6 +7,7 @@ local Guide = require("../src/shared/RebuildV2/GuideRules")
 local Stages = require("../src/shared/RebuildV2/StageRules")
 local Run = require("../src/shared/RebuildV2/RunRules")
 local Inventory = require("../src/shared/RebuildV2/InventoryRules")
+local GuideLayout = require("../src/shared/RebuildV2/GuideLayoutRules")
 
 local checks = 0
 local function test(name, fn)
@@ -104,6 +105,19 @@ test("duas panelas: UTC independente e claim unico", function()
 	for _ = 1, 100 do assert(not Cook.canClaim(first, "A", 150)) end
 	assert(Cook.canClaim(second, "B", 150))
 	assert(Cook.hasSpace(299, 300) and not Cook.hasSpace(300, 300))
+end)
+
+test("layout do tutorial evita HUD e botoes no mobile", function()
+	local side, width, y = GuideLayout.place(360, 720, true, false)
+	assert(side == "left" and width <= 360 - 28 and y >= 180)
+	side, width, y = GuideLayout.place(360, 720, true, true)
+	assert(side == "left" and y >= 260)
+	side, width, y = GuideLayout.place(360, 720, false, false)
+	assert(side == "left" and y >= 120)
+	side, width, y = GuideLayout.place(520, 390, false, false)
+	assert(side == "right" and 520 - 16 - width > 306 and y == 12)
+	side, width, y = GuideLayout.place(1280, 720, false, false)
+	assert(side == "right" and width == 255 and y == 12)
 end)
 
 test("jornada nao aceita progresso inventado", function()
