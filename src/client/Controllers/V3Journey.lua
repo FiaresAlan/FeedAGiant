@@ -1,7 +1,9 @@
 --!strict
 -- Cartao discreto de proximo passo. Nao escurece a tela nem bloqueia input.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Layout = require(ReplicatedStorage.Shared.RebuildV2.GuideLayoutRules)
 
 local UI = {}
 
@@ -63,6 +65,34 @@ function UI.init(gui: ScreenGui)
 	dismiss.TextColor3 = Color3.fromRGB(207, 217, 221)
 	dismiss.ZIndex = 18
 	dismiss.Parent = card
+	-- HUD do gigante ocupa o canto superior esquerdo. Em tela estreita,
+	-- deslocar o guia para baixo da escolha inicial; apos escolher, compactar.
+	local starter = gui:FindFirstChild("V2ChooseStone")
+	local cameraConnection: RBXScriptConnection? = nil
+	local function reposition()
+		local camera = workspace.CurrentCamera
+		if not camera or not card.Parent then return end
+		local chooseVisible = starter ~= nil and starter:IsA("GuiObject") and starter.Visible
+		local side, width, y = Layout.place(camera.ViewportSize.X, camera.ViewportSize.Y,
+			chooseVisible, RunService:IsStudio())
+		card.AnchorPoint = if side == "right" then Vector2.new(1, 0) else Vector2.new(0, 0)
+		card.Position = if side == "right" then UDim2.new(1, -16, 0, y)
+			else UDim2.fromOffset(14, y)
+		card.Size = UDim2.fromOffset(width, 87)
+	end
+	local function bindCamera()
+		if cameraConnection then cameraConnection:Disconnect() end
+		local camera = workspace.CurrentCamera
+		if camera then
+			cameraConnection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(reposition)
+		end
+		reposition()
+	end
+	if starter and starter:IsA("GuiObject") then
+		starter:GetPropertyChangedSignal("Visible"):Connect(reposition)
+	end
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
+	bindCamera()
 	local dismissed = false
 	dismiss.MouseButton1Click:Connect(function()
 		dismissed = true
