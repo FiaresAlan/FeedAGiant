@@ -14,6 +14,7 @@ local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
 local MapService = require(script.Parent.MapService)
 local PlotService = require(script.Parent.PlotService)
+local WorldService = require(script.Parent.V2WorldService)
 local Analytics = require(script.Parent.Parent.Analytics)
 local Hooks = require(script.Parent.Parent.Hooks)
 
@@ -108,6 +109,9 @@ function V2CookingService.pushState(player: Player)
 		return
 	end
 	local now = os.time()
+	for i = 1, 2 do
+		WorldService.updatePot(player, i, data.slots[i], now)
+	end
 	Remotes.V2CookState:FireClient(player, {
 		now = now,
 		slots = { visibleSlot(data.slots[1], now), visibleSlot(data.slots[2], now) },
@@ -256,8 +260,22 @@ function V2CookingService.init()
 			end
 		end
 	end)
-	Players.PlayerRemoving:Connect(function(_player)
-		-- Jobs offline persistem por UTC no profile; nada a agendar nem descartar.
+	-- Atualiza apenas a aparencia das panelas visiveis, sem consumir premio
+	-- nem executar task offline. A persistencia e calculada por endsAtUtc.
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			if not Features.on("RebuildV2") then continue end
+			local now = os.time()
+			for _, player in Players:GetPlayers() do
+				local _, data = cookData(player)
+				if data then
+					for i = 1, 2 do
+						WorldService.updatePot(player, i, data.slots[i], now)
+					end
+				end
+			end
+		end
 	end)
 end
 
