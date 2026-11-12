@@ -231,8 +231,13 @@ function Lane.pickup(player: Player, uid: any)
 	if not previousState then return end
 	local ok, attached = pcall(attachVisual, cargo, player)
 	if not ok or not attached then
+		-- O attach pode falhar apos desancorar a part ou criar um weld.
+		-- Restaurar o visual e a reserva para impedir um pickup invisivel.
+		local visualOk, visualErr = pcall(visualAt, cargo, cargo.position)
+		if not visualOk then warn("[V2Lane] Falha ao restaurar carga:", visualErr) end
 		CargoRules.rollbackReservation(cargo, player, previousState)
 		if not ok then warn("[V2Lane] Falha ao anexar carga:", attached) end
+		Hooks.fire("v2_error_recovered", player, "cargo", "attach")
 		return
 	end
 	if not CargoRules.commitPickup(cargo, player) then
