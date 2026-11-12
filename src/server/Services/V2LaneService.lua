@@ -280,19 +280,33 @@ local function deposit(player: Player)
 	local profile = DataService.get(player)
 	local race = raceData(player)
 	if not profile or not race then return end
-	local success = false
-	if cargo.kind == "recipe_scroll" then
-		success = CookingService.unlockRecipe(player, cargo.recipeId)
-	else
-		-- giveFood retorna false se a mochila estiver lotada. Mantem a carga nesse caso.
-		success = PlotService.giveFood(player, cargo.itemId)
+	-- O estado 'depositing' bloqueia repeticoes ANTES do credito. Se um
+	-- adaptador fizer yield no futuro, outra requisicao nao duplica o premio.
+	if not CargoRules.beginDeposit(cargo, player) then return end
+	local ok, success = pcall(function(): boolean
+		if cargo.kind == "recipe_scroll" then
+			return CookingService.unlockRecipe(player, cargo.recipeId)
+		end
+		-- false nao remove a carga: a mochila cheia pode ser liberada e tentada de novo.
+		return PlotService.giveFood(player, cargo.itemId)
+	end)
+	if not ok then
+		-- O adaptador pode ter creditado o item ANTES do erro.
+		-- Nao liberar retry automaticamente, pois isso pode duplicar a recompensa.
+		warn("[V2Lane] Entrega em quarentena:", cargo.uid, tostring(success))
+		Hooks.fire("v2_error_recovered", player, "cargo", "credit_uncertain")
+		notify(player, "Falha ao concluir esta entrega. A carga foi bloqueada para evitar duplicacao.")
+		return
 	end
-	if not success then
+	if success ~= true then
+		CargoRules.rollbackDeposit(cargo, player)
 		notify(player, "Nao foi possivel entregar. Confira sua mochila.")
 		return
 	end
-	-- O credito e a transicao ocorrem sem yield. Retry do mesmo cargo nao credita novamente.
-	assert(CargoRules.deposit(cargo, player), "cargo mudou durante entrega sem yield")
+	if not CargoRules.commitDeposit(cargo, player) then
+		warn("[V2Lane] Credito efetuado, mas transicao inconsistente:", cargo.uid)
+		return -- nunca repetir um premio ja creditado
+	end
 	MountService.playAction(player, "Celebrate")
 	carried[player] = nil
 	race.deliveries = math.max(0, tonumber(race.deliveries) or 0) + 1
