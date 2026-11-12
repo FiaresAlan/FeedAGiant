@@ -42,6 +42,7 @@ type Session = {
 	boostEndsAt: number,
 	boostReadyAt: number,
 	nextPushAt: number,
+	mountedAt: number,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -116,6 +117,7 @@ function Mount.unmount(player: Player)
 	local session = sessions[player]
 	if not session then return end
 	sessions[player] = nil -- idempotente mesmo que reset e disconnect acontecam juntos
+	Hooks.fire("v2_unmounted", player, session.species, math.max(0, os.clock() - session.mountedAt))
 	if Mount.OnUnmount then
 		local ok, err = pcall(Mount.OnUnmount, player)
 		if not ok then warn("[V2Mount] OnUnmount:", err) end
@@ -273,6 +275,7 @@ function Mount.mount(player: Player)
 		boostEndsAt = 0,
 		boostReadyAt = 0,
 		nextPushAt = 0,
+		mountedAt = os.clock(),
 	}
 	sessions[player] = session
 	Hooks.fire("v2_mounted", player)
@@ -290,6 +293,7 @@ local function boost(player: Player)
 	Mount.playAction(player, "Ability")
 	s.boostEndsAt = now + rules.seconds
 	s.boostReadyAt = now + rules.cooldown
+	Hooks.fire("v2_boost_used", player, s.species, if Mount.CargoWeightOf then Mount.CargoWeightOf(player) else "light")
 	if s.species == "fire_starter" then s.stamina = math.max(0, s.stamina - 20) end
 	if Mount.OnBoost then
 		Mount.OnBoost(player, s.species)
