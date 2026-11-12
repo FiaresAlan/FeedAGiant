@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage.Shared
 local Features = require(Shared.Features)
 local Config = require(Shared.Config)
 local Catalog = require(Shared.RebuildV2.RecipeCatalog)
+local CookRules = require(Shared.RebuildV2.CookRules)
 local Remotes = require(Shared.Remotes)
 local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
@@ -82,10 +83,7 @@ local function nearOwnBase(player: Player): boolean
 end
 
 local function isReady(slot: CookSlot, now: number): boolean
-	return slot.state == "cooking"
-		and type(slot.endsAtUtc) == "number"
-		and slot.endsAtUtc <= now
-		or slot.state == "ready"
+	return CookRules.isReady(slot, now)
 end
 
 local function visibleSlot(slot: CookSlot, now: number)
@@ -139,38 +137,24 @@ local function begin(player: Player, index: number, recipe: any, mustBeDiscovere
 		notify(player, "Esta panela ja esta ocupada.")
 		return
 	end
-	local indices = {}
-	local used = {}
-	for _, ingredientId in recipe.ingredients do
-		local found: number? = nil
-		for i, item in profile.inventory do
-			if item.id == ingredientId and not used[i] then
-				found = i
-				break
-			end
-		end
-		if not found then
-			notify(player, "Faltam ingredientes desta receita na mochila.")
-			return
-		end
-		used[found] = true
-		table.insert(indices, found)
+	local indices = CookRules.selectIndices(profile.inventory, recipe.ingredients)
+	if not indices then
+		notify(player, "Faltam ingredientes desta receita na mochila.")
+		return
 	end
 	if not Config.FoodById[recipe.resultId] then
 		warn("[V2Cooking] resultado sem catalogo:", recipe.resultId)
 		return
 	end
-	-- Regiao critica sem yield: consume exatamente os ingredientes validados e cria o job.
-	table.sort(indices, function(a, b)
-		return a > b
-	end)
+	-- Preparar o UID antes de consumir itens; a mutacao seguinte nao faz yield.
+	local jobId = DataService.newUid()
+	local now = os.time()
 	for _, i in indices do
 		table.remove(profile.inventory, i)
 	end
-	local now = os.time()
 	data.slots[index] = {
 		state = "cooking",
-		jobId = DataService.newUid(),
+		jobId = jobId,
 		recipeId = recipe.id,
 		startedAtUtc = now,
 		endsAtUtc = now + recipe.seconds,
@@ -193,7 +177,7 @@ local function claim(player: Player, index: number, expectedJobId: any)
 		return
 	end
 	local slot = data.slots[index]
-	if type(expectedJobId) ~= "string" or slot.jobId ~= expectedJobId or not isReady(slot, os.time()) then
+	if not CookRules.canClaim(slot, expectedJobId, os.time()) then
 		V2CookingService.pushState(player)
 		return
 	end
@@ -202,7 +186,7 @@ local function claim(player: Player, index: number, expectedJobId: any)
 		warn("[V2Cooking] job desconhecido preservado para recuperacao:", slot.jobId)
 		return
 	end
-	if #profile.inventory >= Config.MaxInventory then
+	if not CookRules.hasSpace(#profile.inventory, Config.MaxInventory) then
 		notify(player, "Mochila cheia. O prato continua pronto na panela.")
 		return
 	end
@@ -217,7 +201,7 @@ local function claim(player: Player, index: number, expectedJobId: any)
 	Analytics.event(player, "v2_cook_claimed", 1, { recipe.id, tostring(index) })
 end
 
--- Pergaminhos conquistados na pista: descoberta permanente; repeticao vira 1 Mel (sem moeda nova).
+-- Pergaminhos conquistados na pista: descoberta permanente; repeticao nao gera premio infinito.
 function V2CookingService.unlockRecipe(player: Player, recipeId: any): boolean
 	if type(recipeId) ~= "string" or not Catalog.ById[recipeId] then return false end
 	local _profile, data = cookData(player)
