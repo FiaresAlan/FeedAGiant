@@ -90,14 +90,17 @@ end
 
 local function visibleSlot(slot: CookSlot, now: number)
 	local ready = isReady(slot, now)
+	local remaining = CookRules.remainingSeconds(slot, now)
+	local invalidTime = slot.state == "cooking" and remaining == nil
 	local recipe = if type(slot.recipeId) == "string" then Catalog.ById[slot.recipeId] else nil
 	return {
-		state = if ready then "ready" else slot.state,
+		state = if invalidTime then "invalid" elseif ready then "ready" else slot.state,
 		recipeId = if recipe then recipe.id else nil,
 		recipeName = if recipe then recipe.name else nil,
 		jobId = slot.jobId,
-		endsAtUtc = slot.endsAtUtc,
-		remaining = if slot.state == "cooking" and not ready then math.max(0, (slot.endsAtUtc or now) - now) else 0,
+		-- Nunca enviar strings/NaN/infinitos para calculos aritmeticos do cliente.
+		endsAtUtc = if invalidTime then nil else slot.endsAtUtc,
+		remaining = if remaining then remaining else 0,
 	}
 end
 
