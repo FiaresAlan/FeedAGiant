@@ -31,6 +31,17 @@ function Rules.selectIndices(inventory: { any }, ingredients: { string }): { num
 	return selected
 end
 
+-- Tempo restante para jobs validos; nil identifica timestamp corrompido.
+-- O job nao e apagado automaticamente: a recompensa pode ter sido paga.
+function Rules.remainingSeconds(slot: any, nowUtc: number): number?
+	if type(slot) ~= "table" or slot.state ~= "cooking" then return nil end
+	local endTime = slot.endsAtUtc
+	if type(endTime) ~= "number" or endTime ~= endTime or math.abs(endTime) == math.huge then
+		return nil
+	end
+	return math.max(0, endTime - nowUtc)
+end
+
 function Rules.isReady(slot: any, nowUtc: number): boolean
 	if type(slot) ~= "table" then return false end
 	if slot.state == "ready" then return true end
