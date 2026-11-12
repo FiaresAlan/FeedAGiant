@@ -304,7 +304,9 @@ local function deposit(player: Player)
 end
 
 local function intercept(attacker: Player, targetUserId: any)
-	if type(targetUserId) ~= "number" or attacker.UserId == targetUserId or not MountService.isMounted(attacker) then return end
+	if type(targetUserId) ~= "number" or targetUserId ~= targetUserId
+		or math.abs(targetUserId) > 1e15 or math.floor(targetUserId) ~= targetUserId
+		or attacker.UserId == targetUserId or not MountService.isMounted(attacker) then return end
 	local target = Players:GetPlayerByUserId(targetUserId)
 	if not target or not MountService.isMounted(target) then return end
 	local cargo = carried[target]
