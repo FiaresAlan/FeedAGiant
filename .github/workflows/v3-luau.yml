@@ -32,13 +32,19 @@ jobs:
         run: |
           set -euo pipefail
           count=0
+          failed=0
           while IFS= read -r -d '' file; do
-            # Formatting stdout is discarded; a nonzero result is a parser failure.
-            stylua --syntax luau --stdin-filepath "$file" - < "$file" > /dev/null
             count=$((count + 1))
+            # Parse through stdin; never reformat repository files.
+            if ! output=$(stylua --syntax luau --stdin-filepath "$file" - < "$file" 2>&1 > /dev/null); then
+              echo "::error file=$file::Luau parser failed"
+              echo "$output" | head -n 12
+              failed=$((failed + 1))
+            fi
           done < <(find src tests tools -type f \( -name '*.lua' -o -name '*.luau' \) -print0)
-          echo "Parsed $count Luau files"
+          echo "Parsed $count Luau files; errors $failed"
           test "$count" -gt 20
+          test "$failed" -eq 0
       - name: Validate both Rojo project manifests
         run: |
           python3 - <<'PY'
