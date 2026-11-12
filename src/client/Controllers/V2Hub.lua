@@ -1,6 +1,7 @@
 --!strict
 -- HUD focada da V2. Sem tela escura, monetizacao ou menu legado sobre o ciclo principal.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Features = require(ReplicatedStorage.Shared.Features)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -17,6 +18,7 @@ local levelLabel: TextLabel?
 local pageLabel: TextLabel?
 local page = 1
 local starterButton: TextButton?
+local qaStarterButtons: { TextButton } = {}
 local PAGE_SIZE = 35
 
 local COLOR = {
@@ -116,6 +118,9 @@ local function refreshStats()
 	local species = if s.species then Config.SpeciesById[s.species] else nil
 	title.Text = if species then species.name else "Meu gigante"
 	if starterButton then starterButton.Visible = s.species == "human" end
+	for _, qaButton in qaStarterButtons do
+		qaButton.Visible = s.species == "human"
+	end
 	levelLabel.Text = ("NIVEL %d  •  FOME %d%%  •  %d MOEDAS"):format(
 		math.floor(s.level), math.floor(s.hunger), math.floor(s.coins))
 	xpFill.Size = UDim2.new(math.clamp(s.xp / math.max(1, s.xpNeeded), 0, 1), 0, 1, 0)
@@ -167,6 +172,21 @@ function Hub.init(gui: ScreenGui)
 		-- Concessao validada pelo OnboardingService/GiantService; nao criar dado no cliente.
 		Remotes.RequestStarter:FireServer("stone_starter")
 	end)
+	if RunService:IsStudio() then
+		for i, spec in {
+			{ id = "fire_starter", title = "QA: GIGANTE DE FOGO" },
+			{ id = "ice_starter", title = "QA: GIGANTE DE GELO" },
+		} do
+			local selection = button(gui, spec.title, COLOR.card)
+			selection.TextSize = 11
+			selection.Size = UDim2.fromOffset(292, 39)
+			selection.Position = UDim2.fromOffset(14, 174 + (i - 1) * 44)
+			selection.MouseButton1Click:Connect(function()
+				Remotes.RequestStarter:FireServer(spec.id)
+			end)
+			table.insert(qaStarterButtons, selection)
+		end
+	end
 
 	local actions = Instance.new("Frame")
 	actions.Name = "V2PrimaryActions"
