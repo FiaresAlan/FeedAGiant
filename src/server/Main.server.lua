@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Features = require(game.ReplicatedStorage.Shared.Features)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 
 local Services = script.Parent.Services
@@ -115,7 +116,10 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	GiantService.onPassesChanged(player)
-	GiantService.applyDecay(player, profile)
+	-- V3 nao pune ausencia nem retira niveis; nao alterar o save legado.
+	if not Features.on("RebuildV2") then
+		GiantService.applyDecay(player, profile)
+	end
 	GiantService.spawnFor(player)
 	RosterService.onJoin(player) -- renda offline da exposição (até 8 h) + estátuas da vitrine
 	ProgressService.onJoin(player) -- tarefas do dia, recordes e recompensas pendentes do Dragão
