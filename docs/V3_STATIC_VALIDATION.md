@@ -4,7 +4,7 @@
 
 Verificação feita lendo arquivos reais da branch pelo conector GitHub e testando **presença de ligações e contratos textuais**. Não usou Roblox Studio, não compilou Luau, não abriu place, não executou os specs e não mediu comportamento visual/físico.
 
-**Resultado:** 18/18 verificações estruturais passaram, conforme itens abaixo.
+**Resultado:** 18/18 verificações estruturais passaram, conforme itens abaixo. Adicionalmente, o GitHub Actions executou uma etapa automática de sintaxe em 148 arquivos Luau, validou os 2 manifests Rojo e rodou 7 cenários reais de regras puras em Lune 0.11.1, todos aprovados no run https://github.com/FiaresAlan/FeedAGiant/actions/runs/43175799589 . Esses cenários não executam física nem o DataStore do Studio.
 
 1. Arquivos principais disponíveis no GitHub.
 2. Flag `RebuildV2 = false` preservada.
