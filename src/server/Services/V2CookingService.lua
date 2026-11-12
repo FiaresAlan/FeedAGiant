@@ -121,13 +121,17 @@ local function notify(player: Player, msg: string)
 	Remotes.Notify:FireClient(player, { text = msg, color = Color3.fromRGB(247, 194, 95) })
 end
 
-local function begin(player: Player, index: number, recipe: any)
+local function begin(player: Player, index: number, recipe: any, mustBeDiscovered: boolean)
 	if not nearOwnBase(player) then
 		notify(player, "Volte para a sua base para cozinhar.")
 		return
 	end
 	local profile, data = cookData(player)
 	if not profile or not data or not recipe then
+		return
+	end
+	if mustBeDiscovered and not Catalog.canStartById(recipe.id, data.discoveredRecipeIds) then
+		notify(player, "Descubra esta receita combinando os ingredientes primeiro.")
 		return
 	end
 	local slot = data.slots[index]
@@ -219,8 +223,9 @@ function V2CookingService.unlockRecipe(player: Player, recipeId: any): boolean
 	local _profile, data = cookData(player)
 	if not data then return false end
 	if data.discoveredRecipeIds[recipeId] then
-		-- Perfil nao perde recompensa por obter um pergaminho ja conhecido.
-		return PlotService.giveFood(player, "honey")
+		-- Repeticoes nao multiplicam recompensas; o pergaminho pode ser entregue.
+		-- Nenhum inventario, moeda ou XP e alterado por desbloqueio repetido.
+		return true
 	end
 	data.discoveredRecipeIds[recipeId] = true
 	DataService.markDirty(player)
@@ -250,12 +255,12 @@ function V2CookingService.init()
 		if action == "claim" then
 			claim(player, index, arg)
 		elseif action == "start" and type(arg) == "string" and #arg <= 48 then
-			begin(player, index, Catalog.ById[arg])
+			begin(player, index, Catalog.ById[arg], true)
 		elseif action == "combine" and type(arg) == "string" and type(other) == "string"
 			and #arg <= 48 and #other <= 48 then
 			local recipe = Catalog.fromIngredients(arg, other)
 			if recipe then
-				begin(player, index, recipe)
+				begin(player, index, recipe, false)
 			else
 				notify(player, "Essa combinacao ainda nao produz uma receita.")
 			end
