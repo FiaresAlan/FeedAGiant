@@ -148,10 +148,17 @@ local function onPlayerAdded(player: Player)
 		player.Character:PivotTo(base.origin * CFrame.new(0, 6, 20))
 	end
 
-	-- Kit inicial: 2 comidas comuns para o loop começar imediatamente
+	-- V3: uma dupla de maca para duas alimentacoes e o par Pao+Queijo
+	-- para a primeira receita, sem criar moeda/ovo ou alterar o kit legado.
 	if profile.totalBoxes == 0 and #profile.inventory == 0 and next(profile.plot) == nil then
 		PlotService.giveFood(player, "apple")
-		PlotService.giveFood(player, "bread")
+		if Features.on("RebuildV2") then
+			PlotService.giveFood(player, "apple")
+			PlotService.giveFood(player, "bread")
+			PlotService.giveFood(player, "cheese")
+		else
+			PlotService.giveFood(player, "bread")
+		end
 		Remotes.Notify:FireClient(player, {
 			text = "Bem-vindo! Seu Gigante está com fome!",
 			color = Color3.fromRGB(255, 220, 80),
