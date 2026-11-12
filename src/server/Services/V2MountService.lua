@@ -87,7 +87,10 @@ end
 function Mount.playAction(player: Player, action: string)
 	local s = sessions[player]
 	if s and s.animations then
-		s.animations:playAction(action)
+		local ok, err = pcall(function()
+			s.animations:playAction(action)
+		end)
+		if not ok then warn("[V2Mount] Falha em acao visual:", action, err) end
 	end
 end
 
@@ -117,7 +120,12 @@ function Mount.unmount(player: Player)
 		local ok, err = pcall(Mount.OnUnmount, player)
 		if not ok then warn("[V2Mount] OnUnmount:", err) end
 	end
-	if session.animations then session.animations:destroy() end
+	if session.animations then
+		local ok, err = pcall(function()
+			session.animations:destroy()
+		end)
+		if not ok then warn("[V2Mount] Erro ao limpar animacoes:", err) end
+	end
 	if session.weld.Parent then session.weld:Destroy() end
 	local hum = session.charHumanoid
 	if hum.Parent and hum.Health > 0 then
@@ -208,6 +216,15 @@ function Mount.mount(player: Player)
 	local spawnY = if creature:GetAttribute("V3ProceduralRig") == true then 11 else 6
 	creature:PivotTo(base.origin * CFrame.new(12, spawnY, -18))
 	pcall(function() creatureRoot:SetNetworkOwner(nil) end) -- fisica autoritativa para evitar teleport exploits
+	-- Inicializar animacao ANTES de prender e imobilizar o avatar real.
+	-- Falha de rig/clipe nao pode deixar o humano em PlatformStand ou preso por weld.
+	local okAnimation, animations = pcall(AnimationService.bind, creature, creatureHum)
+	if not okAnimation then
+		warn("[V2Mount] Rig sem controlador de animacao valido:", animations)
+		creature:Destroy()
+		notify(player, "Nao foi possivel preparar a animacao deste gigante.")
+		return
+	end
 	local collisions: { [BasePart]: boolean } = {}
 	for _, inst in char:GetDescendants() do
 		if inst:IsA("BasePart") then
@@ -239,7 +256,7 @@ function Mount.mount(player: Player)
 		charHumanoid = human,
 		charRoot = characterRoot,
 		weld = weld,
-		animations = AnimationService.bind(creature, creatureHum),
+		animations = animations,
 		oldWalkSpeed = oldWalk,
 		oldJumpPower = oldJump,
 		oldJumpHeight = oldHeight,
@@ -269,7 +286,7 @@ local function boost(player: Player)
 	local rules = RunRules.BOOSTS[s.species]
 	if not rules then return end
 	if s.species == "fire_starter" and s.stamina < 20 then return end
-	s.animations:playAction("Ability")
+	Mount.playAction(player, "Ability")
 	s.boostEndsAt = now + rules.seconds
 	s.boostReadyAt = now + rules.cooldown
 	if s.species == "fire_starter" then s.stamina = math.max(0, s.stamina - 20) end
@@ -322,7 +339,10 @@ function Mount.init()
 			s.humanoid:Move(if moving then s.move else Vector3.zero, false)
 			-- Preferir ciclos animados; nao escalar o mesh para simular movimento.
 			local gait = if not moving then "Idle" elseif weight ~= "light" then "CarryWalk" elseif sprint then "Run" else "Walk"
-			s.animations:setLocomotion(gait, s.root.AssemblyLinearVelocity.Magnitude)
+			local ok, err = pcall(function()
+				s.animations:setLocomotion(gait, s.root.AssemblyLinearVelocity.Magnitude)
+			end)
+			if not ok then warn("[V2Mount] Erro na animacao de marcha:", err) end
 			if now >= s.nextPushAt then
 				s.nextPushAt = now + 0.5
 				push(player, s)
