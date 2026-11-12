@@ -14,6 +14,7 @@ local Guard = require(script.Parent.Parent.Guard)
 local DataService = require(script.Parent.DataService)
 local Hooks = require(script.Parent.Parent.Hooks)
 local MapService = require(script.Parent.MapService)
+local AnimationService = require(script.Parent.V2AnimationService)
 
 local Mount = {}
 type Session = {
@@ -24,6 +25,7 @@ type Session = {
 	charHumanoid: Humanoid,
 	charRoot: BasePart,
 	weld: WeldConstraint,
+	animations: any,
 	oldWalkSpeed: number,
 	oldJumpPower: number,
 	oldJumpHeight: number,
@@ -80,6 +82,14 @@ function Mount.isMounted(player: Player): boolean
 	return sessions[player] ~= nil
 end
 
+-- Efeitos de animacao sao apenas visuais. A economia e as acoes permanecem no servidor.
+function Mount.playAction(player: Player, action: string)
+	local s = sessions[player]
+	if s and s.animations then
+		s.animations:playAction(action)
+	end
+end
+
 function Mount.isIceShieldActive(player: Player): boolean
 	local s = sessions[player]
 	return s ~= nil and s.species == "ice_starter" and os.clock() < s.boostEndsAt
@@ -106,6 +116,7 @@ function Mount.unmount(player: Player)
 		local ok, err = pcall(Mount.OnUnmount, player)
 		if not ok then warn("[V2Mount] OnUnmount:", err) end
 	end
+	if session.animations then session.animations:destroy() end
 	if session.weld.Parent then session.weld:Destroy() end
 	local hum = session.charHumanoid
 	if hum.Parent and hum.Health > 0 then
@@ -210,6 +221,7 @@ function Mount.mount(player: Player)
 		charHumanoid = human,
 		charRoot = characterRoot,
 		weld = weld,
+		animations = AnimationService.bind(creature, creatureHum),
 		oldWalkSpeed = oldWalk,
 		oldJumpPower = oldJump,
 		oldJumpHeight = oldHeight,
@@ -239,6 +251,7 @@ local function boost(player: Player)
 	local rules = RunRules.BOOSTS[s.species]
 	if not rules then return end
 	if s.species == "fire_starter" and s.stamina < 20 then return end
+	s.animations:playAction("Ability")
 	s.boostEndsAt = now + rules.seconds
 	s.boostReadyAt = now + rules.cooldown
 	if s.species == "fire_starter" then s.stamina = math.max(0, s.stamina - 20) end
@@ -284,6 +297,9 @@ function Mount.init()
 			local weight = if Mount.CargoWeightOf then Mount.CargoWeightOf(player) else "light"
 			s.humanoid.WalkSpeed = RunRules.speed(profile.level, weight, sprint, s.species, now < s.boostEndsAt)
 			s.humanoid:Move(if moving then s.move else Vector3.zero, false)
+			-- Preferir ciclos animados; nao escalar o mesh para simular movimento.
+			local gait = if not moving then "Idle" elseif weight ~= "light" then "CarryWalk" elseif sprint then "Run" else "Walk"
+			s.animations:setLocomotion(gait, s.root.AssemblyLinearVelocity.Magnitude)
 			if now >= s.nextPushAt then
 				s.nextPushAt = now + 0.5
 				push(player, s)
