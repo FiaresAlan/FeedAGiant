@@ -54,6 +54,14 @@ local function funnel(player: Player, name: string)
 	r.nextFunnel += 1
 end
 
+-- A etapa final requer uma NOVA atividade depois da segunda alimentacao.
+local function nextActivity(player: Player)
+	local record = records[player]
+	if record and record.nextFunnel == #funnelSteps then
+		funnel(player, "FIRST_NEXT_ACTIVITY")
+	end
+end
+
 local function step(player: Player, id: string, phase: number)
 	local r = records[player]
 	if not r or not Features.on("RebuildV2") or r.seen[id] then return end
@@ -90,6 +98,7 @@ function Metrics.init()
 		emit(player, "MOUNT_STARTED", { species, "unknown_device", "server" })
 		funnel(player, "FIRST_MOUNT")
 		step(player, "first_mount", 1)
+		nextActivity(player)
 	end)
 	Hooks.on("v2_unmounted", function(player: Player, species: string, duration: number)
 		emit(player, "MOUNT_ENDED", { species, "unmount", "server" }, math.floor(duration))
@@ -102,6 +111,7 @@ function Metrics.init()
 		emit(player, "CARGO_PICKED", { kind, weight, species })
 		funnel(player, "FIRST_CARGO_PICKUP")
 		step(player, "first_pickup", 2)
+		nextActivity(player)
 	end)
 	Hooks.on("v2_dropped", function(player: Player, weight: string, reason: string)
 		emit(player, "CARGO_DROPPED", { weight, reason, "lane" })
@@ -128,12 +138,14 @@ function Metrics.init()
 			if recipe and recipe.seconds >= 600 then "long" else "short", "v3" })
 		funnel(player, "FIRST_POT_START")
 		step(player, "first_cook", 4)
+		nextActivity(player)
 	end)
 	Hooks.on("v2_cook_claimed", function(player: Player, recipeId: string)
 		local recipe = Catalog.ById[recipeId]
 		emit(player, "POT_READY_CLAIMED", { if recipe then recipe.rarity else "unknown", "claim", "v3" })
 		funnel(player, "FIRST_POT_CLAIM")
 		step(player, "first_claim", 5)
+		nextActivity(player)
 	end)
 	Hooks.on("fed", function(player: Player, details: any)
 		local r = records[player]
@@ -149,8 +161,6 @@ function Metrics.init()
 		elseif r.feeds == 2 then
 			funnel(player, "SECOND_FEED")
 			step(player, "second_feed", 7)
-		else
-			funnel(player, "FIRST_NEXT_ACTIVITY")
 		end
 	end)
 	Hooks.on("v2_error_recovered", function(player: Player, component: string, reason: string)
