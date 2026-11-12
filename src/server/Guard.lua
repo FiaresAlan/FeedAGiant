@@ -31,7 +31,8 @@ local LIMITS: { [string]: { burst: number, perSecond: number } } = {
 	V2Cook = { burst = 5, perSecond = 2 },
 	V2Lane = { burst = 8, perSecond = 4 },
 	V2Mount = { burst = 5, perSecond = 2 },
-	V2MountInput = { burst = 24, perSecond = 18 }, -- viagem rápida (a espera real de 4 s fica no TravelService)
+	V2MountInput = { burst = 24, perSecond = 18 },
+	V3Guide = { burst = 3, perSecond = 0.5 }, -- viagem rápida (a espera real de 4 s fica no TravelService)
 }
 
 -- true se o jogador ainda pode usar a ação `kind` agora.
