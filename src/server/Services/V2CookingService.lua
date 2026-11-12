@@ -159,8 +159,12 @@ local function begin(player: Player, index: number, recipe: any, mustBeDiscovere
 		startedAtUtc = now,
 		endsAtUtc = now + recipe.seconds,
 	}
+	local newlyDiscovered = data.discoveredRecipeIds[recipe.id] ~= true
 	data.discoveredRecipeIds[recipe.id] = true
 	DataService.markDirty(player)
+	if newlyDiscovered then
+		Hooks.fire("v2_recipe_discovered", player, recipe.id, "combine")
+	end
 	PlotService.pushState(player)
 	V2CookingService.pushState(player)
 	Hooks.fire("v2_cooked", player, recipe.id)
@@ -214,6 +218,7 @@ function V2CookingService.unlockRecipe(player: Player, recipeId: any): boolean
 	end
 	data.discoveredRecipeIds[recipeId] = true
 	DataService.markDirty(player)
+	Hooks.fire("v2_recipe_discovered", player, recipeId, "scroll")
 	V2CookingService.pushState(player)
 	Analytics.event(player, "v2_recipe_unlocked", 1, { recipeId, "scroll" })
 	return true
