@@ -57,18 +57,23 @@ local function offerStarter(player: Player)
 	for _, sp in StarterSpecies.List do
 		table.insert(options, { id = sp.id, name = sp.name, desc = sp.desc, color = sp.color })
 	end
-	-- depois da câmera de chegada (OnboardingV2) e do gigante aparecer
-	task.delay(5, function()
-		if player.Parent and profile.starterSpecies == "?" then
-			Remotes.OnboardingV2:FireClient(player, { kind = "StarterChoice", options = options })
-			Analytics.event(player, "onboarding_phase_started", 4, { "starter_choice" })
-		end
-	end)
+	-- O menu antigo de escolha/chegada nao tem listener na HUD V3.
+	-- Preservar oferta no perfil e o RequestStarter, mas nao disparar UI fantasma.
+	if not Features.on("RebuildV2") then
+		task.delay(5, function()
+			if player.Parent and profile.starterSpecies == "?" then
+				Remotes.OnboardingV2:FireClient(player, { kind = "StarterChoice", options = options })
+				Analytics.event(player, "onboarding_phase_started", 4, { "starter_choice" })
+			end
+		end)
+	end
 end
 
 -- Chamado pelo Main depois que a base e o gigante existem.
 function OnboardingService.onJoin(player: Player)
 	offerStarter(player)
+	-- V3 tem seu proprio cartao de jornada; nao iniciar chegada de camera legada.
+	if Features.on("RebuildV2") then return end
 	if not Features.on("OnboardingV2") then
 		return
 	end
