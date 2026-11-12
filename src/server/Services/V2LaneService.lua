@@ -229,6 +229,7 @@ function Lane.pickup(player: Player, uid: any)
 	cargo.holder = player
 	cargo.carriedAt = os.clock()
 	carried[player] = cargo
+	MountService.playAction(player, "Pickup")
 	Hooks.fire("v2_picked", player, cargo.kind)
 	Analytics.event(player, "v2_cargo_picked", 1, { cargo.kind, cargo.weight })
 	broadcast()
@@ -240,6 +241,7 @@ function Lane.dropFor(player: Player)
 	carried[player] = nil
 	cargo.holder = nil
 	cargo.state = "dropped"
+	MountService.playAction(player, "Drop")
 	cargo.pickableAt = os.clock() + 1
 	cargo.expiresAt = os.clock() + 28
 	local pos = MountService.rootOf(player)
@@ -268,6 +270,7 @@ local function deposit(player: Player)
 		return
 	end
 	-- CRITICO: o credito e a transicao do cargo ocorrem sem yield.
+	MountService.playAction(player, "Drop")
 	cargo.state = "deposited"
 	cargo.holder = nil
 	carried[player] = nil
