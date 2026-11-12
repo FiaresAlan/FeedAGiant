@@ -277,6 +277,11 @@ local function boost(player: Player)
 end
 
 function Mount.init()
+	-- O GiantService/PlotService preserva a verdade economica: reproduzir
+	-- mastigacao apenas depois do evento de alimentacao concluida.
+	Hooks.on("fed", function(player: Player)
+		Mount.playAction(player, "Eat")
+	end)
 	Remotes.V2MountRequest.OnServerEvent:Connect(function(player: Player, action: any)
 		if not Features.on("RebuildV2") or type(action) ~= "string" or not Guard.allow(player, "V2Mount") then return end
 		if action == "mount" then Mount.mount(player)
