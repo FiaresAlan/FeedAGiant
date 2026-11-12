@@ -76,3 +76,36 @@ jobs:
       - name: Execute deterministic cargo, cooking and onboarding tests
         shell: bash
         run: .ci/lune/lune run tools/v3_ci_rules.luau
+
+  rojo-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rojo 7.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            'https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/rojo-7.7.1-linux-x86_64.zip' -o rojo.zip
+          mkdir -p .ci/rojo
+          unzip -q rojo.zip -d .ci/rojo
+          chmod +x .ci/rojo/rojo
+          .ci/rojo/rojo --version
+      - name: Build gameplay and test places without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          .ci/rojo/rojo build default.project.json --output .ci/FeedAGiant-V3-QA.rbxlx
+          .ci/rojo/rojo build test.project.json --output .ci/FeedAGiant-V3-Tests.rbxlx
+          python3 - <<'PY'
+          from pathlib import Path
+          for filename in ('.ci/FeedAGiant-V3-QA.rbxlx', '.ci/FeedAGiant-V3-Tests.rbxlx'):
+              p = Path(filename)
+              assert p.is_file() and p.stat().st_size > 4096, filename
+              print(f'{filename}: {p.stat().st_size:,} bytes; compile OK')
+          content = Path('.ci/FeedAGiant-V3-Tests.rbxlx').read_text(errors='replace')
+          for module in ('V3StoneGolemPrototype', 'V3JourneyService', 'V3FeedPresentation',
+                         'V3CargoRules.spec', 'V3CookRules.spec', 'V3StageRules.spec'):
+              assert module in content, f'Rojo test place missing {module}'
+          PY
