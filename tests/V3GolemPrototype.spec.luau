@@ -25,6 +25,32 @@ return function()
 			expect(motors >= 11).to.equal(true)
 			model:Destroy()
 		end)
+		it("os tres elementos tem mesma estrutura locomotora e silhuetas identificaveis", function()
+			local expected = {
+				stone_starter = "StoneGolem",
+				fire_starter = "FireGiant",
+				ice_starter = "IceGiant",
+			}
+			for species, name in expected do
+				local model = Factory.create(species)
+				expect(model.Name).to.equal(name)
+				expect(model:GetAttribute("V3ProceduralRig")).to.equal(true)
+				expect(model:GetAttribute("V3StudioOnly")).to.equal(true)
+				expect(model:FindFirstChild("ShoulderSeatAnchor", true)).to.be.ok()
+				expect(model:FindFirstChild("CargoCarryAnchor", true)).to.be.ok()
+				local joints = 0
+				for _, inst in model:GetDescendants() do
+					if inst:IsA("Motor6D") then joints += 1 end
+				end
+				expect(joints >= 11).to.equal(true)
+				if species == "fire_starter" then
+					expect(model:FindFirstChild("FlameHorn")).to.be.ok()
+				elseif species == "ice_starter" then
+					expect(model:FindFirstChild("IceShoulderSpire")).to.be.ok()
+				end
+				model:Destroy()
+			end
+		end)
 		it("possui assento e ponto de carga presos a partes articuladas", function()
 			local model = Factory.create()
 			local seat = model:FindFirstChild("ShoulderSeatAnchor", true)
