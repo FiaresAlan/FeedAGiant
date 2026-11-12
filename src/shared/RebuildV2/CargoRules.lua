@@ -40,6 +40,31 @@ function Rules.canDeposit(cargo: any, holder: any): boolean
 	return cargo ~= nil and cargo.state == "carried" and cargo.holder == holder
 end
 
+-- Reserva a transacao ANTES de chamar o adaptador de recompensa.
+-- Nenhum replay, drop ou intercept pode transferir uma carga em processamento.
+function Rules.beginDeposit(cargo: any, holder: any): boolean
+	if not Rules.canDeposit(cargo, holder) then return false end
+	cargo.state = "depositing"
+	return true
+end
+
+function Rules.rollbackDeposit(cargo: any, holder: any): boolean
+	if cargo == nil or cargo.state ~= "depositing" or cargo.holder ~= holder then
+		return false
+	end
+	cargo.state = "carried"
+	return true
+end
+
+function Rules.commitDeposit(cargo: any, holder: any): boolean
+	if cargo == nil or cargo.state ~= "depositing" or cargo.holder ~= holder then
+		return false
+	end
+	cargo.state = "deposited"
+	cargo.holder = nil
+	return true
+end
+
 function Rules.deposit(cargo: any, holder: any): boolean
 	if not Rules.canDeposit(cargo, holder) then
 		return false
