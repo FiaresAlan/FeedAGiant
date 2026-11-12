@@ -6,6 +6,7 @@ local Cook = require("../src/shared/RebuildV2/CookRules")
 local Guide = require("../src/shared/RebuildV2/GuideRules")
 local Stages = require("../src/shared/RebuildV2/StageRules")
 local Run = require("../src/shared/RebuildV2/RunRules")
+local Inventory = require("../src/shared/RebuildV2/InventoryRules")
 
 local checks = 0
 local function test(name, fn)
@@ -65,6 +66,18 @@ test("rollback restaura dropped, sem criar segundo dono", function()
 	assert(Cargo.rollbackReservation(cargo, player, prior))
 	assert(cargo.holder == nil and cargo.state == "dropped")
 	assert(not Cargo.rollbackReservation(cargo, player, prior))
+end)
+
+test("alimentar por UID nao troca de item quando o indice muda", function()
+	local mine = { { id = "apple", uid = "p1" }, { id = "bread", uid = "p2" } }
+	local another = { { id = "cheese", uid = "p3" } }
+	assert(Inventory.findUid(mine, "p2") == 2)
+	table.remove(mine, 1)
+	assert(Inventory.findUid(mine, "p2") == 1)
+	assert(Inventory.findUid(mine, "p3") == nil)
+	assert(Inventory.findUid(another, "p2") == nil)
+	assert(Inventory.findUid(mine, "") == nil)
+	assert(Inventory.findUid(mine, string.rep("z", 81)) == nil)
 end)
 
 test("cozinha nao duplica ingrediente de mesmo UID", function()
