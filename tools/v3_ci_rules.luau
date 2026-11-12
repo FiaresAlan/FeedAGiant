@@ -30,6 +30,33 @@ test("cargo exclusivo durante 100 replays", function()
 	assert(Cargo.reserve(cargo, a) == nil)
 end)
 
+test("deposito reservado e quarentena sao terminalmente idempotentes", function()
+	local owner, rival = { id = 10 }, { id = 11 }
+	local cargo = { uid = "pending", state = "world" }
+	assert(Cargo.reserve(cargo, owner) == "world")
+	assert(Cargo.commitPickup(cargo, owner))
+	assert(Cargo.beginDeposit(cargo, owner))
+	for _ = 1, 100 do
+		assert(not Cargo.beginDeposit(cargo, owner))
+		assert(not Cargo.drop(cargo, owner))
+		assert(not Cargo.beginDeposit(cargo, rival))
+	end
+	assert(Cargo.rollbackDeposit(cargo, owner))
+	assert(Cargo.canDeposit(cargo, owner))
+	assert(Cargo.beginDeposit(cargo, owner))
+	assert(Cargo.quarantineDeposit(cargo, owner))
+	assert(cargo.holder == nil and cargo.state == "quarantined")
+	assert(not Cargo.reserve(cargo, rival))
+	assert(not Cargo.commitDeposit(cargo, owner))
+
+	local second = { uid = "ok", state = "world" }
+	assert(Cargo.reserve(second, owner) == "world")
+	assert(Cargo.commitPickup(second, owner))
+	assert(Cargo.beginDeposit(second, owner))
+	assert(Cargo.commitDeposit(second, owner))
+	assert(not Cargo.commitDeposit(second, owner))
+end)
+
 test("rollback restaura dropped, sem criar segundo dono", function()
 	local player = { id = 3 }
 	local cargo = { uid = "y", state = "dropped" }
