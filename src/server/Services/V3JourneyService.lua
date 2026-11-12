@@ -22,7 +22,8 @@ local function dataOf(player: Player): (any, any)
 	local data = (profile :: any).v3Journey
 	if type(data) ~= "table" then
 		data = fresh()
-		(profile :: any).v3Journey = data
+		local profileData = profile :: any
+		profileData.v3Journey = data
 		DataService.markDirty(player)
 	end
 	if type(data.seen) ~= "table" then data.seen = {}; DataService.markDirty(player) end
