@@ -22,7 +22,6 @@ local firstId: string? = nil
 local secondId: string? = nil
 local chosenRecipe: string? = nil
 local panel: Frame?
-local bookButton: TextButton?
 local potA: TextButton?
 local potB: TextButton?
 local firstBtn: TextButton?
@@ -188,12 +187,8 @@ function Cookbook.init(gui: ScreenGui)
 	if not Features.on("RebuildV2") then
 		return
 	end
-	bookButton = button(gui, "LIVRO\n& PANELAS", UDim2.fromOffset(106, 54), GOLD)
-	bookButton.Name = "V2OpenCookbook"
-	bookButton.TextColor3 = Color3.fromRGB(37, 40, 45)
-	bookButton.AnchorPoint = Vector2.new(1, 0)
-	bookButton.Position = UDim2.new(1, -14, 0, 90)
-	bookButton.ZIndex = 11
+	-- Acesso principal pelo botao RECEITAS da V2Hub, tecla B e prompts das panelas.
+	-- Evita segundo botao redundante no canto que se sobrepoe a HUD em mobile.
 
 	panel = Instance.new("Frame")
 	panel.Name = "V2CookbookPanel"
@@ -323,12 +318,6 @@ function Cookbook.init(gui: ScreenGui)
 	if cam then cam:GetPropertyChangedSignal("ViewportSize"):Connect(adjustLayout) end
 	adjustLayout()
 
-	bookButton.MouseButton1Click:Connect(function()
-		if panel then panel.Visible = not panel.Visible end
-		showRecipeTab = false
-		if updateView then updateView() end
-		Remotes.V2CookRequest:FireServer("snapshot")
-	end)
 	UserInputService.InputBegan:Connect(function(input: InputObject, consumed: boolean)
 		if not consumed and input.KeyCode == Enum.KeyCode.B and panel then
 			panel.Visible = not panel.Visible
