@@ -93,3 +93,22 @@ require(game.ServerScriptService.FwjelaaTests.Runner)()
 O script `tools/V3StudioAudit.luau` deve ser **copiado para Command Bar**, de preferência enquanto o servidor local está em Play. Ele apenas imprime relatório no Output. Sem o Rojo ou importação dos novos arquivos, o teste `V3StoneGolemPrototype.spec.luau` não encontra os módulos necessários.
 
 **Critérios de aprovação mantidos:** nenhum avanço para release até validar no Studio rig, 20 montagens/desmontagens, 2 clientes, Android, 100 replays na rede, recibos e persistência. `RebuildV2 = false` por padrão.
+
+
+## Fechamento do escopo de código 00–08 (sem aprovação de runtime)
+
+A rodada adicional também incluiu:
+
+- `V3StoneGolemPrototype`: Fire/Ice QA com silhuetas distintas no mesmo rig de Pedra; seleção no Studio apenas.
+- `StageRules` e integração ao `GiantService`: três estágios delimitados na base e escala montada padronizada, sem crescimento balão por mordida; `Main.server.lua` ignora decay offline quando V3 está ativa.
+- `V3JourneyService` + `V3Journey` + `GuideRules`: sete metas de onboarding não bloqueantes salvas em slice aditiva; kit de primeira visita V3 inclui duas maçãs, pão e queijo para garantir alimentação e receita.
+- `V2WorldService`: bases com contorno modular e livro/nicho; panelas com bolhas leves, estado no mundo, brilho e sino espacial do banco de sons existente.
+- `V3FeedPresentation` e `V3FeedFeedback`: alimento temporário anexado à mão e mandíbula do rig montado e texto de XP atrasado após mastigar; XP continua 100% no servidor.
+- `V2MetricsService`: eventos server-side e funil estritamente sequencial; inicia com PLAYER_JOINED de primeira visita e não inventa progresso fora de ordem.
+- Inicialização condicional desliga sistemas paralelos (arena, boss, roubo legado, viagens, bots e eventos antigos) somente com V3 ligada; todos os módulos e dados permanecem.
+- Testes adicionais `V3StageRules`, `V3GuideRules`, `V3SourceContract`, mais testes de rigs; **não executados**.
+- `docs/V3_QA_PLAYTEST_MATRIX.md`: guia de execução de 20 casos em Studio/2 clientes/mobile/persistência.
+- `docs/V3_STATIC_VALIDATION.md`: 18/18 conferências **textuais** passaram; não equivalem a compilação ou QA.
+- `docs/V3_RELEASE_CANDIDATE_REPORT.md`: status por fase 00–08, top 5 riscos hipotéticos, assets, evidência ausente, rollback e decisão NO-GO.
+
+**Estado final desta sessão:** PR draft atualizado; sem merge, sem publicação, sem mudanças diretas na experiência oficial, sem gasto de Robux. A aprovação P0 depende da instalação e do place reais, assets e licenças, testes Studio, vídeo, dados persistentes e suporte mobile. Não declarar release candidate pronta.
