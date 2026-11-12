@@ -355,10 +355,13 @@ function Lane.pushSnapshot(player: Player)
 		if cargo.state == "world" or cargo.state == "carried" or cargo.state == "dropped" then table.insert(all, publicCargo(cargo)) end
 	end
 	local r = raceData(player)
+	local base = MapService.getBaseOf(player)
+	local zone = if base then WorldService.DeliveryZones[base.index] else nil
 	Remotes.V2LaneState:FireClient(player, {
 		kind = "snapshot", cargo = all,
 		myCargoUid = if carried[player] then carried[player].uid else nil,
 		deliveries = if r then r.deliveries else 0,
+		homePosition = if zone and zone.Parent then zone.Position else nil,
 	})
 end
 
