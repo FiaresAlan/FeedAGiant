@@ -126,7 +126,8 @@ local function draw()
 	if not panel or not panel.Parent then
 		return
 	end
-	local now = os.time()
+	-- UTC aproximado sincronizado pelo servidor Roblox; nao depender do relogio do celular.
+	local now = math.floor(workspace:GetServerTimeNow())
 	for i, widget in { potA, potB } do
 		if widget then
 			local slot = snapshot.slots[i] or { state = "empty" }
