@@ -3,7 +3,7 @@
 local Guide = {}
 
 Guide.Steps = {
-	{ id = "first_feed", text = "Alimente seu gigante com uma comida da mochila.", action = "feed" },
+	{ id = "first_feed", text = "Escolha o Golem de Pedra e alimente uma maca da mochila.", action = "feed" },
 	{ id = "first_mount", text = "Pressione F (ou MONTAR) perto do gigante.", action = "mount" },
 	{ id = "first_pickup", text = "Va ate a Pista do Banquete e pegue uma carga.", action = "pickup" },
 	{ id = "first_delivery", text = "Volte a sua base e deposite a carga na zona dourada.", action = "deliver" },
