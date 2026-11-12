@@ -63,3 +63,33 @@
 - **Gate 03 (pista/entrega)**: integração de animações do código existente; **sem validação multi-cliente**.
 - **Gate 04 (cozinha)**: controle de descoberta corrigido; **persistência/claim ainda precisam de testes de servidor**.
 - **Publicação**: expressamente bloqueada até autorização independente do proprietário.
+
+
+## Continuação — proteção de cargas, cozinha e experiência de entrega
+
+Alterações incrementais sobre o mesmo PR #5, sem merge:
+
+- `src/shared/RebuildV2/CargoRules.lua`: máquina de estado pura (`world/dropped → reserved → carried → dropped/deposited`), reserva por dono, rollback e entrega única.
+- `src/server/Services/V2LaneService.lua`: reserva antes do attach visual; falha libera reserva; finalização server-authoritative; snapshots têm rate limit; dono recebe contador de entregas atualizado e posição de sua própria zona de depósito.
+- `tests/V3CargoRules.spec.luau`: posse concorrente, rollback, roubo, 100 replays de depósito.
+- `src/server/Services/V2MountService.lua`: inicialização de animação ANTES de prender avatar; falhas de animação isoladas com pcall, para não travar rider nem impedir recompensas.
+- `src/client/Controllers/V2Lane.lua`: informa classe de peso e distância estimada até a base; mensagem de ação separada dos botões inferiores; limite de distância do botão aproxima o valor validado pelo servidor.
+- `src/shared/RebuildV2/CookRules.lua`: seleção de duas instâncias distintas de ingredientes, teste de job válido/READY, e capacidade de inventário.
+- `src/server/Services/V2CookingService.lua`: reutiliza regras puras, gera `jobId` ANTES de debitar ingredientes e continua mutando job+inventário sem yield.
+- `tests/V3CookRules.spec.luau`: receitas com ingrediente repetido, duas panelas independentes, tempo offline, NaN, mochila cheia e 100 replays de claim.
+- `src/client/Controllers/V2Cookbook.lua`: contagem regressiva por `workspace:GetServerTimeNow()` para não confiar no relógio do celular.
+- `tools/V3StudioAudit.luau`: auditoria **somente de leitura** para Command Bar do Roblox Studio, sem publicar ou modificar saves.
+
+**Limite dos testes escritos:** estas specs verificam a lógica pura, não comprovam execução real em Studio, cliente-servidor, persistência/DataStore, física ou UI. O procedimento de 2 clientes + 100 replays em `RemoteEvent` ainda precisa ser executado, pois chamadas diretas do módulo não simulam todos os caminhos da rede.
+
+### Como rodar as specs com o mapeamento correto
+
+`tests/` está mapeada como `ServerScriptService/FwjelaaTests` no **`test.project.json`**, e não no `default.project.json`. Para executar a bateria é necessário abrir **um place de QA** sincronizado pelo mapeamento de testes (ou importar explicitamente o diretório tests na estrutura do Studio). Nesse place, no Command Bar:
+
+~~~luau
+require(game.ServerScriptService.FwjelaaTests.Runner)()
+~~~
+
+O script `tools/V3StudioAudit.luau` deve ser **copiado para Command Bar**, de preferência enquanto o servidor local está em Play. Ele apenas imprime relatório no Output. Sem o Rojo ou importação dos novos arquivos, o teste `V3StoneGolemPrototype.spec.luau` não encontra os módulos necessários.
+
+**Critérios de aprovação mantidos:** nenhum avanço para release até validar no Studio rig, 20 montagens/desmontagens, 2 clientes, Android, 100 replays na rede, recibos e persistência. `RebuildV2 = false` por padrão.
