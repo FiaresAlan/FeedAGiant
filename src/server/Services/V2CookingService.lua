@@ -50,7 +50,8 @@ local function cookData(player: Player): (any, CookData?)
 	-- Todas as alterações/migrações em memória são aditivas; não apagar um job antigo.
 	if type(data) ~= "table" then
 		data = freshData()
-		(profile :: any).v2Cook = data
+		local profileData = profile :: any
+		profileData.v2Cook = data
 		DataService.markDirty(player)
 	end
 	if type(data.slots) ~= "table" then
