@@ -50,7 +50,7 @@
 
 ## 4. Evidências e testes
 
-**Executado:** leitura estática no GitHub, comparação de branches e conferência textual de contratos críticos.  
+**Executado:** leitura estática no GitHub, comparação de branches e conferência textual de contratos críticos. O CI da branch executou análise de sintaxe de **148 arquivos Luau** e validação dos **2 manifests Rojo**; também executou **7 cenários determinísticos de regras** com Lune 0.11.1 (carga, cozinha, guia, estágios e velocidade), ambos aprovados em https://github.com/FiaresAlan/FeedAGiant/actions/runs/43175799589 . Isso não valida a integração com Roblox Studio.  
 **Escrito, NÃO executado:** `V3CargoRules.spec.luau`, `V3CookRules.spec.luau`, `V3StageRules.spec.luau`, `V3GolemPrototype.spec.luau`, `V3GuideRules.spec.luau`, `V3SourceContract.spec.luau`, adições a `V2Core.spec.luau`.  
 **Ainda NÃO executado:** Roblox Studio Play Solo, dois clientes, Android real, emulador Studio, gamepad, 8 players, teste de 100 replays na Remote, DataStore de QA, receipt/regressão, vídeo de rig e animações, FPS/memória e Analytics real.
 
