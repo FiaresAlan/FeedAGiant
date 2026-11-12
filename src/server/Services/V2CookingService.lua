@@ -199,6 +199,7 @@ local function claim(player: Player, index: number, expectedJobId: any)
 	V2CookingService.pushState(player)
 	notify(player, "Prato pronto! Ja esta na sua mochila.")
 	Analytics.event(player, "v2_cook_claimed", 1, { recipe.id, tostring(index) })
+	Hooks.fire("v2_cook_claimed", player, recipe.id)
 end
 
 -- Pergaminhos conquistados na pista: descoberta permanente; repeticao nao gera premio infinito.
