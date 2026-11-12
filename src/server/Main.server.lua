@@ -60,22 +60,22 @@ V2MetricsService.init()
 V3JourneyService.init() -- registra v3Journey antes do inicio de PlayerData
 GiantService.init()
 PlotService.init()
-StealService.init()
+if not Features.on("RebuildV2") then StealService.init() end
 ShopService.init()
 MonetizationService.init()
 LeaderboardService.init()
-EventService.init()
-CombatService.init()
-DropService.init()
-ArenaService.init()
-BossService.init()
-ShieldService.init()
-GiantBattleService.init()
+if not Features.on("RebuildV2") then EventService.init() end
+if not Features.on("RebuildV2") then CombatService.init() end
+if not Features.on("RebuildV2") then DropService.init() end
+if not Features.on("RebuildV2") then ArenaService.init() end
+if not Features.on("RebuildV2") then BossService.init() end
+if not Features.on("RebuildV2") then ShieldService.init() end
+if not Features.on("RebuildV2") then GiantBattleService.init() end
 RosterService.init()
 ProgressService.init()
-MeatService.init()
+if not Features.on("RebuildV2") then MeatService.init() end
 AdminService.init()
-BotService.init()
+if not Features.on("RebuildV2") then BotService.init() end
 ObjectiveHintService.init()
 OnboardingService.init()
 EggService.init()
@@ -83,7 +83,7 @@ EggNotificationService.init() -- só estrutura: não chama a API (bloqueada até
 MutationService.init() -- noite 09/11: mutações no pátio durante os eventos (flag)
 AncestralService.init() -- noite 09/11: Gigante Ancestral, banquete coletivo (flag)
 WelcomeService.init() -- noite 09/11: resumo "Bem-vindo de volta" (flag)
-TravelService.init() -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
+if not Features.on("RebuildV2") then TravelService.init() end -- 09/11: blips de viagem rápida + turbo da ponte do Dragão
 Speed.init() -- 09/11: dono único da velocidade (carga, ponte, Corrida Turbo)
 TutorialService.FinishedHook = OnboardingService.onTutorialFinished
 AdminService.Bots = BotService
