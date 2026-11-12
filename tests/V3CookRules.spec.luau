@@ -50,8 +50,16 @@ return function()
 		it("timestamps invalidos nao antecipam recompensa", function()
 			local slot = { state = "cooking", jobId = "valid", endsAtUtc = 0 / 0 }
 			expect(Rules.isReady(slot, 9999999)).to.equal(false)
+			expect(Rules.remainingSeconds(slot, 9999999)).to.equal(nil)
 			slot.endsAtUtc = "already"
 			expect(Rules.isReady(slot, 9999999)).to.equal(false)
+			expect(Rules.remainingSeconds(slot, 9999999)).to.equal(nil)
+			slot.endsAtUtc = -math.huge
+			expect(Rules.isReady(slot, 9999999)).to.equal(false)
+			expect(Rules.remainingSeconds(slot, 9999999)).to.equal(nil)
+			slot.endsAtUtc = 100
+			expect(Rules.remainingSeconds(slot, 90)).to.equal(10)
+			expect(Rules.remainingSeconds(slot, 101)).to.equal(0)
 		end)
 	end)
 end
