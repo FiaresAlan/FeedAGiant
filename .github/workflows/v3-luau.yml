@@ -109,3 +109,12 @@ jobs:
                          'V3CargoRules.spec', 'V3CookRules.spec', 'V3StageRules.spec'):
               assert module in content, f'Rojo test place missing {module}'
           PY
+      - name: Attach compiled QA places to this GitHub run
+        uses: actions/upload-artifact@v4
+        with:
+          name: FeedAGiant-V3-compiled-QA-places
+          path: |
+            .ci/FeedAGiant-V3-QA.rbxlx
+            .ci/FeedAGiant-V3-Tests.rbxlx
+          if-no-files-found: error
+          retention-days: 7
