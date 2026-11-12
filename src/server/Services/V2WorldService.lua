@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Features = require(ReplicatedStorage.Shared.Features)
 local MapService = require(script.Parent.MapService)
 local AudioAssets = require(ReplicatedStorage.Shared.AudioAssets)
+local CookRules = require(ReplicatedStorage.Shared.RebuildV2.CookRules)
 
 local World = {}
 World.SpawnPoints = {}
@@ -194,10 +195,11 @@ function World.updatePot(player: Player, index: number, slot: any, now: number)
 	local soup = pot and pot:FindFirstChild("Soup")
 	if not soup or not soup:IsA("BasePart") then return end
 	local oldState = soup:GetAttribute("PotState")
-	local ready = slot.state == "ready"
-		or (slot.state == "cooking" and type(slot.endsAtUtc) == "number"
-			and slot.endsAtUtc <= now)
-	local state = if ready then "ready" elseif slot.state == "cooking" then "cooking" else "empty"
+	local ready = CookRules.isReady(slot, now)
+	local remaining = CookRules.remainingSeconds(slot, now)
+	local invalidTime = slot.state == "cooking" and remaining == nil
+	local state = if invalidTime then "invalid" elseif ready then "ready" elseif slot.state == "cooking"
+		then "cooking" else "empty"
 	if oldState ~= state then
 		soup:SetAttribute("PotState", state)
 		soup.Color = if state == "ready" then C.gold elseif state == "cooking"
@@ -219,10 +221,10 @@ function World.updatePot(player: Player, index: number, slot: any, now: number)
 	info = info and info:FindFirstChild("Text")
 	if info and info:IsA("TextLabel") then
 		if state == "cooking" then
-			local remaining = math.max(0, (slot.endsAtUtc or now) - now)
-			info.Text = ("COZINHANDO %ds"):format(remaining)
+			info.Text = ("COZINHANDO %ds"):format(remaining or 0)
 		else
-			info.Text = if state == "ready" then "PRONTO!" else "VAZIA"
+			info.Text = if state == "ready" then "PRONTO!"
+				elseif state == "invalid" then "VERIFICAR JOB" else "VAZIA"
 		end
 	end
 end
